@@ -29,6 +29,7 @@ pydantic-settings
 python-dotenv
 httpx
 tonutils
+ton-core
 
 # Testing
 pytest

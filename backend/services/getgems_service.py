@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Optional
 from loguru import logger
 from backend.core.config import settings
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from tonutils.utils import to_nano
+from ton_core import to_nano
 from tonutils.clients import TonapiClient
 from tonutils.clients.protocol import NetworkGlobalID
 from tonutils.contracts.wallet import WalletV5R1, TONTransferBuilder

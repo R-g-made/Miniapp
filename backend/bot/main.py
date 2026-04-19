@@ -2,6 +2,7 @@ import asyncio
 import sys
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from backend.core.config import settings
 from backend.bot.handlers import common
@@ -9,7 +10,7 @@ from loguru import logger
 
 class BotBuilder:
     def __init__(self, token: str):
-        self.bot = Bot(token=token, parse_mode=ParseMode.HTML)
+        self.bot = Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
         self.dp = Dispatcher()
 
     def with_handlers(self):
