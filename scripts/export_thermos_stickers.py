@@ -7,7 +7,7 @@ from loguru import logger
 # Добавляем корень проекта в PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.thermos_service import thermos_service
+from backend.services.thermos_service import thermos_service
 
 async def export_my_stickers_to_json():
     """

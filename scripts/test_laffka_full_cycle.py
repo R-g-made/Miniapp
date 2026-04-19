@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 # Добавляем корневую директорию проекта в sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.laffka_service import laffka_service
+from backend.services.laffka_service import laffka_service
 from loguru import logger
 from httpx import Response, HTTPStatusError
 

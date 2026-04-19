@@ -12,20 +12,20 @@ from sqlalchemy import select, func, text
 # Add project root to PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.models.base import Base
-from app.models.user import User
-from app.models.referral import Referral
-from app.models.case import Case
-from app.models.associations import CaseItem
-from app.models.sticker import StickerCatalog, UserSticker
-from app.models.transaction import Transaction
-from app.models.enums import Currency, TransactionType, TransactionStatus
-from app.services.case_service import case_service
-from app.services.chance_service import chance_service
-from app.services.wallet_service import WalletService
-from app.core.config import settings
+from backend.models.base import Base
+from backend.models.user import User
+from backend.models.referral import Referral
+from backend.models.case import Case
+from backend.models.associations import CaseItem
+from backend.models.sticker import StickerCatalog, UserSticker
+from backend.models.transaction import Transaction
+from backend.models.enums import Currency, TransactionType, TransactionStatus
+from backend.services.case_service import case_service
+from backend.services.chance_service import chance_service
+from backend.services.wallet_service import WalletService
+from backend.core.config import settings
 
-from app.models.issuer import Issuer
+from backend.models.issuer import Issuer
 
 # Mock TonapiClient to avoid network errors during stress test
 from unittest.mock import MagicMock

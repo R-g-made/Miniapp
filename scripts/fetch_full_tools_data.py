@@ -8,7 +8,7 @@ from loguru import logger
 # Add project root to PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.config import settings
+from backend.core.config import settings
 
 async def fetch_stickers_tools_data():
     url = settings.STICKERS_TOOLS_API_URL

@@ -1,8 +1,8 @@
 import pytest
 import random
 from unittest.mock import patch
-from app.services.auth_service import AuthService
-from app.models.user import User
+from backend.services.auth_service import AuthService
+from backend.models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
 @pytest.mark.asyncio
@@ -31,7 +31,7 @@ async def test_authenticate_new_user(db: AsyncSession):
         assert user.last_login_at is not None
         
         # Проверяем, что пользователь сохранился в БД
-        from app.crud.user import user_repository
+        from backend.crud.user import user_repository
         db_user = await user_repository.get_by_telegram_id(db, random_id)
         assert db_user is not None
         assert db_user.id == user.id
@@ -40,8 +40,8 @@ async def test_authenticate_new_user(db: AsyncSession):
 @pytest.mark.asyncio
 async def test_authenticate_existing_user(db: AsyncSession):
     """Тест обновления данных существующего пользователя с рандомным ID"""
-    from app.crud.user import user_repository
-    from app.schemas.user import UserCreate
+    from backend.crud.user import user_repository
+    from backend.schemas.user import UserCreate
     
     random_id = random.randint(10000000, 99999999)
     

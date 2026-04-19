@@ -6,7 +6,7 @@ from loguru import logger
 # Добавляем корневую директорию проекта в PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.config import settings
+from backend.core.config import settings
 from tonutils.clients import TonapiClient
 from tonutils.clients.protocol import NetworkGlobalID
 from tonutils.contracts.wallet import (

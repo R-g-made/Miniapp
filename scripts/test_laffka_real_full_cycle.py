@@ -6,7 +6,7 @@ from loguru import logger
 # Добавляем корневую директорию проекта в sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.laffka_service import laffka_service
+from backend.services.laffka_service import laffka_service
 
 async def test_laffka_real_full_cycle():
     """
@@ -94,7 +94,7 @@ async def test_laffka_real_full_cycle():
     sticker_type = sticker_obj.get("sticker_type", "offchain")
     
     if sticker_type == "onchain":
-        from app.core.config import settings
+        from backend.core.config import settings
         logger.info(f"🔗 Стикер ончейн, вызываем withdraw_nft на адрес {settings.WALLET_ADDRESS}...")
         withdraw_success = await laffka_service.withdraw_nft(str(sticker_uuid), settings.WALLET_ADDRESS)
     else:
@@ -108,7 +108,7 @@ async def test_laffka_real_full_cycle():
 
 if __name__ == "__main__":
     # Проверка наличия initData
-    from app.core.config import settings
+    from backend.core.config import settings
     if not settings.LAFFKA_INIT_DATA or ("query_id" not in settings.LAFFKA_INIT_DATA and "user=" not in settings.LAFFKA_INIT_DATA):
         logger.error("❌ LAFFKA_INIT_DATA в .env не заполнена или имеет неверный формат!")
         sys.exit(1)

@@ -8,8 +8,8 @@ from uuid import uuid4
 # Add project root to PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.chance_service import chance_service
-from app.core.config import settings
+from backend.services.chance_service import chance_service
+from backend.core.config import settings
 
 async def test_chance_rebalance():
     """

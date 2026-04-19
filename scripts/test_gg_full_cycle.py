@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Мокаем TonapiClient ДО импорта сервиса, чтобы избежать ошибки инициализации
 with patch("tonutils.clients.TonapiClient"):
-    from app.services.getgems_service import getgems_service
+    from backend.services.getgems_service import getgems_service
 
 from loguru import logger
 

@@ -1,9 +1,9 @@
 import pytest
 import json
 from unittest.mock import patch
-from app.core.security import security_service
-from app.schemas.websocket import WSMessageType
-from app.models.enums import WSMessageType as EnumWSMessageType
+from backend.core.security import security_service
+from backend.schemas.websocket import WSMessageType
+from backend.models.enums import WSMessageType as EnumWSMessageType
 
 def test_websocket_unauthorized(ws_client):
     """Тест подключения к WebSocket с невалидным токеном"""

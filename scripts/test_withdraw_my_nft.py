@@ -6,8 +6,8 @@ from loguru import logger
 # Добавляем корневую директорию проекта в PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.config import settings
-from app.services.getgems_service import getgems_service
+from backend.core.config import settings
+from backend.services.getgems_service import getgems_service
 
 async def test_withdraw_specific_nft():
     """

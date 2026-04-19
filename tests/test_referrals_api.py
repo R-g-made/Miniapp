@@ -3,10 +3,10 @@ import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import patch, MagicMock
-from app.models.user import User
-from app.models.referral import Referral
-from app.core.security import security_service
-from app.core.config import settings
+from backend.models.user import User
+from backend.models.referral import Referral
+from backend.core.security import security_service
+from backend.core.config import settings
 import uuid
 
 @pytest_asyncio.fixture
@@ -76,7 +76,7 @@ async def test_withdraw_referral_success(client: AsyncClient, db: AsyncSession, 
     headers = {"Authorization": f"Bearer {token}"}
     
     # 3. Привязываем кошелек (новое требование)
-    from app.models.wallet import Wallet
+    from backend.models.wallet import Wallet
     wallet = Wallet(owner_id=referrer.id, address="EQC__________________________________________", is_active=True)
     db.add(wallet)
     await db.commit()

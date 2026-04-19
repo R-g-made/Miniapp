@@ -7,10 +7,10 @@ from loguru import logger
 # Добавляем корень проекта в PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.db.session import async_session_factory
-from app.models.sticker import StickerCatalog
-from app.services.thermos_service import thermos_service
-from app.core.config import settings
+from backend.db.session import async_session_factory
+from backend.models.sticker import StickerCatalog
+from backend.services.thermos_service import thermos_service
+from backend.core.config import settings
 
 async def sync_thermos_floor():
     """

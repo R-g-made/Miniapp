@@ -7,9 +7,9 @@ from loguru import logger
 # Добавляем корень проекта в PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.db.session import async_session_factory
-from app.models.sticker import StickerCatalog, ThermosMapping
-from app.services.thermos_service import thermos_service
+from backend.db.session import async_session_factory
+from backend.models.sticker import StickerCatalog, ThermosMapping
+from backend.services.thermos_service import thermos_service
 
 async def populate_thermos_mappings():
     """

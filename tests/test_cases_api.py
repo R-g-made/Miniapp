@@ -3,12 +3,12 @@ import pytest_asyncio
 import random
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.case import Case
-from app.models.issuer import Issuer
-from app.models.sticker import StickerCatalog
-from app.models.associations import CaseItem, CaseIssuer
-from app.models.user import User
-from app.core.security import security_service
+from backend.models.case import Case
+from backend.models.issuer import Issuer
+from backend.models.sticker import StickerCatalog
+from backend.models.associations import CaseItem, CaseIssuer
+from backend.models.user import User
+from backend.core.security import security_service
 import uuid
 
 @pytest_asyncio.fixture

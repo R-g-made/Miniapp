@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Мокаем TonapiClient ДО импорта сервиса
 with patch("tonutils.clients.TonapiClient"):
-    from app.services.laffka_service import laffka_service
+    from backend.services.laffka_service import laffka_service
 
 from loguru import logger
 from httpx import Response, HTTPStatusError
