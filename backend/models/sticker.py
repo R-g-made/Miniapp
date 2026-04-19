@@ -34,9 +34,8 @@ class StickerCatalog(UUIDModel):
     
     # Приоритетный маркет для автобая
     priority_market: Mapped[PriorityMarket] = mapped_column(
-        Enum(PriorityMarket), 
-        default=PriorityMarket.LAFFKA,
-        server_default=PriorityMarket.LAFFKA.value
+        Enum(PriorityMarket, values_callable=lambda obj: [e.value for e in obj]), 
+        default=PriorityMarket.LAFFKA
     )
     
     # Флоровая цена
