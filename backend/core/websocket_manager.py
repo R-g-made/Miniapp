@@ -16,10 +16,6 @@ class ConnectionManager:
         # Храним активные соединения: {user_id: [WebSocket, ...]}
         self.active_connections: Dict[str, List[WebSocket]] = {}
         self.pubsub_task: Optional[asyncio.Task] = None
-        
-        # Запускаем pubsub сразу при инициализации менеджера (синглтон)
-        if settings.USE_REDIS:
-            self.pubsub_task = asyncio.create_task(self._setup_pubsub())
 
     async def _setup_pubsub(self):
         """Подписка на канал в Redis для получения сообщений от других процессов"""
@@ -56,6 +52,10 @@ class ConnectionManager:
             self.active_connections[user_id_str] = []
         self.active_connections[user_id_str].append(websocket)
         logger.debug(f"WS Manager: New connection for user {user_id_str}. Total: {len(self.active_connections[user_id_str])}")
+        
+        # Запускаем pubsub при первом подключении, когда цикл событий уже запущен
+        if not self.pubsub_task and settings.USE_REDIS:
+            self.pubsub_task = asyncio.create_task(self._setup_pubsub())
         
         from backend.services.live_drop_service import live_drop_service
         
