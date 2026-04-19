@@ -3,6 +3,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from fastapi import WebSocket
 from backend.core.redis import redis_service
+from backend.core.config import settings
 from backend.schemas.websocket import WSEventMessage, WSMessageType
 from loguru import logger
 
