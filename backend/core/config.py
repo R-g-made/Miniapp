@@ -36,7 +36,7 @@ class Settings(BaseSettings):
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
     
     # Bot
-    BOT_TOKEN: str
+    BOT_TOKEN: str = ""
     BOT_START_IMAGE_URL: str = "https://i.ibb.co/LhY07N7/photo-2026-03-22-21-26-44.jpg"
     BOT_COMMUNITY_URL: str = "https://t.me/stickerloot_community"
     MINI_APP_URL: str = "https://t.me/stickerloot_bot/app"
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     STICKERS_TOOLS_API_URL: str = "https://stickers.tools/api/stats-new"
     
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str = "test-secret-key-for-development-only-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
@@ -99,7 +99,7 @@ class Settings(BaseSettings):
     
     # NFT Transfer Settings
     # В проде эти значения ОБЯЗАТЕЛЬНО должны быть в .env
-    NFT_SENDER_MNEMONIC: str  # 24 слова от кошелька-отправителя
+    NFT_SENDER_MNEMONIC: str = ""  # 24 слова от кошелька-отправителя
     NFT_SENDER_WALLET_VERSION: str = "v5r1"
     USE_NFT_2_0: bool = True
     NFT_FUND_ADDRESS: str = "EQDo0y1Ix8Wzqms84bFjL8Vh51RPaEIYwziBBRIi1NMadXui" # Адрес фонда
