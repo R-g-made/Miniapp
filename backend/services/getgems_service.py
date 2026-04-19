@@ -4,11 +4,6 @@ from typing import List, Dict, Any, Optional
 from loguru import logger
 from backend.core.config import settings
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from tonutils.utils import to_nano
-from tonutils.clients import TonapiClient
-
-from tonutils.contracts.wallet import WalletV5R1, TONTransferBuilder
-from tonutils.contracts.nft import NFTItemStandard, NFTCollectionStandard
 
 class GetGemsService:
     """
@@ -19,14 +14,21 @@ class GetGemsService:
         self.api_token = settings.GETGEMS_API_TOKEN
         self._jwt_token: Optional[str] = None
         self._client = httpx.AsyncClient(timeout=30.0)
-        self._ton_client = TonapiClient(
-            api_key=settings.TON_API_KEY, 
-            network='testnet' if settings.IS_TESTNET else 'mainnet'
-        )
+        self._ton_client = None
+        
+    async def _get_ton_client(self):
+        if self._ton_client is None:
+            from tonutils.clients import TonapiClient
+            self._ton_client = TonapiClient(
+                api_key=settings.TON_API_KEY, 
+                network='testnet' if settings.IS_TESTNET else 'mainnet'
+            )
+        return self._ton_client
 
     async def _ensure_connected(self):
-        if not self._ton_client.connected:
-            await self._ton_client.connect()
+        client = await self._get_ton_client()
+        if not client.connected:
+            await client.connect()
 
     async def _auth(self) -> bool:
         """Авторизация через токен для получения JWT"""
@@ -89,8 +91,12 @@ class GetGemsService:
     async def execute_ton_transfer(self, to: str, amount_nano: int, payload: str) -> Optional[str]:
         """Выполняет перевод TON через серверный кошелек"""
         try:
+            from tonutils.utils import to_nano
+            from tonutils.contracts.wallet import WalletV5R1
+            
+            client = await self._get_ton_client()
             mnemonic_list = settings.NFT_SENDER_MNEMONIC.split()
-            wallet, _, _, _ = WalletV5R1.from_mnemonic(self._ton_client, mnemonic_list)
+            wallet, _, _, _ = WalletV5R1.from_mnemonic(client, mnemonic_list)
             
             tx_hash = await wallet.transfer(
                 destination=to,
@@ -106,12 +112,16 @@ class GetGemsService:
         """Проверяет, владеет ли наш серверный кошелек данным NFT"""
         await self._ensure_connected()
         try:
+            from tonutils.contracts.wallet import WalletV5R1
+            from tonutils.contracts.nft import NFTItemStandard
+            
+            client = await self._get_ton_client()
             mnemonic_list = settings.NFT_SENDER_MNEMONIC.split()
-            wallet, _, _, _ = WalletV5R1.from_mnemonic(self._ton_client, mnemonic_list)
+            wallet, _, _, _ = WalletV5R1.from_mnemonic(client, mnemonic_list)
             our_address = wallet.address.to_str()
             
             # Используем NFTItemStandard для проверки владельца NFT
-            nft_item = await NFTItemStandard.from_address(self._ton_client, nft_address)
+            nft_item = await NFTItemStandard.from_address(client, nft_address)
             return nft_item.owner_address.to_str() == our_address
         except Exception as e:
             logger.error(f"GetGemsService: Failed to verify NFT ownership for {nft_address}: {e}")
@@ -201,12 +211,17 @@ class GetGemsService:
         logger.info(f"GetGemsService: Transferring NFT {nft_address} to {destination_address}...")
         
         try:
+            from tonutils.utils import to_nano, cell_to_hex
+            from tonutils.contracts.wallet import WalletV5R1, TONTransferBuilder
+            from tonutils.contracts.nft import NFTItemStandard, NFTCollectionStandard, NFTTransferBody
+            
+            client = await self._get_ton_client()
             mnemonic_list = settings.NFT_SENDER_MNEMONIC.split()
-            wallet, _, _, _ = WalletV5R1.from_mnemonic(self._ton_client, mnemonic_list)
+            wallet, _, _, _ = WalletV5R1.from_mnemonic(client, mnemonic_list)
             our_address = wallet.address.to_str()
 
             # 1. Получаем данные об NFT один раз
-            nft_item = await NFTItemStandard.from_address(self._ton_client, nft_address)
+            nft_item = await NFTItemStandard.from_address(client, nft_address)
             
             # 2. Проверка владения
             if nft_item.owner_address.to_str() != our_address:
@@ -217,7 +232,7 @@ class GetGemsService:
             royalty_author_address = None
             try:
                 collection_address = nft_item.collection_address
-                collection = await NFTCollectionStandard.from_address(self._ton_client, collection_address)
+                collection = await NFTCollectionStandard.from_address(client, collection_address)
                 royalty = await collection.royalty_params()
                 
                 if royalty and len(royalty) >= 3:
@@ -240,7 +255,6 @@ class GetGemsService:
             messages = []
             
             # Сообщение 1: Перевод NFT (Standard TIP-4 / NFT 2.0)
-            from tonutils.contracts.nft import NFTTransferBody
             nft_transfer_body = NFTTransferBody(
                 destination=destination_address,
                 forward_amount=to_nano(0.01, 9), # Минимальное количество TON для форварда (нотис)

@@ -17,8 +17,6 @@ from backend.core.config import settings
 from backend.core.exceptions import EntityNotFound, InvalidOperation
 from sqlalchemy import select
 
-from tonutils.utils import to_nano
-
 class StickerService:
     async def transfer(
         self,
@@ -227,6 +225,7 @@ class StickerService:
                         continue
 
                 # 4. Запрашиваем покупку через внешний API
+                from tonutils.utils import to_nano
                 purchase_price = (catalog.floor_price_ton * 1.1 if catalog.floor_price_ton else 1.0)
                 purchase_price_nano = to_nano(purchase_price, 9)
                 
