@@ -33,9 +33,10 @@ class StickerCatalog(UUIDModel):
     collection_address: Mapped[str] = mapped_column(String, nullable=True)
     
     # Приоритетный маркет для автобая
-    priority_market: Mapped[PriorityMarket] = mapped_column(
-        Enum(PriorityMarket, values_callable=lambda obj: [e.value for e in obj]), 
-        default=PriorityMarket.LAFFKA
+    priority_market: Mapped[str] = mapped_column(
+        String, 
+        default=PriorityMarket.LAFFKA.value,
+        server_default=PriorityMarket.LAFFKA.value
     )
     
     # Флоровая цена
