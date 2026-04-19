@@ -116,13 +116,15 @@ async def replenish_wallet(
         logger.info(f"API: Generated TON replenishment request for user {current_user.telegram_id}, amount: {nanotons} nanotons")
         
         # Используем ton_core вместо tonutils для формирования BOC
-        from ton_core import Cell, cell_to_base64
+        from ton_core import Cell, cell_to_b64, to_nano
+        
+        nanotons = to_nano(obj_in.amount)
         
         # Создаем простой текстовый комментарий как Cell
         # В TON Connect комментарий - это Cell с 32-битным префиксом 0 и текстом
         comment_cell = Cell().write_uint(0, 32).write_string(transaction_id)
         
-        boc_payload = cell_to_base64(comment_cell.to_boc())
+        boc_payload = cell_to_b64(comment_cell)
         
         return (
             builder
@@ -164,12 +166,12 @@ async def verify_deposit(
     wallet_service = WalletService(db)
     
     tx_hash = obj_in.hash
-    if not tx_hash and getattr(obj_in, 'boc', None):
+    if not tx_hash and obj_in.boc:
         # Если пришел BOC, пытаемся рассчитать хеш из него
         try:
-            from ton_core import Cell, cell_to_hash
+            from ton_core import Cell
             # Рассчитываем хеш внешнего сообщения из BOC
-            tx_hash = cell_to_hash(Cell.one_from_boc(obj_in.boc)).hex()
+            tx_hash = Cell.one_from_boc(obj_in.boc).hash.hex()
         except Exception as e:
             logger.error(f"API: Failed to calculate hash from BOC: {e}")
             
