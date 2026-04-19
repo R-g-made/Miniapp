@@ -19,9 +19,14 @@ class GetGemsService:
     async def _get_ton_client(self):
         if self._ton_client is None:
             from tonutils.clients import TonapiClient
+            
+            network_id = -3 if settings.IS_TESTNET else -239
+            base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
+            
             self._ton_client = TonapiClient(
                 api_key=settings.TON_API_KEY, 
-                network='testnet' if settings.IS_TESTNET else 'mainnet'
+                network=network_id, 
+                base_url=base_url
             )
         return self._ton_client
 
@@ -91,7 +96,7 @@ class GetGemsService:
     async def execute_ton_transfer(self, to: str, amount_nano: int, payload: str) -> Optional[str]:
         """Выполняет перевод TON через серверный кошелек"""
         try:
-            from ton_core import to_nano, cell_to_hex
+            from ton_core import to_nano
             from tonutils.contracts.wallet import WalletV5R1
             
             client = await self._get_ton_client()
@@ -211,7 +216,7 @@ class GetGemsService:
         logger.info(f"GetGemsService: Transferring NFT {nft_address} to {destination_address}...")
         
         try:
-            from ton_core.utils import to_nano, cell_to_hex
+            from ton_core import to_nano
             from tonutils.contracts.wallet import WalletV5R1, TONTransferBuilder
             from tonutils.contracts.nft import NFTItemStandard, NFTCollectionStandard, NFTTransferBody
             
@@ -300,7 +305,8 @@ class GetGemsService:
             elif hasattr(ext_msg, "hash"):
                 tx_hash = ext_msg.hash
             else:
-                tx_hash = cell_to_hex(ext_msg.to_cell().hash)
+                from ton_core import Cell
+                tx_hash = Cell.one_from_boc(ext_msg.to_boc()).hash.hex()
             
             logger.success(f"GetGemsService: NFT 2.0 Transfer initiated. Royalties (0.01 TON each) sent to author, fund, and TG. Hash: {tx_hash}")
             return tx_hash

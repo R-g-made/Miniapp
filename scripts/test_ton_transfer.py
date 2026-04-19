@@ -37,9 +37,13 @@ async def test_ton_transfer():
 
     try:
         # 1. Инициализация клиента
+        network_id = -3 if settings.IS_TESTNET else -239
+        base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
+
         client = TonapiClient(
-            api_key=settings.TON_API_KEY,
-            network='testnet' if settings.IS_TESTNET else 'mainnet'
+            api_key=settings.TON_API_KEY, 
+            network=network_id, 
+            base_url=base_url
         )
         await client.connect()
         
@@ -62,6 +66,7 @@ async def test_ton_transfer():
         logger.info("🔍 Searching for active wallet version...")
         base_url = "https://testnet.tonapi.io" if settings.IS_TESTNET else "https://tonapi.io"
         for version_name, wallet_class in wallet_versions:
+            logger.debug(f"Testing {version_name}...")
             temp_wallet, _, _, _ = wallet_class.from_mnemonic(client, mnemonic_list)
             temp_addr = temp_wallet.address.to_str()
             
@@ -112,7 +117,9 @@ async def test_ton_transfer():
             amount=to_nano(AMOUNT_TON, 9),
             body="Stress Test: 0.30 TON Transfer"
         )
-        tx_hash = ext_msg.hash if hasattr(ext_msg, "hash") else str(ext_msg)
+        
+        from ton_core import Cell
+        tx_hash = Cell.one_from_boc(ext_msg.to_boc()).hash.hex()
 
         if tx_hash:
             logger.success(f"✅ TON Transfer successful! TX Hash: {tx_hash}")

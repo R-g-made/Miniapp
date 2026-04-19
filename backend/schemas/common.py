@@ -19,6 +19,7 @@ class AppConfig(BaseSchema):
     maintenance: bool = False
     min_deposit_amount: float = 1.0
     max_deposit_amount: float = 1000.0
+    ref_percentage: float = 0.05
 
 class BootstrapData(BaseSchema):
     dictionaries: Dictionaries

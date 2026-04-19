@@ -11,7 +11,7 @@
         <div class="promo-line">Invite friends</div>
         <div class="promo-line">
           And earn 
-          <span class="percent-pill">50%</span>
+          <span class="percent-pill">{{ stats.ref_percentage }}%</span>
         </div>
         <div class="promo-line">their fees</div>
       </div>
@@ -92,6 +92,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import lottie from 'lottie-web';
 import api from '../api/client';
+import { useAuthStore } from '../store/auth';
+import { useNotificationStore } from '../store/notification';
 import { connectWallet } from '../api/tonConnect';
 import tonDogsLottie from '@/assets/icons/ton_dogs.json';
 import starsDogsLottie from '@/assets/icons/stars_dogs.json';
@@ -109,6 +111,7 @@ export default {
       locked_stars: 0,
       available_stars: 0,
       available_in_ton: 0,
+      ref_percentage: 5,
       invite_link: ''
     });
 
@@ -124,10 +127,16 @@ export default {
     });
 
     const fetchStats = async () => {
+      const appStore = useAppStore();
+      
       try {
         const response = await api.getReferralStats();
         // Благодаря перехватчику в api/client.js, response.data — это уже объект ReferralStats
         const data = response.data;
+        
+        // Используем процент из статистики, если он есть, иначе из общего конфига
+        const refRate = data.ref_percentage || appStore.config.ref_percentage || 0.05;
+
         stats.value = {
           count: data.total_invited,
           total_ton: data.ton.total_earned,
@@ -136,8 +145,9 @@ export default {
           locked_stars: data.stars.locked_balance,
           available_stars: data.stars.available_balance,
           available_in_ton: data.stars.available_in_ton,
+          ref_percentage: refRate * 100, // Конвертируем 0.05 в 5
           // Собираем ссылку (можно подтянуть юзернейм бота из настроек в будущем)
-          invite_link: `https://t.me/bot_name/app?startapp=${data.referral_code}`
+          invite_link: `https://t.me/stickerloot_bot/app?startapp=${data.referral_code}`
         };
       } catch (e) {
         console.error("Fetch referral stats failed", e);
@@ -149,28 +159,38 @@ export default {
     };
 
     const handleWithdraw = async () => {
+      const authStore = useAuthStore();
+      const notificationStore = useNotificationStore();
+      
       try {
         // Определяем сумму вывода: для TON — доступный баланс, для STARS — только доступная
         const amountToWithdraw = activeRefCurrency.value === 'TON' ? stats.value.available_ton : stats.value.available_stars;
+        const minAmount = activeRefCurrency.value === 'TON' ? 0.1 : 10;
         
-        if (!amountToWithdraw || parseFloat(amountToWithdraw) <= 0) return;
+        if (!amountToWithdraw || parseFloat(amountToWithdraw) < minAmount) {
+          notificationStore.error('Withdrawal error', `Minimum amount to withdraw is ${minAmount} ${activeRefCurrency.value}`);
+          window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
+          return;
+        }
 
         // Отправляем запрос на бэкенд
         await api.withdrawReferrals({
-          amount: parseFloat(amountToWithdraw), // Явно приводим к числу
+          amount: parseFloat(amountToWithdraw),
           currency: activeRefCurrency.value
         });
         
         // Показываем уведомление и обновляем стату
+        notificationStore.success('Success', `Withdrawal of ${amountToWithdraw} ${activeRefCurrency.value} initiated!`);
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
         fetchStats();
       } catch (e) {
         console.error("Withdrawal failed", e);
         
-        // Если ошибка "Wallet not connected", вызываем привязку кошелька
-        if (e.response?.data?.detail?.includes("Wallet not connected") || 
-            e.response?.data?.message?.includes("Wallet not connected")) {
+        const errorDetail = e.response?.data?.detail;
+        if (errorDetail && errorDetail.includes("Wallet not connected")) {
           connectWallet();
+        } else if (errorDetail) {
+          notificationStore.error('Withdrawal failed', errorDetail);
         }
         
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
@@ -245,8 +265,8 @@ export default {
 
 .ref-promo-card {
   width: 100%;
-  background: linear-gradient(66.50deg, rgba(35, 165, 254, 0.1) 11.94%, rgba(35, 165, 254, 0.1) 88.06%);
   border-radius: 43px; /* Закругление 43 */
+  background: var(--Test, linear-gradient(66.50deg, rgba(32, 30, 41, 1),rgba(40, 37, 59, 1)));
   padding: 25px 15px 15px 15px;
   display: flex;
   flex-direction: column;
@@ -256,7 +276,7 @@ export default {
 }
 
 .ref-promo-card.is-stars {
-  background: linear-gradient(66.50deg, rgba(254, 188, 35, 0.1) 11.94%,rgba(254, 107, 35, 0.1) 88.06%);
+  background: var(--Test, linear-gradient(66.50deg, rgba(32, 30, 41, 1),rgba(40, 37, 59, 1)));
 }
 
 .ref-header {

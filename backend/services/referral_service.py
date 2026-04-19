@@ -95,6 +95,12 @@ class ReferralService:
             remaining_to_withdraw = amount_to_check
             reward_attr = Referral.reward_stars_available if is_stars_conversion else Referral.reward_ton
             
+            # Проверка минимальной суммы (0.1 TON или 10 Stars)
+            min_amount = 10.0 if is_stars_conversion else 0.1
+            if amount_to_check < min_amount:
+                logger.warning(f"ReferralService: Withdrawal amount too small. Min: {min_amount}, Requested: {amount_to_check}")
+                raise InvalidOperation(f"Minimum withdrawal amount is {min_amount} {currency_to_check}")
+
             stmt_records = select(Referral).where(Referral.referrer_id == user.id, reward_attr > 0).with_for_update()
             res_records = await self.db.execute(stmt_records)
             referral_records = res_records.scalars().all()
@@ -117,10 +123,16 @@ class ReferralService:
             from tonutils.clients import TonapiClient
             from tonutils.contracts.wallet import WalletV5R1
             
+            # Используем -239 для mainnet и -3 для testnet для корректного subwallet_id
+            network_id = -3 if settings.IS_TESTNET else -239
+            base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
+
             client = TonapiClient(
                 api_key=settings.TON_API_KEY, 
-                network='testnet' if settings.IS_TESTNET else 'mainnet'
+                network=network_id, 
+                base_url=base_url
             )
+            await client.connect()
             
             mnemonic_list = settings.NFT_SENDER_MNEMONIC.split()
             if len(mnemonic_list) < 12:

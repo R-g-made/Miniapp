@@ -37,6 +37,10 @@ async def bootstrap(
     current_options = SORTING_OPTIONS.get(lang, SORTING_OPTIONS[Language.EN])
     builder.with_sorting_options(current_options)
     
-    builder.with_config(maintenance=False, min_deposit=settings.MIN_DEPOSIT)
+    builder.with_config(
+        maintenance=False, 
+        min_deposit=settings.MIN_DEPOSIT,
+        ref_percentage=settings.REFERRAL_PERCENTAGE
+    )
     
     return builder.build()

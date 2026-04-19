@@ -31,9 +31,16 @@ class WalletService:
     async def _get_ton_client(self):
         if self._ton_client is None:
             from tonutils.clients import TonapiClient
+            
+            # В новых версиях tonutils для корректного расчета subwallet_id (особенно V5)
+            # нужно передавать network как int: -239 для mainnet, -3 для testnet
+            network_id = -3 if settings.IS_TESTNET else -239
+            base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
+            
             self._ton_client = TonapiClient(
-                api_key=settings.TON_API_KEY,
-                network='testnet' if settings.IS_TESTNET else 'mainnet'
+                api_key=settings.TON_API_KEY, 
+                network=network_id, 
+                base_url=base_url
             )
         return self._ton_client
 
@@ -340,6 +347,12 @@ class WalletService:
         remaining_to_withdraw = amount
         reward_attr = Referral.reward_ton if currency == Currency.TON else Referral.reward_stars_available
         
+        # Проверка минимальной суммы (0.1 TON или 10 Stars)
+        min_amount = 10.0 if currency == Currency.STARS else 0.1
+        if amount < min_amount:
+            logger.warning(f"WalletService: Withdrawal amount too small. Min: {min_amount}, Requested: {amount}")
+            return None
+
         # Lock records for update
         stmt_records = select(Referral).where(Referral.referrer_id == user.id, reward_attr > 0).with_for_update()
         res_records = await self.db.execute(stmt_records)
