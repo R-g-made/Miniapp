@@ -116,13 +116,18 @@ async def replenish_wallet(
         logger.info(f"API: Generated TON replenishment request for user {current_user.telegram_id}, amount: {nanotons} nanotons")
         
         # Используем ton_core вместо tonutils для формирования BOC
-        from ton_core import Cell, cell_to_b64, to_nano
+        from ton_core import begin_cell, cell_to_b64, to_nano
         
         nanotons = to_nano(obj_in.amount)
         
         # Создаем простой текстовый комментарий как Cell
         # В TON Connect комментарий - это Cell с 32-битным префиксом 0 и текстом
-        comment_cell = Cell().write_uint(0, 32).write_string(transaction_id)
+        comment_cell = (
+            begin_cell()
+            .store_uint(0, 32)
+            .store_string(transaction_id)
+            .end_cell()
+        )
         
         boc_payload = cell_to_b64(comment_cell)
         
