@@ -1,0 +1,35 @@
+# FastAPI
+fastapi[all]
+uvicorn[standard]
+gunicorn
+
+# Database
+sqlalchemy[asyncio]
+asyncpg
+aiosqlite
+alembic
+
+# Bot
+aiogram
+
+# Redis
+redis
+
+# Security
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+pynacl
+
+# Utilities
+loguru
+tenacity
+apscheduler
+pydantic-settings
+python-dotenv
+httpx
+tonutils
+
+# Testing
+pytest
+pytest-asyncio
