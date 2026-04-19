@@ -12,7 +12,7 @@ from backend.core.exceptions import InsufficientFunds, InvalidOperation, EntityN
 import uuid
 import asyncio
 from loguru import logger
-from ton_core import to_nano
+from tonutils.utils import to_nano
 
 # Tonutils imports
 from tonutils.clients import TonapiClient
@@ -114,13 +114,13 @@ class ReferralService:
             )
             
             # Получаем хеш транзакции
-            from ton_core import cell_to_hash
+            from tonutils.utils import cell_to_hex
             if hasattr(ext_msg, "normalized_hash"):
-                tx_hash = ext_msg.normalized_hash.hex() if hasattr(ext_msg.normalized_hash, 'hex') else str(ext_msg.normalized_hash)
+                tx_hash = ext_msg.normalized_hash
             elif hasattr(ext_msg, "hash"):
-                tx_hash = ext_msg.hash.hex() if hasattr(ext_msg.hash, 'hex') else str(ext_msg.hash)
+                tx_hash = ext_msg.hash
             else:
-                tx_hash = cell_to_hash(ext_msg.to_cell()).hex()
+                tx_hash = cell_to_hex(ext_msg.to_cell().hash)
             
             logger.info(f"ReferralService: Blockchain transfer successful. Hash: {tx_hash}")
 

@@ -21,7 +21,7 @@ import httpx
 from backend.core.config import settings
 from tonutils.clients import TonapiClient
 from tonutils.clients.protocol import NetworkGlobalID
-from ton_core import to_nano
+from tonutils.utils import to_nano
 
 def from_nano(amount: int) -> float:
     return float(amount) / 10**9

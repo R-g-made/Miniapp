@@ -13,7 +13,7 @@ from tonutils.contracts.wallet import (
     WalletV4R2, WalletV3R2, WalletV4R1, WalletV3R1, 
     WalletV5R1, WalletV5Beta
 )
-from ton_core import to_nano
+from tonutils.utils import to_nano
 
 async def test_ton_transfer():
     """
