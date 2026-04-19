@@ -91,7 +91,7 @@ class GetGemsService:
     async def execute_ton_transfer(self, to: str, amount_nano: int, payload: str) -> Optional[str]:
         """Выполняет перевод TON через серверный кошелек"""
         try:
-            from tonutils.utils import to_nano
+            from ton_core.utils import to_nano, cell_to_hex
             from tonutils.contracts.wallet import WalletV5R1
             
             client = await self._get_ton_client()
@@ -211,7 +211,7 @@ class GetGemsService:
         logger.info(f"GetGemsService: Transferring NFT {nft_address} to {destination_address}...")
         
         try:
-            from tonutils.utils import to_nano, cell_to_hex
+            from ton_core.utils import to_nano, cell_to_hex
             from tonutils.contracts.wallet import WalletV5R1, TONTransferBuilder
             from tonutils.contracts.nft import NFTItemStandard, NFTCollectionStandard, NFTTransferBody
             

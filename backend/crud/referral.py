@@ -32,12 +32,18 @@ class ReferralRepository(BaseRepository[Referral]):
         # Заблокированные Stars (locked)
         stars_locked_query = select(func.sum(Referral.reward_stars_locked)).where(Referral.referrer_id == user_id)
         locked_stars = await db.scalar(stars_locked_query) or 0.0
+
+        # Доступные Stars
+        stars_available_query = select(func.sum(Referral.reward_stars_available)).where(Referral.referrer_id == user_id)
+        available_stars = await db.scalar(stars_available_query) or 0.0
         
         return {
             "total_invited": total_invited,
             "total_ton": total_ton,
+            "available_ton": total_ton, # Для TON у нас пока нет разделения на locked/available в модели
             "total_stars": total_stars,
-            "locked_stars": locked_stars
+            "locked_stars": locked_stars,
+            "available_stars": available_stars
         }
 
     async def get_available_balance(self, db: AsyncSession, user_id: UUID, currency: str) -> float:

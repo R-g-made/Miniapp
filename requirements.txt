@@ -28,6 +28,7 @@ apscheduler
 pydantic-settings
 python-dotenv
 httpx
+ton-core
 tonutils
 
 # Testing

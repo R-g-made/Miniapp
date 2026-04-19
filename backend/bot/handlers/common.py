@@ -72,10 +72,11 @@ async def successful_payment_handler(message: types.Message):
                     type=WSMessageType.BALANCE_UPDATE,
                     data={
                         "currency": "STARS",
-                        "new_balance": new_balance,
-                        "added_amount": stars_amount
+                        "new_balance": float(new_balance),
+                        "added_amount": float(stars_amount)
                     }
                 )
             )
+            logger.info(f"Stars Payment: Sent WS balance update to user {user.id}")
         else:
             logger.error(f"Stars Payment: User {message.from_user.id} not found in database.")

@@ -113,7 +113,7 @@ class ReferralService:
                 self.db.add(rec)
 
             # 3. Выполняем перевод в блокчейне
-            from tonutils.utils import to_nano, cell_to_hex
+            from ton_core import to_nano, cell_to_hash
             from tonutils.clients import TonapiClient
             from tonutils.contracts.wallet import WalletV5R1
             
@@ -148,7 +148,7 @@ class ReferralService:
             elif hasattr(ext_msg, "hash"):
                 tx_hash = ext_msg.hash
             else:
-                tx_hash = cell_to_hex(ext_msg.to_cell().hash)
+                tx_hash = cell_to_hash(ext_msg.to_cell()).hex()
             
             logger.info(f"ReferralService: Blockchain transfer successful. Hash: {tx_hash}")
 

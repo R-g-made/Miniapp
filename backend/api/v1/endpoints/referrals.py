@@ -35,11 +35,11 @@ async def get_referral_stats(
         .with_total_invited(base_stats["total_invited"])
         .with_ton_stats(
             total_earned=base_stats["total_ton"],
-            available_balance=current_user.balance_ton
+            available_balance=base_stats["available_ton"]
         )
         .with_stars_stats(
             total_earned=base_stats["total_stars"],
-            available_balance=current_user.balance_stars,
+            available_balance=base_stats["available_stars"],
             locked_balance=base_stats["locked_stars"]
         )
         .build()

@@ -14,6 +14,39 @@ class ConnectionManager:
     def __init__(self):
         # Храним активные соединения: {user_id: [WebSocket, ...]}
         self.active_connections: Dict[str, List[WebSocket]] = {}
+        self.pubsub_task: Optional[asyncio.Task] = None
+        
+        # Запускаем pubsub сразу при инициализации менеджера (синглтон)
+        if settings.USE_REDIS:
+            self.pubsub_task = asyncio.create_task(self._setup_pubsub())
+
+    async def _setup_pubsub(self):
+        """Подписка на канал в Redis для получения сообщений от других процессов"""
+        if not settings.USE_REDIS:
+            return
+            
+        try:
+            redis_client = await redis_service.connect()
+            pubsub = redis_client.pubsub()
+            await pubsub.subscribe("ws_events")
+            
+            logger.info("WS Manager: Subscribed to Redis channel 'ws_events'")
+            
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    data = json.loads(message["data"])
+                    target_user_id = data.get("target_user_id")
+                    message_obj = WSEventMessage(**data["message"])
+                    
+                    if target_user_id:
+                        await self._local_send_to_user(target_user_id, message_obj)
+                    else:
+                        await self._local_broadcast(message_obj)
+        except Exception as e:
+            logger.error(f"WS Manager: Redis Pub/Sub error: {e}")
+            await asyncio.sleep(5)
+            # Рекурсивный перезапуск при ошибке
+            asyncio.create_task(self._setup_pubsub())
 
     async def connect(self, websocket: WebSocket, user_id: str):
         await websocket.accept()
@@ -47,28 +80,50 @@ class ConnectionManager:
     # --- Публичные методы для отправки событий ---
 
     async def broadcast(self, message: WSEventMessage):
-        """Отправить сообщение ВСЕМ подключенным пользователям (in-memory)"""
+        """Отправить сообщение ВСЕМ подключенным пользователям (через Redis если включен)"""
+        if settings.USE_REDIS:
+            redis_client = await redis_service.connect()
+            payload = json.dumps({
+                "target_user_id": None,
+                "message": message.model_dump()
+            })
+            await redis_client.publish("ws_events", payload)
+        else:
+            await self._local_broadcast(message)
+
+    async def send_to_user(self, user_id: str, message: WSEventMessage):
+        """Отправить персональное сообщение пользователю (через Redis если включен)"""
+        if settings.USE_REDIS:
+            redis_client = await redis_service.connect()
+            payload = json.dumps({
+                "target_user_id": str(user_id),
+                "message": message.model_dump()
+            })
+            await redis_client.publish("ws_events", payload)
+        else:
+            await self._local_send_to_user(user_id, message)
+
+    async def _local_broadcast(self, message: WSEventMessage):
+        """Внутренний метод для локальной рассылки"""
         payload = message.model_dump_json()
-        logger.debug(f"WS Manager: Broadcasting message {message.type}")
         for user_id, user_connections in self.active_connections.items():
             for websocket in user_connections:
                 try:
                     await websocket.send_text(payload)
                 except Exception as e:
-                    logger.warning(f"WS Manager: Failed broadcast to {user_id}: {e}")
+                    logger.warning(f"WS Manager: Failed local broadcast to {user_id}: {e}")
                     continue
 
-    async def send_to_user(self, user_id: str, message: WSEventMessage):
-        """Отправить персональное сообщение пользователю (in-memory)"""
+    async def _local_send_to_user(self, user_id: str, message: WSEventMessage):
+        """Внутренний метод для локальной отправки пользователю"""
         user_id_str = str(user_id)
         if user_id_str in self.active_connections:
             payload = message.model_dump_json()
-            logger.debug(f"WS Manager: Sending {message.type} to user {user_id_str}")
             for websocket in self.active_connections[user_id_str]:
                 try:
                     await websocket.send_text(payload)
                 except Exception as e:
-                    logger.warning(f"WS Manager: Failed direct send to {user_id_str}: {e}")
+                    logger.warning(f"WS Manager: Failed local direct send to {user_id_str}: {e}")
                     continue
 
     async def listen_and_deliver(self, websocket: WebSocket, user_id: str):

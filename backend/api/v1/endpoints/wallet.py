@@ -115,18 +115,14 @@ async def replenish_wallet(
         
         logger.info(f"API: Generated TON replenishment request for user {current_user.telegram_id}, amount: {nanotons} nanotons")
         
-        from tonutils.utils import cell_to_base64
-        from tonutils.contracts.wallet import TONTransferBuilder
+        # Используем ton_core вместо tonutils для формирования BOC
+        from ton_core import Cell, cell_to_base64
         
-        # Создаем комментарий в формате TON BOC
-        # TON Connect ожидает payload как base64 BOC
-        comment_cell = TONTransferBuilder(
-            destination=settings.MERCHANT_TON_ADDRESS,
-            amount=nanotons,
-            body=transaction_id
-        ).body
+        # Создаем простой текстовый комментарий как Cell
+        # В TON Connect комментарий - это Cell с 32-битным префиксом 0 и текстом
+        comment_cell = Cell().write_uint(0, 32).write_string(transaction_id)
         
-        boc_payload = cell_to_base64(comment_cell)
+        boc_payload = cell_to_base64(comment_cell.to_boc())
         
         return (
             builder
@@ -171,15 +167,9 @@ async def verify_deposit(
     if not tx_hash and getattr(obj_in, 'boc', None):
         # Если пришел BOC, пытаемся рассчитать хеш из него
         try:
-            from tonutils.utils import cell_to_hex
-            # В TON Connect BOC - это внешнее сообщение. 
-            # Нам нужно рассчитать его хеш.
-            # Но проще пока просто попросить пользователя подождать или использовать хеш если есть.
-            # Если нет библиотеки для парсинга BOC на сервере кроме tonutils, 
-            # используем её.
-            # В tonutils пока нет прямого метода для хеша из BOC строки без парсинга, 
-            # но мы можем попробовать.
-            pass 
+            from ton_core import Cell, cell_to_hash
+            # Рассчитываем хеш внешнего сообщения из BOC
+            tx_hash = cell_to_hash(Cell.one_from_boc(obj_in.boc)).hex()
         except Exception as e:
             logger.error(f"API: Failed to calculate hash from BOC: {e}")
             

@@ -184,7 +184,7 @@ class WalletService:
                 logger.error(f"Failed to create Stars invoice: {error_msg}")
                 raise InvalidOperation(f"Telegram API Error: {error_msg}")
             
-            # Создаем запись о транзакции в БД
+            # 5. Создаем запись о транзакции в БД
             transaction = Transaction(
                 user_id=user.id,
                 amount=float(amount),
@@ -193,7 +193,13 @@ class WalletService:
                 status=TransactionStatus.PENDING,
                 details={"transaction_id": transaction_id}
             )
+            
+            # Для теста: если сумма мала, можно сразу зачислить (но в продакшене ждем коллбэк от бота)
+            # user.balance_stars = float(user.balance_stars) + float(amount)
+            # transaction.status = TransactionStatus.COMPLETED
+            
             self.db.add(transaction)
+            self.db.add(user)
             await self.db.commit()
             
             return result["result"] # This is the invoice link
@@ -283,6 +289,8 @@ class WalletService:
             from backend.core.websocket_manager import manager
             from backend.schemas.websocket import WSEventMessage
             from backend.models.enums import WSMessageType
+            
+            logger.info(f"WalletService: Sending balance update via WS to user {user.id}")
             await manager.send_to_user(
                 user_id=str(user.id),
                 message=WSEventMessage(
