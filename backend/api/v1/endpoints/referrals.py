@@ -74,24 +74,21 @@ async def withdraw_referrals(
             address=wallet.address
         )
     else:
-        # Для Stars используем WalletService (так как там общая логика конвертации)
-        from backend.services.wallet_service import WalletService
-        wallet_service = WalletService(db)
-        transaction = await wallet_service.create_withdrawal_request(
-            user=current_user,
-            amount=obj_in.amount,
-            currency=obj_in.currency,
-            address=wallet.address
-        )
-        if not transaction:
-            raise InsufficientFunds(currency=obj_in.currency.value)
+        # Для Stars конвертируем в TON и выводим через ReferralService
+        referral_service = ReferralService(db)
+        # Конвертируем звезды в TON для реальной выплаты
+        amount_ton = obj_in.amount * settings.STARS_TO_TON_RATE
         
-        result = {
-            "status": "success",
-            "transaction_id": str(transaction.id),
-            "amount": obj_in.amount,
-            "currency": obj_in.currency.value
-        }
+        result = await referral_service.withdraw_ton(
+             user=current_user,
+             amount=amount_ton,
+             address=current_user.wallet_address,
+             is_stars_conversion=True,
+             stars_amount=obj_in.amount
+         )
+        
+        if not result:
+            raise InsufficientFunds(currency=obj_in.currency.value)
     
     logger.info(f"API: Withdrawal successful for user {current_user.telegram_id}. Result: {result}")
     

@@ -13,6 +13,8 @@
 </template>
 
 <script>
+import { watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from './store/auth';
 import { useAppStore } from './store/app';
 import { wsService } from './api/websocket';
@@ -26,6 +28,30 @@ export default {
   setup() {
     const authStore = useAuthStore();
     const appStore = useAppStore();
+    const router = useRouter();
+    const route = useRoute();
+
+    // Обработка кнопки "Назад" в Telegram
+    const setupBackButton = () => {
+      const tg = window.Telegram?.WebApp;
+      if (!tg) return;
+
+      const backButton = tg.BackButton;
+
+      watch(() => route.path, (newPath) => {
+        if (newPath === '/' || newPath === '/home') {
+          backButton.hide();
+        } else {
+          backButton.show();
+        }
+      });
+
+      backButton.onClick(() => {
+        router.back();
+      });
+    };
+
+    setupBackButton();
 
     const openDeposit = () => {
       appStore.setDepositOpen(true);

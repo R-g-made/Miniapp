@@ -32,7 +32,7 @@
         </div>
       </div>
 
-      <!-- Два блока статистики -->
+      <!-- Блоки статистики -->
       <div class="stats-row">
         <div class="stat-box">
           <div class="stat-value-row">
@@ -46,29 +46,27 @@
           <span class="stat-number">{{ stats.count || 0 }}</span>
           <div class="stat-label">Totaly Invited</div>
         </div>
-      </div>
-
-      <!-- Блок замороженных звезд (появляется только для STARS) -->
-      <Transition name="fade-slide">
-        <div v-if="activeRefCurrency === 'STARS'" class="locked-stars-box">
-          <span class="locked-label">21d locked</span>
-          <div class="locked-value">
-            <img src="@/assets/icons/star.svg" alt="STARS" class="stat-curr-icon small">
-            <span class="stat-number small">{{ stats.locked_stars || 0 }}</span>
+        <div class="stat-box" v-if="activeRefCurrency === 'STARS'">
+          <div class="stat-value-row">
+            <img src="@/assets/icons/star.svg" alt="STARS" class="stat-curr-icon">
+            <span class="stat-number">{{ stats.locked_stars || 0 }}</span>
           </div>
+          <div class="stat-label">21d locked</div>
         </div>
-      </Transition>
+      </div>
 
       <!-- Блок вывода -->
       <div class="withdraw-box clickable" @click="handleWithdraw">
-        <div class="withdraw-left">
-          <img v-if="activeRefCurrency === 'TON'" src="@/assets/icons/ton.svg" alt="TON" class="withdraw-curr-icon">
-          <img v-else src="@/assets/icons/star.svg" alt="STARS" class="withdraw-curr-icon">
-          <span class="withdraw-number">{{ activeRefCurrency === 'TON' ? (stats.available_ton || 0) : (stats.available_stars || 0) }}</span>
-        </div>
-        <div v-if="activeRefCurrency === 'STARS'" class="ton-pill">
-          <img src="@/assets/icons/ton.svg" alt="TON" class="ton-pill-icon">
-          <span class="ton-pill-text">{{ stats.available_in_ton || 0 }}</span>
+        <div class="withdraw-main">
+          <div class="withdraw-left">
+            <img v-if="activeRefCurrency === 'TON'" src="@/assets/icons/ton.svg" alt="TON" class="withdraw-curr-icon">
+            <img v-else src="@/assets/icons/star.svg" alt="STARS" class="withdraw-curr-icon">
+            <span class="withdraw-number">{{ activeRefCurrency === 'TON' ? (stats.available_ton || 0) : (stats.available_stars || 0) }}</span>
+          </div>
+          <div v-if="activeRefCurrency === 'STARS'" class="ton-pill">
+            <img src="@/assets/icons/ton.svg" alt="TON" class="ton-pill-icon">
+            <span class="ton-pill-text">{{ stats.available_in_ton || 0 }}</span>
+          </div>
         </div>
         <img src="@/assets/icons/withdraw.svg" alt="Withdraw" class="withdraw-icon">
       </div>
@@ -449,7 +447,12 @@ export default {
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
-  gap: 12px;
+}
+
+.withdraw-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .withdraw-box.clickable {

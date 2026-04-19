@@ -63,30 +63,60 @@ class ReferralService:
         except Exception as e:
             logger.exception(f"ReferralService: Unexpected error processing referral: {e}")
 
-    async def withdraw_ton(self, user: User, amount: float, address: str) -> dict:
+    async def withdraw_ton(
+        self, 
+        user: User, 
+        amount: float, 
+        address: str, 
+        is_stars_conversion: bool = False, 
+        stars_amount: float = 0
+    ) -> dict:
         """
         Вывод реферальных вознаграждений в TON через tonutils.
         """
         logger.info(f"ReferralService: Withdrawal request from {user.telegram_id}: {amount} TON to {address}")
-        
-        # Импортируем tonutils только при необходимости
-        from tonutils.utils import to_nano, cell_to_hex
-        from tonutils.clients import TonapiClient
-        from tonutils.contracts.wallet import WalletV5R1
-        
-        # Lock user for balance update
-        user = await user_service.get_locked(self.db, user.id)
-        if not user:
-            raise EntityNotFound("User not found")
-            
-        if amount <= 0:
-            raise InvalidOperation("Amount must be greater than 0")
-
-        if user.balance_ton < amount:
-            logger.warning(f"ReferralService: Insufficient funds for {user.telegram_id}. Has: {user.balance_ton}, Needs: {amount}")
-            raise InsufficientFunds(currency="TON")
 
         try:
+            # 1. Проверяем доступный баланс в зависимости от типа
+            from backend.crud.referral import referral_repository
+            from backend.models.referral import Referral
+            
+            currency_to_check = "STARS" if is_stars_conversion else "TON"
+            available = await referral_repository.get_available_balance(
+                self.db, user_id=user.id, currency=currency_to_check
+            )
+            
+            amount_to_check = stars_amount if is_stars_conversion else amount
+            if available < amount_to_check:
+                logger.warning(f"ReferralService: Insufficient {currency_to_check} balance. Available: {available}, Requested: {amount_to_check}")
+                raise InsufficientFunds(currency=currency_to_check)
+
+            # 2. Списываем баланс из реферальных записей
+            remaining_to_withdraw = amount_to_check
+            reward_attr = Referral.reward_stars_available if is_stars_conversion else Referral.reward_ton
+            
+            stmt_records = select(Referral).where(Referral.referrer_id == user.id, reward_attr > 0).with_for_update()
+            res_records = await self.db.execute(stmt_records)
+            referral_records = res_records.scalars().all()
+            
+            for rec in referral_records:
+                if remaining_to_withdraw <= 0:
+                    break
+                    
+                rec_amount = getattr(rec, reward_attr.key)
+                if rec_amount >= remaining_to_withdraw:
+                    setattr(rec, reward_attr.key, rec_amount - remaining_to_withdraw)
+                    remaining_to_withdraw = 0
+                else:
+                    remaining_to_withdraw -= rec_amount
+                    setattr(rec, reward_attr.key, 0.0)
+                self.db.add(rec)
+
+            # 3. Выполняем перевод в блокчейне
+            from tonutils.utils import to_nano, cell_to_hex
+            from tonutils.clients import TonapiClient
+            from tonutils.contracts.wallet import WalletV5R1
+            
             client = TonapiClient(
                 api_key=settings.TON_API_KEY, 
                 network='testnet' if settings.IS_TESTNET else 'mainnet'
@@ -122,7 +152,10 @@ class ReferralService:
             
             logger.info(f"ReferralService: Blockchain transfer successful. Hash: {tx_hash}")
 
-            user.balance_ton -= amount
+            if is_stars_conversion:
+                user.balance_stars = float(user.balance_stars) - stars_amount
+            else:
+                user.balance_ton = float(user.balance_ton) - amount
             
             transaction = Transaction(
                 user_id=user.id,
@@ -134,7 +167,9 @@ class ReferralService:
                 details={
                     "target_address": address,
                     "memo": "Referral reward withdrawal",
-                    "sender_address": wallet.address.to_str()
+                    "sender_address": wallet.address.to_str(),
+                    "is_stars_conversion": is_stars_conversion,
+                    "stars_amount": stars_amount
                 }
             )
             
@@ -150,8 +185,8 @@ class ReferralService:
                 message=WSEventMessage(
                     type=WSMessageType.BALANCE_UPDATE,
                     data={
-                        "currency": Currency.TON.value,
-                        "new_balance": float(user.balance_ton)
+                        "currency": Currency.STARS.value if is_stars_conversion else Currency.TON.value,
+                        "new_balance": float(user.balance_stars) if is_stars_conversion else float(user.balance_ton)
                     }
                 )
             )

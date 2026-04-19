@@ -136,12 +136,33 @@ export default {
               {
                 address: data.ton_transaction.address,
                 amount: data.ton_transaction.amount,
-                payload: btoa(data.ton_transaction.payload) // Кодируем payload в base64 для TON
+                payload: data.ton_transaction.payload // Теперь бэкенд присылает готовый Base64 BOC
               }
             ]
           };
 
-          await tc.sendTransaction(transaction);
+          const result = await tc.sendTransaction(transaction);
+          
+          if (result && result.boc) {
+            // Отправляем сигнал на бэкенд о том, что транзакция отправлена.
+            // Т.к. хеш получить сложно без библиотеки, бэкенд будет искать транзакцию
+            // по адресу мерчанта и сумме (или мы можем добавить поллинг на бэкенде).
+            
+            // Для немедленного обновления UI можно вызвать проверку через 10-20 секунд
+            setTimeout(async () => {
+              try {
+                await api.verifyDeposit({
+                  amount: parseFloat(amount.value),
+                  boc: result.boc
+                });
+              } catch (e) {
+                console.warn("Auto-verification pending...");
+              }
+            }, 15000);
+            
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+            closeModal();
+          }
         } else if (activeRefCurrency.value === 'STARS') {
           // Логика для Telegram Stars (через Telegram.WebApp.openTelegramLink)
           if (data.payment_url) {

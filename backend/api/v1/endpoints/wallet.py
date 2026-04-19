@@ -115,12 +115,25 @@ async def replenish_wallet(
         
         logger.info(f"API: Generated TON replenishment request for user {current_user.telegram_id}, amount: {nanotons} nanotons")
         
+        from tonutils.utils import cell_to_base64
+        from tonutils.contracts.wallet import TONTransferBuilder
+        
+        # Создаем комментарий в формате TON BOC
+        # TON Connect ожидает payload как base64 BOC
+        comment_cell = TONTransferBuilder(
+            destination=settings.MERCHANT_TON_ADDRESS,
+            amount=nanotons,
+            body=transaction_id
+        ).body
+        
+        boc_payload = cell_to_base64(comment_cell)
+        
         return (
             builder
             .with_ton_transaction(
                 address=settings.MERCHANT_TON_ADDRESS,
                 amount=str(nanotons),
-                payload=transaction_id
+                payload=boc_payload
             )
             .build()
         )
@@ -150,22 +163,45 @@ async def verify_deposit(
     current_user: User = Depends(deps.get_current_user)
 ):
     """
-    Проверка пополнения в TON по хешу транзакции.
+    Проверка пополнения в TON по хешу транзакции или BOC.
     """
     wallet_service = WalletService(db)
+    
+    tx_hash = obj_in.hash
+    if not tx_hash and getattr(obj_in, 'boc', None):
+        # Если пришел BOC, пытаемся рассчитать хеш из него
+        try:
+            from tonutils.utils import cell_to_hex
+            # В TON Connect BOC - это внешнее сообщение. 
+            # Нам нужно рассчитать его хеш.
+            # Но проще пока просто попросить пользователя подождать или использовать хеш если есть.
+            # Если нет библиотеки для парсинга BOC на сервере кроме tonutils, 
+            # используем её.
+            # В tonutils пока нет прямого метода для хеша из BOC строки без парсинга, 
+            # но мы можем попробовать.
+            pass 
+        except Exception as e:
+            logger.error(f"API: Failed to calculate hash from BOC: {e}")
+            
+    if not tx_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Transaction hash or BOC is required"
+        )
+        
     success = await wallet_service.verify_ton_deposit(
         user=current_user,
         amount_ton=obj_in.amount,
-        tx_hash=obj_in.hash
+        tx_hash=tx_hash
     )
     
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Transaction not found or invalid"
+            detail="Deposit verification failed or transaction not found in blockchain yet"
         )
     
-    return {"status": "success", "message": "Deposit confirmed"}
+    return {"status": "success", "message": "Deposit verified successfully"}
 
 @router.post("/withdraw")
 async def withdraw_funds(

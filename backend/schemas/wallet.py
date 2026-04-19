@@ -76,4 +76,5 @@ class WalletWithdrawRequest(BaseSchema):
 
 class WalletVerifyDepositRequest(BaseSchema):
     amount: float = Field(..., gt=0)
-    hash: str = Field(..., min_length=10)
+    hash: Optional[str] = Field(None, min_length=10)
+    boc: Optional[str] = None
