@@ -12,12 +12,6 @@ from backend.core.exceptions import InsufficientFunds, InvalidOperation, EntityN
 import uuid
 import asyncio
 from loguru import logger
-from tonutils.utils import to_nano
-
-# Tonutils imports
-from tonutils.clients import TonapiClient
-from tonutils.clients.protocol import NetworkGlobalID
-from tonutils.contracts.wallet import WalletV5R1
 
 class ReferralService:
     def __init__(self, db: AsyncSession):
@@ -75,6 +69,11 @@ class ReferralService:
         """
         logger.info(f"ReferralService: Withdrawal request from {user.telegram_id}: {amount} TON to {address}")
         
+        # Импортируем tonutils только при необходимости
+        from tonutils.utils import to_nano, cell_to_hex
+        from tonutils.clients import TonapiClient
+        from tonutils.contracts.wallet import WalletV5R1
+        
         # Lock user for balance update
         user = await user_service.get_locked(self.db, user.id)
         if not user:
@@ -90,7 +89,7 @@ class ReferralService:
         try:
             client = TonapiClient(
                 api_key=settings.TON_API_KEY, 
-                network=NetworkGlobalID.TESTNET if settings.IS_TESTNET else NetworkGlobalID.MAINNET
+                network='testnet' if settings.IS_TESTNET else 'mainnet'
             )
             
             mnemonic_list = settings.NFT_SENDER_MNEMONIC.split()
@@ -114,7 +113,6 @@ class ReferralService:
             )
             
             # Получаем хеш транзакции
-            from tonutils.utils import cell_to_hex
             if hasattr(ext_msg, "normalized_hash"):
                 tx_hash = ext_msg.normalized_hash
             elif hasattr(ext_msg, "hash"):
@@ -172,3 +170,5 @@ class ReferralService:
             logger.error(f"ReferralService: Withdrawal failed for {user.telegram_id}: {str(e)}")
             await self.db.rollback()
             raise InvalidOperation(f"Blockchain transfer failed: {str(e)}")
+
+referral_service = ReferralService

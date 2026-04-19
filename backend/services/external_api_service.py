@@ -10,8 +10,6 @@ from backend.schemas.external_api import (
 from loguru import logger
 
 from backend.services.thermos_service import thermos_service
-from backend.services.getgems_service import getgems_service
-from backend.services.laffka_service import laffka_service
 
 class ExternalApiService:
     """
@@ -35,6 +33,8 @@ class ExternalApiService:
 
             try:
                 if provider == ExternalProviderType.GETGEMS:
+                    # Импортируем только при необходимости
+                    from backend.services.getgems_service import getgems_service
                     # Нам нужен адрес коллекции из БД (обычно передается в деталях или подгружается)
                     collection_address = update.details.get("collection_address") if update.details else None
                     if collection_address:
@@ -46,6 +46,7 @@ class ExternalApiService:
                         logger.warning(f"ExternalApiService: No collection_address for GetGems update of {update.catalog_id}")
 
                 elif provider == ExternalProviderType.LAFFKA:
+                    from backend.services.laffka_service import laffka_service
                     sticker_id = update.details.get("laffka_sticker_id")
                     collection_address = update.details.get("collection_address")
                     
@@ -106,54 +107,6 @@ class ExternalApiService:
             ) for _ in requests
         ]
 
-        if provider == ExternalProviderType.LAFFKA and requests and db:
-            first_req = requests[0]
-            sticker_id = first_req.details.get("laffka_sticker_id")
-            catalog_id = first_req.catalog_id
-            
-            if sticker_id:
-                logger.info(f"ExternalApiService: Starting bulk purchase for {sticker_id} via Laffka (count: {len(requests)})")
-                purchase_results = await laffka_service.buy_missing_stickers(db, catalog_id, sticker_id, len(requests))
-                
-                for res in purchase_results:
-                    success = "error" not in res
-                    results.append(ExternalApiResult(
-                        success=success,
-                        provider=provider,
-                        details=res,
-                        error=res.get("error") if not success else None
-                    ))
-                return results
-
-        if provider == ExternalProviderType.GETGEMS and requests and db:
-            first_req = requests[0]
-            collection_address = first_req.details.get("collection_address")
-            catalog_id = first_req.catalog_id
-            
-            if collection_address:
-                logger.info(f"ExternalApiService: Starting bulk purchase for {collection_address} via GetGems (count: {len(requests)})")
-                purchase_results = await getgems_service.buy_missing_stickers(db, catalog_id, collection_address, len(requests))
-                
-                for res in purchase_results:
-                    success = res.get("success", False)
-                    results.append(ExternalApiResult(
-                        success=success,
-                        provider=provider,
-                        details=res,
-                        error=res.get("error") if not success else None
-                    ))
-                return results
-
-        for req in requests:
-            logger.info(f"Buying sticker via {provider} for {req.max_price} {req.currency}")
-            # TODO: Реализовать интеграцию для других провайдеров
-            results.append(ExternalApiResult(
-                success=True,
-                provider=provider,
-                details={"status": "pending_tx"}
-            ))
-        return results
-
     async def transfer_sticker(
         self, 
         request: StickerTransferRequest, 
@@ -166,6 +119,7 @@ class ExternalApiService:
         
         try:
             if provider == ExternalProviderType.GETGEMS:
+                from backend.services.getgems_service import getgems_service
                 # Нам нужен nft_address и цена для роялти из деталей
                 nft_address = request.details.get("nft_address")
                 price_ton = request.details.get("price_ton")
@@ -193,6 +147,7 @@ class ExternalApiService:
                     )
             
             elif provider == ExternalProviderType.LAFFKA:
+                from backend.services.laffka_service import laffka_service
                 is_onchain = request.details.get("is_onchain", False)
                 sticker_uuid = request.details.get("nft_address")
                 

@@ -19,9 +19,6 @@ from backend.models.enums import Currency, TransactionType, TransactionStatus
 from backend.models.transaction import Transaction
 import httpx
 from backend.core.config import settings
-from tonutils.clients import TonapiClient
-from tonutils.clients.protocol import NetworkGlobalID
-from tonutils.utils import to_nano
 
 def from_nano(amount: int) -> float:
     return float(amount) / 10**9
@@ -29,22 +26,30 @@ def from_nano(amount: int) -> float:
 class WalletService:
     def __init__(self, db: AsyncSession):
         self.db = db
-        self._ton_client = TonapiClient(
-            api_key=settings.TON_API_KEY,
-            network=NetworkGlobalID.TESTNET if settings.IS_TESTNET else NetworkGlobalID.MAINNET
-        )
+        self._ton_client = None
+        
+    async def _get_ton_client(self):
+        if self._ton_client is None:
+            from tonutils.clients import TonapiClient
+            self._ton_client = TonapiClient(
+                api_key=settings.TON_API_KEY,
+                network='testnet' if settings.IS_TESTNET else 'mainnet'
+            )
+        return self._ton_client
 
     async def _ensure_connected(self):
-        if not self._ton_client.connected:
-            await self._ton_client.connect()
+        client = await self._get_ton_client()
+        if not client.connected:
+            await client.connect()
 
     async def get_balance_nano(self, address: str) -> int:
         """
         Получает текущий баланс кошелька в нанотонах.
         """
         await self._ensure_connected()
+        client = await self._get_ton_client()
         try:
-            account = await self._ton_client.get_info(address)
+            account = await client.get_info(address)
             if hasattr(account, "balance"):
                 return int(account.balance)
             elif isinstance(account, dict):
@@ -197,7 +202,8 @@ class WalletService:
         """Получает текущий баланс кошелька в TON"""
         await self._ensure_connected()
         try:
-            account = await self._ton_client.get_info(address)
+            client = await self._get_ton_client()
+            account = await client.get_info(address)
             if hasattr(account, "balance"):
                 balance_nano = int(account.balance)
             elif isinstance(account, dict):
@@ -225,7 +231,8 @@ class WalletService:
 
         try:
             # 2. Получаем детали транзакции из блокчейна
-            tx_data = await self._ton_client.get_transaction(tx_hash)
+            client = await self._get_ton_client()
+            tx_data = await client.get_transaction(tx_hash)
             if not tx_data:
                 logger.warning(f"WalletService: Transaction {tx_hash} not found on-chain")
                 return False
@@ -377,3 +384,5 @@ class WalletService:
         logger.info(f"WalletService: Withdrawal request created for {user.telegram_id}: {amount} {currency.value} -> {final_amount_ton} TON")
             
         return transaction
+
+wallet_service = WalletService

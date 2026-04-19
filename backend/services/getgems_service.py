@@ -6,7 +6,7 @@ from backend.core.config import settings
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from tonutils.utils import to_nano
 from tonutils.clients import TonapiClient
-from tonutils.clients.protocol import NetworkGlobalID
+
 from tonutils.contracts.wallet import WalletV5R1, TONTransferBuilder
 from tonutils.contracts.nft import NFTItemStandard, NFTCollectionStandard
 
@@ -21,7 +21,7 @@ class GetGemsService:
         self._client = httpx.AsyncClient(timeout=30.0)
         self._ton_client = TonapiClient(
             api_key=settings.TON_API_KEY, 
-            network=NetworkGlobalID.TESTNET if settings.IS_TESTNET else NetworkGlobalID.MAINNET
+            network='testnet' if settings.IS_TESTNET else 'mainnet'
         )
 
     async def _ensure_connected(self):

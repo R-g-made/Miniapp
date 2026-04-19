@@ -28,7 +28,7 @@ apscheduler
 pydantic-settings
 python-dotenv
 httpx
-tonutils==0.1.4
+tonutils
 
 # Testing
 pytest

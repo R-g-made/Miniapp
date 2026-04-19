@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.core.config import settings
 from tonutils.clients import TonapiClient
-from tonutils.clients.protocol import NetworkGlobalID
+
 from tonutils.contracts.wallet import (
     WalletV4R2, WalletV3R2, WalletV4R1, WalletV3R1, 
     WalletV5R1, WalletV5Beta
@@ -39,7 +39,7 @@ async def test_ton_transfer():
         # 1. Инициализация клиента
         client = TonapiClient(
             api_key=settings.TON_API_KEY,
-            network=NetworkGlobalID.TESTNET if settings.IS_TESTNET else NetworkGlobalID.MAINNET
+            network='testnet' if settings.IS_TESTNET else 'mainnet'
         )
         await client.connect()
         
