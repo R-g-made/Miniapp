@@ -243,49 +243,85 @@ class WalletService:
             return False
 
         try:
-            # 2. Получаем детали транзакции из блокчейна
+            from ton_core import Address
             client = await self._get_ton_client()
-            tx_data = await client.get_transaction(tx_hash)
+            
+            # 2. Получаем детали транзакции или сообщения из блокчейна
+            # Пытаемся сначала как сообщение (External Message), потом как транзакцию
+            tx_data = None
+            try:
+                tx_data = await client.get_message(tx_hash)
+                logger.debug(f"WalletService: Found hash as Message")
+            except Exception:
+                try:
+                    tx_data = await client.get_transaction(tx_hash)
+                    logger.debug(f"WalletService: Found hash as Transaction")
+                except Exception as e:
+                    logger.warning(f"WalletService: Hash {tx_hash} not found on-chain: {e}")
+                    return False
+
             if not tx_data:
-                logger.warning(f"WalletService: Transaction {tx_hash} not found on-chain")
+                logger.warning(f"WalletService: No data for hash {tx_hash}")
                 return False
 
             # 3. Проверяем параметры (получатель, сумма)
-            # Обработка как объекта (Pydantic/ContractInfo) или словаря
-            if hasattr(tx_data, "in_msg"):
+            # Извлекаем данные в зависимости от того, что вернул Tonapi
+            destination_raw = None
+            value_nano = 0
+            
+            if hasattr(tx_data, "destination") and hasattr(tx_data, "value"):
+                # Это Message
+                destination_raw = str(tx_data.destination)
+                value_nano = int(tx_data.value)
+            elif hasattr(tx_data, "in_msg"):
+                # Это Transaction
                 in_msg = tx_data.in_msg
-                destination = in_msg.destination.address if hasattr(in_msg.destination, "address") else str(in_msg.destination)
+                destination_raw = str(in_msg.destination)
                 value_nano = int(in_msg.value)
             elif isinstance(tx_data, dict):
-                in_msg = tx_data.get("in_msg", {})
-                destination = in_msg.get("destination", {}).get("address")
-                value_nano = int(in_msg.get("value", 0))
-            else:
-                logger.error(f"WalletService: Unknown transaction data type: {type(tx_data)}")
-                return False
+                # Если вдруг пришел словарь (fallback)
+                msg = tx_data.get("in_msg") or tx_data
+                destination_raw = msg.get("destination", {}).get("address") or msg.get("destination")
+                value_nano = int(msg.get("value", 0))
             
-            # Сверяем адрес получателя (наш мерчант)
-            if destination != settings.MERCHANT_TON_ADDRESS:
-                logger.warning(f"WalletService: Wrong destination address: {destination}")
+            if not destination_raw:
+                logger.error(f"WalletService: Could not extract destination from data: {type(tx_data)}")
                 return False
 
+            # Сравниваем адреса через нормализацию ton_core.Address
+            try:
+                merchant_addr = Address(settings.MERCHANT_TON_ADDRESS).to_str(is_user_friendly=False)
+                dest_addr = Address(destination_raw).to_str(is_user_friendly=False)
+                
+                logger.debug(f"WalletService: Comparing addresses. Merchant: {merchant_addr}, Dest: {dest_addr}")
+                
+                if merchant_addr != dest_addr:
+                    logger.warning(f"WalletService: Wrong destination. Expected {merchant_addr}, got {dest_addr}")
+                    return False
+            except Exception as e:
+                logger.error(f"WalletService: Address normalization failed: {e}")
+                # Если нормализация не удалась, пробуем простое сравнение
+                if str(destination_raw).lower() != settings.MERCHANT_TON_ADDRESS.lower():
+                    return False
+
             # Сверяем сумму (с допуском на комиссию или округление)
-            if from_nano(value_nano) < amount_ton * 0.99: # 1% допуск
-                logger.warning(f"WalletService: Insufficient amount: {from_nano(value_nano)} < {amount_ton}")
+            actual_ton = from_nano(value_nano)
+            if actual_ton < amount_ton * 0.99: # 1% допуск
+                logger.warning(f"WalletService: Insufficient amount: {actual_ton} < {amount_ton}")
                 return False
 
             # 4. Зачисляем баланс пользователю
-            user.balance_ton = float(user.balance_ton) + from_nano(value_nano)
+            user.balance_ton = float(user.balance_ton) + actual_ton
             
             # 5. Создаем транзакцию в БД
             transaction = Transaction(
                 user_id=user.id,
-                amount=from_nano(value_nano),
+                amount=actual_ton,
                 currency=Currency.TON,
                 type=TransactionType.DEPOSIT,
                 status=TransactionStatus.COMPLETED,
                 hash=tx_hash,
-                details={"onchain_data": tx_data}
+                details={"onchain_data": str(tx_data)}
             )
             
             self.db.add(transaction)
@@ -309,11 +345,13 @@ class WalletService:
                 )
             )
             
-            logger.success(f"WalletService: TON Deposit confirmed! User {user.telegram_id} +{from_nano(value_nano)} TON")
+            logger.success(f"WalletService: TON Deposit confirmed! User {user.telegram_id} +{actual_ton} TON")
             return True
 
         except Exception as e:
             logger.error(f"WalletService: Error during TON deposit verification: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return False
 
     async def create_withdrawal_request(
