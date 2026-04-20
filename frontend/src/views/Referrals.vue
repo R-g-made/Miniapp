@@ -63,13 +63,16 @@
       <div class="withdraw-box clickable" @click="handleWithdraw">
         <div class="withdraw-main">
           <div class="withdraw-left">
-            <img src="@/assets/icons/ton.svg" alt="TON" class="withdraw-curr-icon small">
-            <span class="withdraw-number-small">{{ stats.available_ton || 0 }}</span>
-            <img src="@/assets/icons/star.svg" alt="STARS" class="withdraw-curr-icon small ml-10">
-            <span class="withdraw-number-small">{{ stats.available_stars || 0 }}</span>
+            <img v-if="activeRefCurrency === 'TON'" src="@/assets/icons/ton.svg" alt="TON" class="withdraw-curr-icon">
+            <img v-else src="@/assets/icons/star.svg" alt="STARS" class="withdraw-curr-icon">
+            <span class="withdraw-number">{{ activeRefCurrency === 'TON' ? (stats.available_ton || 0) : (stats.available_stars || 0) }}</span>
+          </div>
+          <div v-if="activeRefCurrency === 'STARS'" class="ton-pill">
+            <img src="@/assets/icons/ton.svg" alt="TON" class="ton-pill-icon">
+            <span class="ton-pill-text">{{ stats.available_in_ton || 0 }}</span>
           </div>
         </div>
-        <img src="@/assets/icons/share.svg" alt="Share" class="withdraw-share-icon">
+        <img src="@/assets/icons/withdraw.svg" alt="Withdraw" class="withdraw-icon">
       </div>
     </div>
 
@@ -83,8 +86,7 @@
       </div>
 
       <button class="share-button" @click="shareLink">
-        <span>Share</span>
-        <img src="@/assets/icons/share.svg" alt="TG" class="share-btn-icon">
+        Share
       </button>
     </div>
   </div>
@@ -422,9 +424,9 @@ export default {
 }
 
 .stat-label {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 17px;
   font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* 21d locked row */
@@ -466,46 +468,62 @@ export default {
 /* Блок вывода */
 .withdraw-box {
   width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 1000px;
+  padding: 12px 25px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   box-sizing: border-box;
 }
 
 .withdraw-main {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .withdraw-left {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
-.withdraw-curr-icon.small {
+.withdraw-curr-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.withdraw-number {
+  font-size: 20px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.ton-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1000px;
+  padding: 8px 12px;
+}
+
+.ton-pill-icon {
   width: 14px;
   height: 14px;
-  opacity: 0.8;
 }
 
-.withdraw-number-small {
+.ton-pill-text {
   font-size: 14px;
   font-weight: 600;
   color: #FFFFFF;
-  margin-left: 4px;
 }
 
-.ml-10 {
-  margin-left: 10px;
-}
-
-.withdraw-share-icon {
-  width: 18px;
-  height: 18px;
-  opacity: 0.6;
+.withdraw-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.8;
 }
 
 /* Футер */
@@ -524,53 +542,50 @@ export default {
 }
 
 .link-box {
-  background: #1C1C1E;
-  border-radius: 20px;
-  padding: 15px 20px;
+  width: 100%;
+  background: #232323;
+  border-radius: 30px; /* Закругление 30 */
+  padding: 20px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
   cursor: pointer;
-  margin-bottom: 15px;
+  transition: transform 0.1s ease; /* Добавляем транзишн для анимации */
+}
+
+.link-box:active {
+  transform: scale(0.96); /* Эффект проседания вниз (вдавливания) */
 }
 
 .link-text {
-  font-size: 14px;
+  font-size: 19px;
+  font-weight: 500;
   color: #FFFFFF;
-  line-height: 1.4;
-  white-space: pre-wrap;
+  white-space: pre-line;
+  line-height: 1.2;
 }
 
 .copy-icon {
-  width: 20px;
-  height: 20px;
-  opacity: 0.5;
+  width: 24.64px;
+  height: 27.37px;
+  object-fit: contain;
 }
 
 .share-button {
   width: 100%;
-  height: 56px;
   background: #FFFFFF;
-  border-radius: 1000px;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 17px;
-  font-weight: 600;
   color: #000000;
+  border: none;
+  border-radius: 1000px;
+  padding: 21px;
+  font-size: 19px;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 0.1s;
+  transition: transform 0.1s ease;
 }
 
 .share-button:active {
   transform: scale(0.98);
-}
-
-.share-btn-icon {
-  width: 20px;
-  height: 20px;
-  filter: brightness(0);
 }
 </style>
