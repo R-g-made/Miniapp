@@ -168,6 +168,7 @@ async def verify_deposit(
     """
     Проверка пополнения в TON по хешу транзакции или BOC.
     """
+    logger.info(f"API: Received verify-deposit request from user {current_user.telegram_id}. Hash: {obj_in.hash}, Has BOC: {bool(obj_in.boc)}")
     wallet_service = WalletService(db)
     
     tx_hash = obj_in.hash
