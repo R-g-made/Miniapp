@@ -333,7 +333,7 @@ class WalletService:
                 type=TransactionType.DEPOSIT,
                 status=TransactionStatus.COMPLETED,
                 hash=tx_hash,
-                details={"onchain_data": str(tx_data)}
+                details={"onchain_data": str(event_data)}
             )
             
             self.db.add(transaction)
