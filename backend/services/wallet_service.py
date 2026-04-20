@@ -235,7 +235,6 @@ class WalletService:
         """
         Проверяет on-chain транзакцию по ее хешу и зачисляет баланс.
         """
-        await self._ensure_connected()
         logger.info(f"WalletService: Verifying TON deposit for user {user.telegram_id}, hash: {tx_hash}")
         
         # 1. Проверяем, не обрабатывалась ли уже эта транзакция
@@ -247,48 +246,57 @@ class WalletService:
 
         try:
             from ton_core import Address
-            client = await self._get_ton_client()
             
-            # 2. Получаем детали транзакции или сообщения из блокчейна
-            # Пытаемся сначала как сообщение (External Message), потом как транзакцию
+            # 2. Получаем детали транзакции напрямую через Tonapi HTTP
+            base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
+            headers = {}
+            if settings.TON_API_KEY:
+                headers["Authorization"] = f"Bearer {settings.TON_API_KEY}"
+            
             tx_data = None
-            try:
-                tx_data = await client.get_message(tx_hash)
-                logger.debug(f"WalletService: Found hash as Message: {tx_data}")
-            except Exception as e1:
+            async with httpx.AsyncClient(timeout=10.0) as http_client:
+                # Пытаемся сначала как сообщение (External Message)
+                msg_url = f"{base_url}/blockchain/messages/{tx_hash}"
                 try:
-                    tx_data = await client.get_transaction(tx_hash)
-                    logger.debug(f"WalletService: Found hash as Transaction: {tx_data}")
-                except Exception as e2:
-                    logger.warning(f"WalletService: Hash {tx_hash} not found on-chain. Message error: {e1}, Transaction error: {e2}")
-                    return False
+                    resp = await http_client.get(msg_url, headers=headers)
+                    if resp.status_code == 200:
+                        tx_data = resp.json()
+                        logger.debug(f"WalletService: Found hash as Message via HTTP")
+                except Exception as e:
+                    logger.debug(f"WalletService: Message lookup failed: {e}")
+
+                # Если не нашли как сообщение, пытаемся как транзакцию
+                if not tx_data:
+                    tx_url = f"{base_url}/blockchain/transactions/{tx_hash}"
+                    try:
+                        resp = await http_client.get(tx_url, headers=headers)
+                        if resp.status_code == 200:
+                            tx_data = resp.json()
+                            logger.debug(f"WalletService: Found hash as Transaction via HTTP")
+                    except Exception as e:
+                        logger.debug(f"WalletService: Transaction lookup failed: {e}")
 
             if not tx_data:
-                logger.warning(f"WalletService: No data for hash {tx_hash}")
+                logger.warning(f"WalletService: Hash {tx_hash} not found on-chain via Tonapi HTTP")
                 return False
 
             # 3. Проверяем параметры (получатель, сумма)
-            # Извлекаем данные в зависимости от того, что вернул Tonapi
             destination_raw = None
             value_nano = 0
             
-            if hasattr(tx_data, "destination") and hasattr(tx_data, "value"):
-                # Это Message
-                destination_raw = str(tx_data.destination)
-                value_nano = int(tx_data.value)
-            elif hasattr(tx_data, "in_msg"):
-                # Это Transaction
-                in_msg = tx_data.in_msg
-                destination_raw = str(in_msg.destination)
-                value_nano = int(in_msg.value)
-            elif isinstance(tx_data, dict):
-                # Если вдруг пришел словарь (fallback)
-                msg = tx_data.get("in_msg") or tx_data
-                destination_raw = msg.get("destination", {}).get("address") or msg.get("destination")
-                value_nano = int(msg.get("value", 0))
+            # Извлекаем данные из JSON Tonapi
+            if "destination" in tx_data and "value" in tx_data:
+                # Это структура Message
+                destination_raw = tx_data["destination"].get("address") if isinstance(tx_data["destination"], dict) else tx_data["destination"]
+                value_nano = int(tx_data.get("value", 0))
+            elif "in_msg" in tx_data:
+                # Это структура Transaction
+                in_msg = tx_data["in_msg"]
+                destination_raw = in_msg["destination"].get("address") if isinstance(in_msg["destination"], dict) else in_msg["destination"]
+                value_nano = int(in_msg.get("value", 0))
             
             if not destination_raw:
-                logger.error(f"WalletService: Could not extract destination from data: {type(tx_data)}")
+                logger.error(f"WalletService: Could not extract destination from Tonapi data")
                 return False
 
             # Сравниваем адреса через нормализацию ton_core.Address
@@ -303,12 +311,10 @@ class WalletService:
                     return False
             except Exception as e:
                 logger.error(f"WalletService: Address normalization failed for '{destination_raw}': {e}")
-                # Если нормализация не удалась, пробуем простое сравнение
                 if str(destination_raw).lower() != settings.MERCHANT_TON_ADDRESS.lower():
-                    logger.warning(f"WalletService: Simple address comparison failed. {destination_raw} != {settings.MERCHANT_TON_ADDRESS}")
                     return False
 
-            # Сверяем сумму (с допуском на комиссию или округление)
+            # Сверяем сумму
             actual_ton = from_nano(value_nano)
             if actual_ton < amount_ton * 0.99: # 1% допуск
                 logger.warning(f"WalletService: Insufficient amount: {actual_ton} < {amount_ton}")
