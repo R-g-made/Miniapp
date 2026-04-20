@@ -183,7 +183,10 @@ async def verify_deposit(
         try:
             from ton_core import Cell
             # Рассчитываем хеш внешнего сообщения из BOC
-            tx_hash = Cell.one_from_boc(obj_in.boc).hash.hex()
+            # BOC содержит External Message
+            cell = Cell.one_from_boc(obj_in.boc)
+            tx_hash = cell.hash.hex()
+            logger.info(f"API: Calculated message hash from BOC: {tx_hash}")
         except Exception as e:
             logger.error(f"API: Failed to calculate hash from BOC: {e}")
             
