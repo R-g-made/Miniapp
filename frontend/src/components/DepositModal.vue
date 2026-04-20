@@ -50,7 +50,12 @@
                   <img src="@/assets/icons/wallet.svg" alt="Wallet" class="wallet-icon">
                   <span class="wallet-text">{{ walletButtonText }}</span>
                 </div>
-                <img src="@/assets/icons/arrow.svg" alt="Arrow" class="arrow-icon">
+                <img 
+                  :src="isConnected ? plusIcon : arrowIcon" 
+                  alt="Action" 
+                  class="action-icon"
+                  :class="{ 'is-cross': isConnected }"
+                >
               </div>
             </Transition>
 
@@ -207,19 +212,25 @@ export default {
 
     const starIcon = new URL('../assets/icons/star.svg', import.meta.url).href;
     const tonIcon = new URL('../assets/icons/ton.svg', import.meta.url).href;
+    const arrowIcon = new URL('../assets/icons/arrow.svg', import.meta.url).href;
+    const plusIcon = new URL('../assets/icons/plus.svg', import.meta.url).href;
 
     return {
       isOpen,
       activeRefCurrency,
       amount,
-      walletButtonText,
       isConnected,
-      closeModal,
-      toggleCurrency,
+      walletAddress,
+      isVerifying,
+      walletButtonText,
       handleWalletConnect,
       handleDeposit,
+      closeModal,
+      toggleCurrency,
       starIcon,
-      tonIcon
+      tonIcon,
+      arrowIcon,
+      plusIcon
     };
   }
 }
@@ -408,11 +419,16 @@ export default {
   color: #FFFFFF;
 }
 
-.arrow-icon {
+.action-icon {
   width: 23.4px;
   height: 14.4px;
   object-fit: contain;
   opacity: 0.5;
+  transition: transform 0.3s ease;
+}
+
+.action-icon.is-cross {
+  transform: rotate(45deg);
 }
 
 .deposit-btn {

@@ -46,12 +46,16 @@
           <span class="stat-number">{{ stats.count || 0 }}</span>
           <div class="stat-label">Totaly Invited</div>
         </div>
-        <div class="stat-box" v-if="activeRefCurrency === 'STARS'">
-          <div class="stat-value-row">
-            <img src="@/assets/icons/star.svg" alt="STARS" class="stat-curr-icon">
-            <span class="stat-number">{{ stats.locked_stars || 0 }}</span>
-          </div>
-          <div class="stat-label">21d locked</div>
+      </div>
+
+      <!-- 21d locked (только для Stars) -->
+      <div class="locked-stars-row" v-if="activeRefCurrency === 'STARS'">
+        <div class="locked-left">
+          <span class="locked-label">21d locked</span>
+        </div>
+        <div class="locked-right">
+          <img src="@/assets/icons/star.svg" alt="STARS" class="locked-curr-icon">
+          <span class="locked-number">{{ stats.locked_stars || 0 }}</span>
         </div>
       </div>
 
@@ -59,16 +63,13 @@
       <div class="withdraw-box clickable" @click="handleWithdraw">
         <div class="withdraw-main">
           <div class="withdraw-left">
-            <img v-if="activeRefCurrency === 'TON'" src="@/assets/icons/ton.svg" alt="TON" class="withdraw-curr-icon">
-            <img v-else src="@/assets/icons/star.svg" alt="STARS" class="withdraw-curr-icon">
-            <span class="withdraw-number">{{ activeRefCurrency === 'TON' ? (stats.available_ton || 0) : (stats.available_stars || 0) }}</span>
-          </div>
-          <div v-if="activeRefCurrency === 'STARS'" class="ton-pill">
-            <img src="@/assets/icons/ton.svg" alt="TON" class="ton-pill-icon">
-            <span class="ton-pill-text">{{ stats.available_in_ton || 0 }}</span>
+            <img src="@/assets/icons/ton.svg" alt="TON" class="withdraw-curr-icon small">
+            <span class="withdraw-number-small">{{ stats.available_ton || 0 }}</span>
+            <img src="@/assets/icons/star.svg" alt="STARS" class="withdraw-curr-icon small ml-10">
+            <span class="withdraw-number-small">{{ stats.available_stars || 0 }}</span>
           </div>
         </div>
-        <img src="@/assets/icons/withdraw.svg" alt="Withdraw" class="withdraw-icon">
+        <img src="@/assets/icons/share.svg" alt="Share" class="withdraw-share-icon">
       </div>
     </div>
 
@@ -82,7 +83,8 @@
       </div>
 
       <button class="share-button" @click="shareLink">
-        Share
+        <span>Share</span>
+        <img src="@/assets/icons/share.svg" alt="TG" class="share-btn-icon">
       </button>
     </div>
   </div>
@@ -420,111 +422,90 @@ export default {
 }
 
 .stat-label {
-  font-size: 17px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
 }
 
-.locked-stars-box {
+/* 21d locked row */
+.locked-stars-row {
   width: 100%;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 24px;
-  padding: 15px 20px;
+  border-radius: 20px;
+  padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
   box-sizing: border-box;
+  margin-bottom: 12px;
 }
 
 .locked-label {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 15px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
 }
 
-.locked-value {
+.locked-right {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.stat-curr-icon.small {
-  width: 14px;
-  height: 14px;
+.locked-curr-icon {
+  width: 16px;
+  height: 16px;
 }
 
-.stat-number.small {
-  font-size: 18px;
+.locked-number {
+  font-size: 16px;
+  font-weight: 600;
+  color: #FFFFFF;
 }
 
 /* Блок вывода */
 .withdraw-box {
   width: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 1000px;
-  padding: 12px 25px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 12px 20px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   box-sizing: border-box;
 }
 
 .withdraw-main {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.withdraw-box.clickable {
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.withdraw-box.clickable:active {
-  opacity: 0.7;
 }
 
 .withdraw-left {
   display: flex;
   align-items: center;
-  gap: 10px;
 }
 
-.withdraw-curr-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.withdraw-number {
-  font-size: 20px;
-  font-weight: 600;
-  color: #FFFFFF;
-}
-
-.ton-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 1000px;
-  padding: 8px 12px;
-}
-
-.ton-pill-icon {
+.withdraw-curr-icon.small {
   width: 14px;
   height: 14px;
+  opacity: 0.8;
 }
 
-.ton-pill-text {
+.withdraw-number-small {
   font-size: 14px;
   font-weight: 600;
   color: #FFFFFF;
+  margin-left: 4px;
 }
 
-.withdraw-icon {
-  width: 20px;
-  height: 20px;
-  opacity: 0.8;
+.ml-10 {
+  margin-left: 10px;
+}
+
+.withdraw-share-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
 }
 
 /* Футер */
@@ -543,50 +524,53 @@ export default {
 }
 
 .link-box {
-  width: 100%;
-  background: #232323;
-  border-radius: 30px; /* Закругление 30 */
-  padding: 20px;
+  background: #1C1C1E;
+  border-radius: 20px;
+  padding: 15px 20px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  box-sizing: border-box;
+  align-items: center;
   cursor: pointer;
-  transition: transform 0.1s ease; /* Добавляем транзишн для анимации */
-}
-
-.link-box:active {
-  transform: scale(0.96); /* Эффект проседания вниз (вдавливания) */
+  margin-bottom: 15px;
 }
 
 .link-text {
-  font-size: 19px;
-  font-weight: 500;
+  font-size: 14px;
   color: #FFFFFF;
-  white-space: pre-line;
-  line-height: 1.2;
+  line-height: 1.4;
+  white-space: pre-wrap;
 }
 
 .copy-icon {
-  width: 24.64px;
-  height: 27.37px;
-  object-fit: contain;
+  width: 20px;
+  height: 20px;
+  opacity: 0.5;
 }
 
 .share-button {
   width: 100%;
+  height: 56px;
   background: #FFFFFF;
-  color: #000000;
-  border: none;
   border-radius: 1000px;
-  padding: 21px;
-  font-size: 19px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 17px;
   font-weight: 600;
+  color: #000000;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s;
 }
 
 .share-button:active {
   transform: scale(0.98);
+}
+
+.share-btn-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0);
 }
 </style>
