@@ -125,9 +125,10 @@ export default {
           const tc = await initTonConnect();
           
           if (!isConnected.value) {
+            // Если кошелек не подключен, сначала просим подключить
             await connectWallet();
-            // Ждем подключения (упрощенно, в реале лучше через watch)
-            if (!tc.connected) return;
+            // Прерываем выполнение, так как пользователю нужно время на подключение в модалке
+            return;
           }
 
           const transaction = {
@@ -136,32 +137,36 @@ export default {
               {
                 address: data.ton_transaction.address,
                 amount: data.ton_transaction.amount,
-                payload: data.ton_transaction.payload // Теперь бэкенд присылает готовый Base64 BOC
+                payload: data.ton_transaction.payload
               }
             ]
           };
 
-          const result = await tc.sendTransaction(transaction);
+          console.log('Sending transaction:', transaction);
           
-          if (result && result.boc) {
-            // Отправляем сигнал на бэкенд о том, что транзакция отправлена.
-            // Т.к. хеш получить сложно без библиотеки, бэкенд будет искать транзакцию
-            // по адресу мерчанта и сумме (или мы можем добавить поллинг на бэкенде).
+          try {
+            const result = await tc.sendTransaction(transaction);
+            console.log('Transaction result:', result);
             
-            // Для немедленного обновления UI можно вызвать проверку через 10-20 секунд
-            setTimeout(async () => {
-              try {
-                await api.verifyDeposit({
-                  amount: parseFloat(amount.value),
-                  boc: result.boc
-                });
-              } catch (e) {
-                console.warn("Auto-verification pending...");
-              }
-            }, 15000);
-            
-            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-            closeModal();
+            if (result && result.boc) {
+              // Отправляем сигнал на бэкенд о том, что транзакция отправлена.
+              setTimeout(async () => {
+                try {
+                  await api.verifyDeposit({
+                    amount: parseFloat(amount.value),
+                    boc: result.boc
+                  });
+                } catch (e) {
+                  console.warn("Auto-verification pending...", e);
+                }
+              }, 15000);
+              
+              window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+              closeModal();
+            }
+          } catch (error) {
+            console.error('TonConnect sendTransaction error:', error);
+            // Можно добавить уведомление пользователю здесь
           }
         } else if (activeRefCurrency.value === 'STARS') {
           // Логика для Telegram Stars (через Telegram.WebApp.openTelegramLink)

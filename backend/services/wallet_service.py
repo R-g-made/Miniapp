@@ -37,8 +37,11 @@ class WalletService:
             network_id = -3 if settings.IS_TESTNET else -239
             base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
             
+            if not settings.TON_API_KEY:
+                logger.warning("WalletService: TON_API_KEY is not set. Tonapi requests might fail with 401 Unauthorized.")
+            
             self._ton_client = TonapiClient(
-                api_key=settings.TON_API_KEY, 
+                api_key=settings.TON_API_KEY if settings.TON_API_KEY else None, 
                 network=network_id, 
                 base_url=base_url
             )
@@ -251,13 +254,13 @@ class WalletService:
             tx_data = None
             try:
                 tx_data = await client.get_message(tx_hash)
-                logger.debug(f"WalletService: Found hash as Message")
-            except Exception:
+                logger.debug(f"WalletService: Found hash as Message: {tx_data}")
+            except Exception as e1:
                 try:
                     tx_data = await client.get_transaction(tx_hash)
-                    logger.debug(f"WalletService: Found hash as Transaction")
-                except Exception as e:
-                    logger.warning(f"WalletService: Hash {tx_hash} not found on-chain: {e}")
+                    logger.debug(f"WalletService: Found hash as Transaction: {tx_data}")
+                except Exception as e2:
+                    logger.warning(f"WalletService: Hash {tx_hash} not found on-chain. Message error: {e1}, Transaction error: {e2}")
                     return False
 
             if not tx_data:
@@ -293,15 +296,16 @@ class WalletService:
                 merchant_addr = Address(settings.MERCHANT_TON_ADDRESS).to_str(is_user_friendly=False)
                 dest_addr = Address(destination_raw).to_str(is_user_friendly=False)
                 
-                logger.debug(f"WalletService: Comparing addresses. Merchant: {merchant_addr}, Dest: {dest_addr}")
+                logger.debug(f"WalletService: Normalized comparison. Expected (Merchant): {merchant_addr}, Got (Dest): {dest_addr}")
                 
                 if merchant_addr != dest_addr:
                     logger.warning(f"WalletService: Wrong destination. Expected {merchant_addr}, got {dest_addr}")
                     return False
             except Exception as e:
-                logger.error(f"WalletService: Address normalization failed: {e}")
+                logger.error(f"WalletService: Address normalization failed for '{destination_raw}': {e}")
                 # Если нормализация не удалась, пробуем простое сравнение
                 if str(destination_raw).lower() != settings.MERCHANT_TON_ADDRESS.lower():
+                    logger.warning(f"WalletService: Simple address comparison failed. {destination_raw} != {settings.MERCHANT_TON_ADDRESS}")
                     return False
 
             # Сверяем сумму (с допуском на комиссию или округление)

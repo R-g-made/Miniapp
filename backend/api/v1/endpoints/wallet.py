@@ -118,18 +118,24 @@ async def replenish_wallet(
         # Используем ton_core вместо tonutils для формирования BOC
         from ton_core import begin_cell, cell_to_b64, to_nano
         
-        nanotons = to_nano(obj_in.amount)
+        # Явно приводим к int, чтобы избежать дробных чисел в строке amount
+        nanotons = int(to_nano(obj_in.amount))
+        logger.debug(f"API: TON replenishment amount: {nanotons} nanotons, target: {settings.MERCHANT_TON_ADDRESS}")
         
         # Создаем простой текстовый комментарий как Cell
         # В TON Connect комментарий - это Cell с 32-битным префиксом 0 и текстом
-        comment_cell = (
-            begin_cell()
-            .store_uint(0, 32)
-            .store_string(transaction_id)
-            .end_cell()
-        )
-        
-        boc_payload = cell_to_b64(comment_cell)
+        try:
+            comment_cell = (
+                begin_cell()
+                .store_uint(0, 32)
+                .store_string(transaction_id)
+                .end_cell()
+            )
+            boc_payload = cell_to_b64(comment_cell)
+            logger.debug(f"API: Generated BOC payload: {boc_payload}")
+        except Exception as e:
+            logger.error(f"API: Failed to generate BOC: {e}")
+            raise HTTPException(status_code=500, detail="Failed to generate transaction payload")
         
         return (
             builder
