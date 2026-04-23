@@ -154,9 +154,9 @@ class LaffkaService:
             logger.error(f"LaffkaService: NFT withdrawal failed: {e}")
             return False
 
-    async def withdraw_sticker(self, sticker_uuid: str) -> bool:
+    async def withdraw_sticker(self, sticker_uuid: str, destination_address: str) -> bool:
         """Выводит офчейн-стикер из Laffka"""
-        logger.info(f"LaffkaService: Withdrawing sticker {sticker_uuid}")
+        logger.info(f"LaffkaService: Withdrawing sticker {sticker_uuid} to {destination_address}")
         try:
             # TODO: Реализовать реальный вывод через Laffka API
             # Сейчас это мок

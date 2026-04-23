@@ -57,8 +57,10 @@ class ChanceService:
         if not case_obj or not case_obj.is_active:
             return
 
+        # Если динамическое распределение выключено, мы НЕ трогаем шансы (оставляем из сида),
+        # но ОБЯЗАТЕЛЬНО обновляем цену кейса на основе текущего флора.
         if not case_obj.is_chance_distribution:
-            await self._simple_pool_check(db, case_obj)
+            await self._update_case_price_only(db, case_obj)
             return
 
         logger.info(f"ChanceService: Starting smart rebalance for case {case_obj.slug} (RTP {self.target_rtp*100}%)")
@@ -271,6 +273,34 @@ class ChanceService:
         
         total = sum(p)
         return [x / total for x in p], sum(prices[i] * (p[i]/total) for i in range(n))
+
+    async def _update_case_price_only(self, db: AsyncSession, case_obj: Case):
+        """
+        Обновляет только цену кейса на основе фиксированных шансов и актуального флора.
+        Используется для кейсов, где is_chance_distribution = False.
+        """
+        items_data = []
+        for item in case_obj.items:
+            # Даже если шансы фиксированные, мы берем актуальную цену
+            price = item.sticker_catalog.floor_price_ton or 0.1
+            items_data.append({"chance": item.chance, "price": price})
+
+        if not items_data:
+            return
+
+        # Рассчитываем EV на основе фиксированных шансов из сида
+        ev = sum(it["chance"] * it["price"] for it in items_data)
+        
+        # Целевая цена = EV / RTP
+        target_price = ev / self.target_rtp
+        final_price = math.ceil(target_price * 100) / 100
+        
+        if abs(case_obj.price_ton - final_price) > 0.001:
+            logger.info(f"ChanceService: Updating fixed-chance case price {case_obj.slug}: {case_obj.price_ton} -> {final_price} TON")
+            case_obj.price_ton = final_price
+            case_obj.price_stars = round(final_price / settings.STARS_TO_TON_RATE)
+
+        await db.commit()
 
     async def _simple_pool_check(self, db: AsyncSession, case_obj: Case):
         """Упрощенная проверка наличия в пуле (предыдущая логика)"""

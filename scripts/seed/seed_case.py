@@ -181,12 +181,23 @@ async def seed_case():
             # Ищем содержимое для этого кейса в mapping
             # Сопоставляем по slug или имени
             found_items = []
+            case_name_clean = case.name.lower().strip()
+            case_slug_clean = case.slug.lower().replace("_", " ").strip()
+            
             for header, items in case_items_mapping.items():
                 header_clean = header.lower().replace(" case", "").strip()
-                case_name_clean = case.name.lower().strip()
-                case_slug_clean = case.slug.lower().replace("_", " ").strip()
                 
-                if case_name_clean in header_clean or case_slug_clean in header_clean or header_clean in case_name_clean:
+                # Более гибкое сопоставление
+                # 1. Прямое вхождение имен
+                if case_name_clean in header_clean or header_clean in case_name_clean:
+                    found_items = items
+                    break
+                # 2. Прямое вхождение слага
+                if case_slug_clean in header_clean or header_clean in case_slug_clean:
+                    found_items = items
+                    break
+                # 3. Специальный случай: Dogs <-> DOGES
+                if ("dog" in case_name_clean or "dog" in case_slug_clean) and "dog" in header_clean:
                     found_items = items
                     break
             
@@ -202,13 +213,28 @@ async def seed_case():
             # Добавляем новые связи
             added_issuers = set()
             for item in found_items:
-                # Ищем стикер в каталоге
-                stmt = select(StickerCatalog).where(StickerCatalog.name == item["name"])
+                # Ищем эмитента для этого стикера
+                issuer_name = item["issuer_name"]
+                issuer = issuers_map.get(issuer_name) or issuers_by_slug.get(issuer_name.lower().replace(" ", ""))
+                
+                # Специальный маппинг для Slon -> Elephant Store
+                if not issuer and issuer_name.lower() == "slon":
+                    issuer = issuers_by_slug.get("elephantstore")
+
+                if not issuer:
+                    logger.warning(f"Issuer '{issuer_name}' not found for item '{item['name']}' in case {case.slug}")
+                    continue
+
+                # Ищем стикер в каталоге с учетом эмитента
+                stmt = select(StickerCatalog).where(
+                    StickerCatalog.name == item["name"],
+                    StickerCatalog.issuer_id == issuer.id
+                )
                 result = await db.execute(stmt)
                 sticker = result.scalar_one_or_none()
                 
                 if not sticker:
-                    logger.warning(f"Sticker '{item['name']}' not found in catalog, skipping item for case {case.slug}")
+                    logger.warning(f"Sticker '{item['name']}' (Issuer: {issuer.name}) not found in catalog, skipping item for case {case.slug}")
                     continue
                 
                 # Добавляем CaseItem
@@ -219,8 +245,7 @@ async def seed_case():
                 ))
                 
                 # Добавляем эмитента кейса если еще не добавлен
-                issuer = issuers_map.get(item["issuer_name"]) or issuers_by_slug.get(item["issuer_name"].lower().replace(" ", ""))
-                if issuer and issuer.id not in added_issuers:
+                if issuer.id not in added_issuers:
                     db.add(CaseIssuer(
                         case_id=case.id,
                         issuer_id=issuer.id,

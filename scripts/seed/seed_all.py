@@ -27,6 +27,8 @@ from backend.core.config import settings
 from backend.db.session import engine, async_session_factory
 from backend.models.base import Base
 from backend.services.floor_price_service import floor_price_service
+from backend.services.chance_service import chance_service
+from backend.crud.case import case as crud_case
 import backend.models # Ensure all models are imported for metadata
 
 async def main():
@@ -71,6 +73,15 @@ async def main():
         # 7. Пополняем пул стикеров из блокчейна (On-chain)
         logger.info("Step 7: Seeding Sticker Pool from Blockchain...")
         await seed_pool_onchain()
+
+        # 8. Перерасчет шансов и цен для всех кейсов на основе актуального флора и пула
+        logger.info("Step 8: Smart rebalancing cases chances and prices...")
+        async with async_session_factory() as db:
+            all_cases = await crud_case.get_multi(db, limit=1000)
+            for case_obj in all_cases:
+                logger.info(f"Rebalancing case: {case_obj.slug}")
+                await chance_service.recalculate_case_chances(db, case_obj.id)
+        logger.success("Smart rebalancing completed.")
         
         logger.info("=== Full seed completed successfully! ===")
     except Exception as e:

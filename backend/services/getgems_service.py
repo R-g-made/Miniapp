@@ -11,8 +11,7 @@ class GetGemsService:
     """
     def __init__(self):
         self.base_url = settings.GETGEMS_BASE_URL.rstrip("/")
-        self.api_token = settings.GETGEMS_API_TOKEN
-        self._jwt_token: Optional[str] = None
+        self.api_key = settings.GETGEMS_API_TOKEN
         self._client = httpx.AsyncClient(timeout=30.0)
         self._ton_client = None
         
@@ -35,58 +34,35 @@ class GetGemsService:
         if not client.connected:
             await client.connect()
 
-    async def _auth(self) -> bool:
-        """Авторизация через токен для получения JWT"""
-        logger.info("GetGemsService: Attempting to authenticate...")
-        url = f"{self.base_url}/v1/auth/token" # Пример эндпоинта
-        try:
-            response = await self._client.post(url, json={"token": self.api_token})
-            if response.status_code == 200:
-                self._jwt_token = response.json().get("access_token")
-                return True
-            logger.error(f"GetGemsService: Auth failed ({response.status_code}): {response.text}")
-        except Exception as e:
-            logger.error(f"GetGemsService: Auth request failed: {e}")
-        return False
-
-    async def _request(self, method: str, endpoint: str, retry_on_auth: bool = True, **kwargs) -> httpx.Response:
-        """Универсальный метод для запросов с JWT и ретриями"""
-        if not self._jwt_token:
-            await self._auth()
-
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
+    async def _request(self, method: str, endpoint: str, **kwargs) -> httpx.Response:
+        """Универсальный метод для запросов с API Key и стандартными заголовками"""
+        url = f"{self.base_url}/public-api/{endpoint.lstrip('/')}"
         headers = kwargs.get("headers", {})
-        headers["Authorization"] = f"Bearer {self._jwt_token}"
-        kwargs["headers"] = headers
-
-        response = await self._client.request(method, url, **kwargs)
-
-        if response.status_code == 401 and retry_on_auth:
-            logger.warning("GetGemsService: JWT expired, re-authenticating...")
-            if await self._auth():
-                return await self._request(method, endpoint, retry_on_auth=False, **kwargs)
         
-        if response.status_code == 429:
-            logger.warning("GetGemsService: Rate limit hit")
-            response.raise_for_status()
-
-        return response
+        # Прямая авторизация через API Key как в curl примере
+        if self.api_key:
+            headers["Authorization"] = self.api_key
+            
+        # Стандартные заголовки
+        headers.update({
+            "accept": "application/json",
+            "User-Agent": "PostmanRuntime/7.32.3"
+        })
+        
+        kwargs["headers"] = headers
+        return await self._client.request(method, url, **kwargs)
 
     async def get_on_sale_nfts(self, collection_address: str) -> List[Dict[str, Any]]:
-        """Получает список NFT на продаже в коллекции с сортировкой от меньшего к большему"""
+        """Получает список NFT на продаже в коллекции"""
         await self._ensure_connected()
         try:
-            # Добавляем параметр сортировки по цене (low to high)
-            params = {
-                "sort": "price_asc", 
-                "limit": 100
-            }
+            params = {"limit": 100}
             response = await self._request("GET", f"v1/nfts/on-sale/{collection_address}", params=params)
             response.raise_for_status()
-            items = response.json().get("items", [])
             
-            # Дополнительно сортируем в Python для надежности
-            items.sort(key=lambda x: int(x.get("price") or x.get("fullPrice") or 0))
+            data = response.json()
+            # Согласно структуре API: response -> items
+            items = data.get("response", {}).get("items", [])
             return items
         except Exception as e:
             logger.error(f"GetGemsService: Failed to fetch listings for {collection_address}: {e}")
@@ -207,89 +183,43 @@ class GetGemsService:
 
     async def get_floor_price_from_items(self, collection_address: str, name_filter: Optional[str] = None) -> Optional[float]:
         """
-        Получает флор-прайс путем анализа списка активных лотов в коллекции.
-        Можно фильтровать по имени (например, 'Greatness').
+        Получает флор-прайс коллекции через эндпоинт Getgems: /v1/nfts/on-sale/{collectionAddress}
+        Берет самый дешевый предмет в коллекции (общий флор).
         """
         try:
-            # Используем GraphQL или REST API Getgems для получения списка предметов на продаже
-            # Для теста Greatness будем искать самое дешевое предложение с подходящим именем
+            # Используем базовый метод запроса
+            response = await self._request("GET", f"v1/nfts/on-sale/{collection_address}", params={"limit": 50})
             
-            # В Getgems API это обычно POST запрос к GraphQL
-            url = "https://api.getgems.io/graphql"
-            
-            query = """
-            query getNfts($collectionAddress: String!, $cursor: String, $filter: String) {
-              alphaNftItems(
-                where: { 
-                  collectionAddress: { _eq: $collectionAddress }, 
-                  sale: { _is_null: false },
-                  name: { _ilike: $filter }
-                },
-                order_by: [
-                  { sale: { fullPrice: asc } },
-                  { sale: { price: asc } }
-                ],
-                limit: 50,
-                cursor: $cursor
-              ) {
-                items {
-                  address
-                  name
-                  sale {
-                    fullPrice
-                    price
-                  }
-                }
-              }
-            }
-            """
-            
-            variables = {
-                "collectionAddress": collection_address,
-                "filter": f"%{name_filter}%" if name_filter else "%"
-            }
-            
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                response = await client.post(url, json={"query": query, "variables": variables})
-                if response.status_code == 200:
-                    data = response.json()
-                    items = data.get("data", {}).get("alphaNftItems", {}).get("items", [])
-                    
-                    if items:
-                        # Сортируем полученные предметы еще раз в Python для гарантии
-                        valid_items = []
-                        for item in items:
-                            name = item.get("name", "")
-                            # Дополнительная проверка имени в Python (на случай если %filter% сработал широко)
-                            if name_filter and name_filter.lower() not in name.lower():
-                                continue
-                                
-                            sale = item.get("sale", {})
-                            # Берем минимальное из fullPrice и price (в нанотонах)
-                            p1 = sale.get("fullPrice")
-                            p2 = sale.get("price")
-                            
-                            val = None
-                            if p1 and p2: val = min(int(p1), int(p2))
-                            elif p1: val = int(p1)
-                            elif p2: val = int(p2)
-                            
-                            if val:
-                                valid_items.append({"name": name, "price": val})
+            if response.status_code == 200:
+                data = response.json()
+                inner_data = data.get("response", {})
+                items = inner_data.get("items", [])
+                
+                if items:
+                    valid_prices = []
+                    for item in items:
+                        # Цена в GetGems API находится в sale.fullPrice (в нанотонах)
+                        sale = item.get("sale", {})
+                        price_nano = sale.get("fullPrice") or item.get("price")
                         
-                        if valid_items:
-                            # Явная сортировка по цене от меньшего к большему
-                            valid_items.sort(key=lambda x: x["price"])
-                            
-                            min_price_nano = valid_items[0]["price"]
-                            price_ton = float(min_price_nano) / 10**9
-                            logger.info(f"GetGemsService: Sorted minimum floor for {name_filter}: {price_ton} TON")
-                            return price_ton
-                            
-            logger.warning(f"GetGemsService: No items found for {name_filter} in {collection_address}")
+                        if price_nano:
+                            try:
+                                valid_prices.append(int(price_nano))
+                            except (ValueError, TypeError):
+                                continue
+                    
+                    if valid_prices:
+                        # Самая низкая цена в коллекции
+                        min_price_nano = min(valid_prices)
+                        # Переводим нанотоны в тоны (10^9)
+                        price_ton = float(min_price_nano) / 1_000_000_000
+                        logger.info(f"GetGemsService: Found floor for {collection_address}: {price_ton} TON")
+                        return price_ton
+            
+            logger.warning(f"GetGemsService: No items on sale found for collection {collection_address}")
             return None
         except Exception as e:
-            logger.error(f"GetGemsService: Error fetching floor from items: {e}")
+            logger.error(f"GetGemsService: Error fetching floor from {collection_address}: {e}")
             return None
 
     async def get_floor_price(self, collection_address: str) -> Optional[float]:

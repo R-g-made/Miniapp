@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -32,7 +30,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://stickerloot:SecurePass123!@postgres:5432/stickerloot_db
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-stickerloot}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-stickerloot_db}
       - REDIS_URL=redis://redis:6379/0
     ports:
       - "8000:8000"
@@ -49,7 +47,7 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://stickerloot:SecurePass123!@postgres:5432/stickerloot_db
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-stickerloot}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-stickerloot_db}
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       - postgres

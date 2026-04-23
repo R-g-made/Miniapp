@@ -31,28 +31,39 @@ class StickerService:
         if await refund_service.is_user_refunded(db, user_id):
             raise InvalidOperation("Your account is restricted due to payment refunds")
 
-        # 1. Получаем стикер и владельца
-        sticker = await crud_sticker.get_with_details(db, sticker_id)
+        # 1. Получаем стикер и владельца (с подгрузкой пользователя для telegram_id)
+        from backend.models.user import User
+        stmt = (
+            select(UserSticker)
+            .options(selectinload(UserSticker.owner), selectinload(UserSticker.catalog))
+            .where(UserSticker.id == sticker_id)
+        )
+        result = await db.execute(stmt)
+        sticker = result.scalar_one_or_none()
+        
         if not sticker:
             raise EntityNotFound("Sticker not found")
         if sticker.owner_id != user_id:
             raise InvalidOperation("Not your sticker")
-            
-        # 2. Проверяем, привязан ли кошелек у пользователя
-        wallet = await wallet_repository.get_active_by_owner_id(db, owner_id=user_id)
-        if not wallet:
-            raise InvalidOperation("No wallet connected. Please connect TON wallet first.")
         
-        target_address = wallet.address # Берем активный кошелек
+        user_telegram_id = sticker.owner.telegram_id
+            
+        # 2. Проверка кошелька (только если это On-chain)
+        target_address = None
+        if sticker.is_onchain:
+            wallet = await wallet_repository.get_active_by_owner_id(db, owner_id=user_id)
+            
+            if not wallet:
+                raise InvalidOperation("No active wallet connected. Please connect TON wallet first.")
+            target_address = wallet.address
         
         # 3. Проверяем блокировку
         is_locked = sticker.unlock_date and sticker.unlock_date > datetime.now(timezone.utc)
         if is_locked:
             raise InvalidOperation(f"Sticker is locked until {sticker.unlock_date}")
 
-        # 4. Обработка трансфера (On-chain или Off-chain)
+        # 4. Обработка трансфера
         try:
-            # Теперь смотрим на статус конкретного экземпляра (is_onchain)
             if sticker.is_onchain:
                 # 4a. On-chain NFT через ExternalApiService (GetGems/TonAPI)
                 if not sticker.nft_address:
@@ -61,14 +72,9 @@ class StickerService:
                 from backend.schemas.external_api import StickerTransferRequest
                 from backend.services.external_api_service import external_api_service
                 
-                # Используем приоритетный маркет из каталога или GetGems по умолчанию для ончейн
-                provider_map = {
-                    PriorityMarket.LAFFKA: ExternalProviderType.LAFFKA,
-                    PriorityMarket.GETGEMS: ExternalProviderType.GETGEMS,
-                    PriorityMarket.THERMOS: ExternalProviderType.THERMOS,
-                }
-                provider = provider_map.get(sticker.catalog.priority_market, ExternalProviderType.GETGEMS)
-                
+                # Для всех ончейн NFT используем GetGems/TonAPI провайдер
+                provider = ExternalProviderType.GETGEMS
+
                 transfer_res = await external_api_service.transfer_sticker(
                     StickerTransferRequest(
                         sticker_id=sticker.id,
@@ -87,52 +93,34 @@ class StickerService:
                 
                 tx_hash = transfer_res.details.get("tx_hash")
             else:
-                # 4b. Off-chain (Laffka или Thermos)
-                provider_map = {
-                    PriorityMarket.LAFFKA: ExternalProviderType.LAFFKA,
-                    PriorityMarket.THERMOS: ExternalProviderType.THERMOS,
-                }
-                provider = provider_map.get(sticker.catalog.priority_market, ExternalProviderType.LAFFKA)
+                # 4b. Off-chain (Всегда через Thermos API как Gift)
+                # Ищем маппинг ID для Thermos
+                mapping_stmt = select(ThermosMapping).where(ThermosMapping.catalog_id == sticker.catalog_id)
+                mapping_res = await db.execute(mapping_stmt)
+                mapping = mapping_res.scalar_one_or_none()
                 
-                if provider == ExternalProviderType.LAFFKA:
-                    # Вывод через Laffka (оффчейн стикерпак)
-                    # nft_address в этом случае - это UUID стикера в системе Laffka
-                    if not sticker.nft_address:
-                        raise InvalidOperation("Laffka sticker UUID is missing")
-                    
-                    success = await laffka_service.withdraw_sticker(sticker.nft_address)
-                    if not success:
-                        raise InvalidOperation("Laffka off-chain withdrawal failed")
-                    tx_hash = f"laffka_{sticker.nft_address}"
-                else:
-                    # Off-chain Gift через Thermos API
-                    # Ищем маппинг ID для Thermos
-                    mapping_stmt = select(ThermosMapping).where(ThermosMapping.catalog_id == sticker.catalog_id)
-                    mapping_res = await db.execute(mapping_stmt)
-                    mapping = mapping_res.scalar_one_or_none()
-                    
-                    if not mapping:
-                        logger.error(f"StickerService: No Thermos mapping found for catalog {sticker.catalog_id}")
-                        raise InvalidOperation("Sticker catalog is not mapped to Thermos API")
+                if not mapping:
+                    logger.error(f"StickerService: No Thermos mapping found for catalog {sticker.catalog_id}")
+                    raise InvalidOperation("Sticker catalog is not mapped to Thermos API")
 
-                    payload = {
-                        "owned_stickers": [
-                            {
-                                "collection_id": mapping.thermos_collection_id,
-                                "character_id": mapping.thermos_character_id,
-                                "instance": sticker.number,
-                                "collection_name": mapping.thermos_collection_name,
-                                "character_name": mapping.thermos_character_name
-                            }
-                        ],
-                        "withdraw": True, # Выводим на внешний кошелек
-                        "target_telegram_user_id": None, # Не требуется при withdraw=True
-                        "wallet_address": target_address,
-                        "anonymous": False
-                    }
-                    
-                    transfer_res = await thermos_service.transfer_sticker(payload)
-                    tx_hash = transfer_res.get("hash") or transfer_res.get("task_id")
+                payload = {
+                    "owned_stickers": [
+                        {
+                            "collection_id": mapping.thermos_collection_id,
+                            "character_id": mapping.thermos_character_id,
+                            "instance": sticker.number,
+                            "collection_name": mapping.thermos_collection_name,
+                            "character_name": mapping.thermos_character_name
+                        }
+                    ],
+                    "withdraw": False, # Перевод внутри Thermos (Gifts) по TG ID
+                    "target_telegram_user_id": user_telegram_id, 
+                    "wallet_address": None,
+                    "anonymous": False
+                }
+                
+                transfer_res = await thermos_service.transfer_sticker(payload)
+                tx_hash = transfer_res.get("hash") or transfer_res.get("task_id")
 
             # 5. Обновляем состояние в БД после успешного трансфера
             sticker.owner_id = None # Стикер ушел из владения системы/пользователя

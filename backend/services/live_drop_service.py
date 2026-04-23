@@ -71,12 +71,50 @@ class LiveDropService:
     async def run_random_drops(self):
         """
         Фоновая задача для генерации случайных дропов (имитация активности).
+        Использует Redis lock, чтобы только один воркер генерировал дропы.
         """
-        logger.info(f"Starting live drops generator (interval: {settings.LIVE_DROP_INTERVAL}s)")
+        logger.info(f"Starting live drops generator (base interval: {settings.LIVE_DROP_INTERVAL}s)")
+        
+        # Уникальный ID для этого инстанса
+        import uuid
+        instance_id = str(uuid.uuid4())
+        lock_key = "live_drops_generator_lock"
         
         while True:
             try:
-                await asyncio.sleep(settings.LIVE_DROP_INTERVAL)
+                # Добавляем небольшой рандом к интервалу, чтобы не было "пачек"
+                jitter = random.uniform(0.8, 1.2)
+                sleep_time = settings.LIVE_DROP_INTERVAL * jitter
+                await asyncio.sleep(sleep_time)
+                
+                # Пытаемся стать активным генератором
+                try:
+                    redis_client = await redis_service.connect()
+                    # Пытаемся установить блокировку. NX=True значит только если ключа нет.
+                    # Ставим время жизни чуть больше интервала, чтобы успеть продлить или дать другому подхватить.
+                    lock_duration = int(settings.LIVE_DROP_INTERVAL * 2)
+                    
+                    is_locked = await redis_client.set(
+                        lock_key, 
+                        instance_id, 
+                        nx=True, 
+                        ex=lock_duration
+                    )
+                    
+                    if not is_locked:
+                        # Проверяем, может блокировка уже наша?
+                        current_owner = await redis_client.get(lock_key)
+                        if current_owner != instance_id:
+                            # Блокировка у другого воркера, пропускаем
+                            continue
+                        else:
+                            # Блокировка наша, продлеваем её
+                            await redis_client.expire(lock_key, lock_duration)
+                except Exception as e:
+                    logger.warning(f"LiveDropService: Redis lock error: {e}")
+                    # Если редиса нет (Mock), продолжаем работу в одном инстансе (или во всех, если это локалка без редиса)
+                    if settings.USE_REDIS:
+                        continue
                 
                 from backend.db.session import async_session_factory
                 async with async_session_factory() as db:

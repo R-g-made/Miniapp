@@ -119,10 +119,15 @@ async def seed_catalog():
 
         for s_data in stickers_data:
             # Ищем эмитента
-            issuer = issuers.get(s_data["issuer_name"]) or issuers_by_slug.get(s_data["issuer_name"].lower().replace(" ", ""))
+            issuer_name = s_data["issuer_name"]
+            issuer = issuers.get(issuer_name) or issuers_by_slug.get(issuer_name.lower().replace(" ", ""))
+            
+            # Специальный маппинг для Slon -> Elephant Store
+            if not issuer and issuer_name.lower() == "slon":
+                issuer = issuers_by_slug.get("elephantstore")
             
             if not issuer:
-                logger.warning(f"Issuer '{s_data['issuer_name']}' not found for sticker '{s_data['name']}'")
+                logger.warning(f"Issuer '{issuer_name}' not found for sticker '{s_data['name']}'")
                 continue
 
             # Логика выбора маркета: 
