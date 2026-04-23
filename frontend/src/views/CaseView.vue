@@ -125,7 +125,7 @@
             >
               <!-- Шанс (пилюля в верхнем правом углу) -->
               <div class="chance-badge">
-                {{ item.chance }}%
+                {{ formatChance(item.chance) }}%
               </div>
               
               <!-- Стиккер -->
@@ -217,9 +217,18 @@ export default {
     const formatPrice = (item) => {
       if (!item) return '0';
       if (activeCurrency.value === 'TON') {
-        return item.price_ton || item.floor_price_ton || '0';
+        const val = item.price_ton || item.floor_price_ton || '0';
+        return parseFloat(val).toFixed(2);
       }
       return item.price_stars || item.floor_price_stars || '0';
+    };
+
+    const formatChance = (chance) => {
+      if (chance === undefined || chance === null) return '0';
+      // Если шанс > 1, значит он уже в процентах (старые данные)
+      // Если < 1, переводим в проценты
+      const val = chance <= 1 ? (chance * 100) : chance;
+      return parseFloat(val).toFixed(2).replace(/\.?0+$/, '');
     };
 
     const buildGradient = (styles, key) => {
@@ -602,7 +611,8 @@ export default {
       getStickerStyle,
       activeCurrency,
       containerBgStyle,
-      formatPrice
+      formatPrice,
+      formatChance
     };
   }
 }

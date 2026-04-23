@@ -3,8 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from loguru import logger
 from typing import Dict, Any, Optional, Tuple
-from backend.models.sticker import LaffkaMapping
+from backend.models.sticker import LaffkaMapping, PriorityMarket, StickerCatalog
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from backend.services.external_api_service import external_api_service
 from backend.schemas.external_api import FloorPriceUpdate, ExternalProviderType
 from backend.core.config import settings
@@ -112,35 +113,40 @@ class FloorPriceService:
         for catalog in catalogs:
             new_price_ton = None
             
-            # 3. Пытаемся найти флор в tools_floors (по коллекции и имени)
-            col_name = catalog.collection_name
-            pack_name = catalog.name
+            # 3. Пытаемся найти флор в зависимости от приоритетного маркета
+            priority = catalog.priority_market
             
-            if col_name in tools_floors and pack_name in tools_floors[col_name]:
-                new_price_ton = tools_floors[col_name][pack_name]
-                logger.debug(f"FloorPriceService: Found price for {pack_name} in stickers.tools: {new_price_ton} TON")
+            # Если приоритет GetGems, получаем флор через список сделок (items)
+            if priority == PriorityMarket.GETGEMS.value:
+                # Если приоритет GetGems, получаем флор через список сделок (items)
+                if catalog.collection_address:
+                    logger.info(f"FloorPriceService: Fetching floor for {catalog.name} via GetGems API (collection: {catalog.collection_address})")
+                    from backend.services.getgems_service import getgems_service
+                    
+                    # Пытаемся найти флор с фильтрацией по имени
+                    new_price_ton = await getgems_service.get_floor_price_from_items(
+                        collection_address=catalog.collection_address,
+                        name_filter=catalog.name
+                    )
+                    
+                    if new_price_ton:
+                        logger.debug(f"FloorPriceService: Found price for {catalog.name} in GetGems items: {new_price_ton} TON")
+                else:
+                    logger.warning(f"FloorPriceService: Priority GETGEMS for {catalog.name} but no collection_address")
             
-            # 4. Если в tools нет, используем провайдеров (GetGems/Laffka) - DISABLED
-            # if new_price_ton is None:
-            #     provider = ExternalProviderType.GETGEMS if catalog.is_onchain else ExternalProviderType.LAFFKA
-            #     logger.info(f"FloorPriceService: {catalog.name} not found in tools, falling back to {provider}")
-            #     
-            #     details = {"collection_address": catalog.collection_address}
-            #     if provider == ExternalProviderType.LAFFKA:
-            #         mapping_stmt = select(LaffkaMapping).where(LaffkaMapping.catalog_id == catalog.id)
-            #         mapping_res = await db.execute(mapping_stmt)
-            #         mapping = mapping_res.scalar_one_or_none()
-            #         if mapping:
-            #             details["laffka_sticker_id"] = mapping.laffka_sticker_id
-            #
-            #     update_req = FloorPriceUpdate(
-            #         catalog_id=catalog.id,
-            #         details=details
-            #     )
-            #     results = await external_api_service.update_floor_price([update_req], provider=provider)
-            #     for res in results:
-            #         if res.success and "new_price" in res.details:
-            #             new_price_ton = res.details["new_price"]
+            # Если приоритет Laffka, пробуем Laffka API
+            elif priority == PriorityMarket.LAFFKA.value:
+                # Временно используем stickers.tools как основной источник для Laffka
+                pass
+
+            # Если приоритет не GetGems ИЛИ в GetGems не нашли - пробуем stickers.tools
+            if new_price_ton is None:
+                col_name = catalog.collection_name
+                pack_name = catalog.name
+                
+                if col_name in tools_floors and pack_name in tools_floors[col_name]:
+                    new_price_ton = tools_floors[col_name][pack_name]
+                    logger.debug(f"FloorPriceService: Found price for {pack_name} in stickers.tools: {new_price_ton} TON")
             
             # 5. Применяем логику 20% порога
             if new_price_ton is not None:

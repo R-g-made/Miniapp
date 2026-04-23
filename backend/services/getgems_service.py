@@ -73,12 +73,21 @@ class GetGemsService:
         return response
 
     async def get_on_sale_nfts(self, collection_address: str) -> List[Dict[str, Any]]:
-        """Получает список NFT на продаже в коллекции"""
+        """Получает список NFT на продаже в коллекции с сортировкой от меньшего к большему"""
         await self._ensure_connected()
         try:
-            response = await self._request("GET", f"v1/nfts/on-sale/{collection_address}")
+            # Добавляем параметр сортировки по цене (low to high)
+            params = {
+                "sort": "price_asc", 
+                "limit": 100
+            }
+            response = await self._request("GET", f"v1/nfts/on-sale/{collection_address}", params=params)
             response.raise_for_status()
-            return response.json().get("items", [])
+            items = response.json().get("items", [])
+            
+            # Дополнительно сортируем в Python для надежности
+            items.sort(key=lambda x: int(x.get("price") or x.get("fullPrice") or 0))
+            return items
         except Exception as e:
             logger.error(f"GetGemsService: Failed to fetch listings for {collection_address}: {e}")
             return []
@@ -195,6 +204,93 @@ class GetGemsService:
             await db.commit()
             
         return results
+
+    async def get_floor_price_from_items(self, collection_address: str, name_filter: Optional[str] = None) -> Optional[float]:
+        """
+        Получает флор-прайс путем анализа списка активных лотов в коллекции.
+        Можно фильтровать по имени (например, 'Greatness').
+        """
+        try:
+            # Используем GraphQL или REST API Getgems для получения списка предметов на продаже
+            # Для теста Greatness будем искать самое дешевое предложение с подходящим именем
+            
+            # В Getgems API это обычно POST запрос к GraphQL
+            url = "https://api.getgems.io/graphql"
+            
+            query = """
+            query getNfts($collectionAddress: String!, $cursor: String, $filter: String) {
+              alphaNftItems(
+                where: { 
+                  collectionAddress: { _eq: $collectionAddress }, 
+                  sale: { _is_null: false },
+                  name: { _ilike: $filter }
+                },
+                order_by: [
+                  { sale: { fullPrice: asc } },
+                  { sale: { price: asc } }
+                ],
+                limit: 50,
+                cursor: $cursor
+              ) {
+                items {
+                  address
+                  name
+                  sale {
+                    fullPrice
+                    price
+                  }
+                }
+              }
+            }
+            """
+            
+            variables = {
+                "collectionAddress": collection_address,
+                "filter": f"%{name_filter}%" if name_filter else "%"
+            }
+            
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.post(url, json={"query": query, "variables": variables})
+                if response.status_code == 200:
+                    data = response.json()
+                    items = data.get("data", {}).get("alphaNftItems", {}).get("items", [])
+                    
+                    if items:
+                        # Сортируем полученные предметы еще раз в Python для гарантии
+                        valid_items = []
+                        for item in items:
+                            name = item.get("name", "")
+                            # Дополнительная проверка имени в Python (на случай если %filter% сработал широко)
+                            if name_filter and name_filter.lower() not in name.lower():
+                                continue
+                                
+                            sale = item.get("sale", {})
+                            # Берем минимальное из fullPrice и price (в нанотонах)
+                            p1 = sale.get("fullPrice")
+                            p2 = sale.get("price")
+                            
+                            val = None
+                            if p1 and p2: val = min(int(p1), int(p2))
+                            elif p1: val = int(p1)
+                            elif p2: val = int(p2)
+                            
+                            if val:
+                                valid_items.append({"name": name, "price": val})
+                        
+                        if valid_items:
+                            # Явная сортировка по цене от меньшего к большему
+                            valid_items.sort(key=lambda x: x["price"])
+                            
+                            min_price_nano = valid_items[0]["price"]
+                            price_ton = float(min_price_nano) / 10**9
+                            logger.info(f"GetGemsService: Sorted minimum floor for {name_filter}: {price_ton} TON")
+                            return price_ton
+                            
+            logger.warning(f"GetGemsService: No items found for {name_filter} in {collection_address}")
+            return None
+        except Exception as e:
+            logger.error(f"GetGemsService: Error fetching floor from items: {e}")
+            return None
 
     async def get_floor_price(self, collection_address: str) -> Optional[float]:
         """Старый метод для обратной совместимости (через GraphQL или новый API)"""

@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 from loguru import logger
 import uuid
 import random
+import math
 from typing import List, Dict, Any, Tuple, Optional
 
 from backend.models.case import Case
@@ -103,16 +104,24 @@ class ChanceService:
 
         current_case_price = case_obj.price_ton
         if current_case_price <= 0:
-            current_case_price = (sum(prices) / len(prices)) * 1.1
+            # Округление цены TON вверх до 2 знаков
+            current_case_price = math.ceil((sum(prices) / len(prices)) * 1.1 * 100) / 100
 
         best_chances, final_ev, final_price = await self._run_rebalance_loop(
             available_items, current_case_price
         )
 
-        for it, chance in zip(available_items, best_chances):
-            it["item_obj"].chance = round(chance, 6)
+        # Округление шансов до 4 знаков (соответствует 2 знакам после запятой в процентах).
+        # Чтобы сумма была ровно 1.0, корректируем последний элемент.
+        rounded_chances = [round(c, 4) for c in best_chances]
+        if rounded_chances:
+            diff = 1.0 - sum(rounded_chances)
+            rounded_chances[-1] = round(rounded_chances[-1] + diff, 4)
 
-        if abs(case_obj.price_ton - final_price) > 0.01:
+        for it, chance in zip(available_items, rounded_chances):
+            it["item_obj"].chance = chance
+
+        if abs(case_obj.price_ton - final_price) > 0.001:
             logger.info(f"ChanceService: Updating case price {case_obj.slug}: {case_obj.price_ton} -> {final_price} TON")
             case_obj.price_ton = final_price
             case_obj.price_stars = round(final_price / settings.STARS_TO_TON_RATE)
@@ -143,7 +152,8 @@ class ChanceService:
         """Основной цикл балансировки (адаптация Chanse_git.py)"""
         prices = [it["price"] for it in available_items]
         categories = [it["category"] for it in available_items]
-        case_price = initial_price
+        # Обеспечиваем округление цены TON вверх до 2 знаков
+        case_price = math.ceil(initial_price * 100) / 100
         
         chances = []
         for cat in categories:
@@ -167,7 +177,9 @@ class ChanceService:
             # 4. Если не попали, корректируем цену кейса
             price_min = ev / (1 - (self.base_fee + self.fee_tolerance) / 100)
             price_max = ev / (1 - (self.base_fee - self.fee_tolerance) / 100)
-            case_price = round(((price_min + price_max) / 2) * 2) / 2 # Округление до 0.5
+            avg_price = (price_min + price_max) / 2
+            # Округление до 2 знаков в большую сторону для TON
+            case_price = math.ceil(avg_price * 100) / 100
 
         return chances, ev, case_price
 

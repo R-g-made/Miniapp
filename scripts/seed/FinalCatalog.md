@@ -7,6 +7,7 @@
   - [shib4.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776524226/catalog_all/dogs_goodies_pack_shib4.json)
   - [shib4.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776524227/catalog_all/dogs_goodies_pack_shib4.webp)
 - Issusier: Goodies
+- Chanse: 45.0%
 
 ### BONK - BONK: The Dog
 - Collection Address: EQAxoXyvNi1r8gqxsHalTas97yyt-KD6zNRjurATteJyHiPR
@@ -15,6 +16,7 @@
   - [BonkTheDog1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776524222/catalog_all/dogs_goodies_pack_bonkthedog1.json)
   - [BonkTheDog1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776524223/catalog_all/dogs_goodies_pack_bonkthedog1.webp)
 - Issusier: Goodies
+- Chanse: 35.0%
 
 ### BONK - BONK: Hit Harder
 - Collection Address: EQBu7U-TdYj0inpXAloJyKbh5eyfyPWC33ACEr8FAEEPKPJS
@@ -23,6 +25,7 @@
   - [BonkHitHarder1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776524221/catalog_all/dogs_goodies_pack_bonkhitharder1.json)
   - [BonkHitHarder1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776524222/catalog_all/dogs_goodies_pack_bonkhitharder1.webp)
 - Issusier: Goodies
+- Chanse: 12.0%
 
 ### Neiro - Neiro: Woofin' Mad
 - Collection Address: EQBkuNNCz9Fw3Nyri7hzcAWHtGX_h4P_28-VBXE_a743pxCt
@@ -31,6 +34,7 @@
   - [NeiroWoofinMad5.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776524224/catalog_all/dogs_goodies_pack_neirowoofinmad5.json)
   - [NeiroWoofinMad5.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776524224/catalog_all/dogs_goodies_pack_neirowoofinmad5.webp)
 - Issusier: Goodies
+- Chanse: 6.0%
 
 ### Neiro - Neiro: Woof Vault
 - Collection Address: EQB3_MTjEjHMQ5JTETAdivU5fZJO1FeqrGvbav3W1OrjiB8w
@@ -39,6 +43,9 @@
   - [NeiroWoofVault1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776524225/catalog_all/dogs_goodies_pack_neirowoofvault1.json)
   - [NeiroWoofVault1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776524226/catalog_all/dogs_goodies_pack_neirowoofvault1.webp)
 - Issusier: Goodies
+- Chanse: 2.0%
+
+##Pengu
 
 ### Pudgy Penguins - Ice Pengu
 - Collection Address: EQBrTC-epxY0QnLqaR_v8lfYzWHsVBZDk8pUoiFcLHPqyUyV
@@ -47,6 +54,7 @@
   - [IcePengu1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522244/catalog_all/pengu_pack_icepengu1.json)
   - [Ice_Pengu1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522245/catalog_all/pengu_pack_ice_pengu1.webp)
 - Issusier: StickerStore
+- Chanse: 0.1%
 
 ### Pudgy Penguins - Midas Pengu
 - Collection Address: EQDzGENlHqiIJdhMm9tG2N6RibrX0f64Iw4V-3VZPr78jkvD
@@ -55,6 +63,7 @@
   - [MidasPengu8.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522248/catalog_all/pengu_pack_midaspengu8.json)
   - [MidasPengu8.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522248/catalog_all/pengu_pack_midaspengu8.webp)
 - Issusier: StickerStore
+- Chanse: 4%
 
 ### Pudgy Penguins - Classic Pengu
 - Collection Address: EQAeDzIX3M0mcZM2zU3CAUMv_n91CfWVSUH4H43jVWRtHRPC
@@ -63,6 +72,7 @@
   - [ClassicPengu1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522239/catalog_all/pengu_pack_classicpengu1.json)
   - [Classic_Pengu1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522240/catalog_all/pengu_pack_classic_pengu1.webp)
 - Issusier: StickerStore
+- Chanse: 15%
 
 ### Pudgy Penguins - Pengu Valentines
 - Collection Address: EQBwfGWlb4Eg3vCEFYuvz4j3miaAe6RUZXiohWsjsuAB2etc
@@ -71,6 +81,7 @@
   - [PenguValentines1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522250/catalog_all/pengu_pack_penguvalentines1.json)
   - [PenguValentines1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522250/catalog_all/pengu_pack_penguvalentines1.webp)
 - Issusier: StickerStore
+- Chanse: 8.5%
 
 ### Pudgy Penguins - Pengu CNY
 - Collection Address: EQBVZUMUctWA_igeoZ6JtE1ir-k8syr4Ja0kU5bvShCMv7Fw
@@ -79,6 +90,7 @@
   - [PenguCNY1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522249/catalog_all/pengu_pack_pengucny1.json)
   - [Pengu_CNY1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522253/catalog_all/pengu_pack_pengu_cny1.webp)
 - Issusier: StickerStore
+- Chanse: 1%
 
 ### Pudgy Penguins - Cool Blue Pengu
 - Collection Address: EQCBvNJAQLQhNxD1leTSFe50GP-33Qz2guMNaW-uUUiSPlZa
@@ -87,6 +99,7 @@
   - [CoolBluePengu1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522240/catalog_all/pengu_pack_coolbluepengu1.json)
   - [CoolBluePengu1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522241/catalog_all/pengu_pack_coolbluepengu1.webp)
 - Issusier: StickerStore
+- Chanse: 0.2%
 
 ### Pudgy Penguins - Blue Pengu
 - Collection Address: EQDTR8-cCIXDtKIH5Uc8tulBZH0OsUL8ndBA42RHBn2Jku9v
@@ -95,6 +108,7 @@
   - [BluePengu1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522238/catalog_all/pengu_pack_bluepengu1.json)
   - [BluePengu1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522239/catalog_all/pengu_pack_bluepengu1.webp)
 - Issusier: StickerStore
+- Chanse: 2.5%
 
 ### Pudgy & Friends - Pengu x NASCAR
 - Collection Address: EQCWilOVYFcjnfrODyyrsLBP5kxFUQClAGvF0s64--PCDyDA
@@ -103,6 +117,7 @@
   - [PenguxNASCAR5.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522252/catalog_all/pengu_pack_penguxnascar5.json)
   - [PenguxNASCAR5.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522252/catalog_all/pengu_pack_penguxnascar5.webp)
 - Issusier: StickerStore
+- Chanse: 5.0%
 
 ### Lil Pudgys - Lil Pudgys x Baby Shark
 - Collection Address: EQBhO9lEfc9fkPOVmQ1ddu3LFftonjUthjaOOaMLWCIaFakP
@@ -111,6 +126,7 @@
   - [LilPudgysxBabyShark1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522245/catalog_all/pengu_pack_lilpudgysxbabyshark1.json)
   - [LilPudgysxBabyShark1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522246/catalog_all/pengu_pack_lilpudgysxbabyshark1.webp)
 - Issusier: StickerStore
+- Chanse: 10.0%
 
 ### Pudgy Penguins x Kung Fu Panda - Dragon Warrior Po
 - Collection Address: EQDa0ZprG3FYJ-rPGZddmKdnG-La6Gl05h39yK8xU9BMMDyM
@@ -118,7 +134,8 @@
 - Assets:
   - [DragonWarriorPo3.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522242/catalog_all/pengu_pack_dragonwarriorpo3.json)
   - [DragonWarriorPo3.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522242/catalog_all/pengu_pack_dragonwarriorpo3.webp)
-- Issusier: StickerStore
+- Issusier: Goodies
+- Chanse: 33.0%
 
 ### Pudgy Penguins x Kung Fu Panda - Grand Master Oogway
 - Collection Address: EQCk5rpYNIXJussZVWG49JYR3vQWZTR-DklSoA7BC8Pn-qoJ
@@ -126,7 +143,8 @@
 - Assets:
   - [GrandMasterOogway3.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522243/catalog_all/pengu_pack_grandmasteroogway3.json)
   - [GrandMasterOogwey3.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522243/catalog_all/pengu_pack_grandmasteroogwey3.webp)
-- Issusier: StickerStore
+- Issusier: Goodies
+- Chanse: 20.0%
 
 ### Pudgy Penguins x Kung Fu Panda - Master Shifu
 - Collection Address: EQC6z9USNNBWe_0gx6DbQggzuEv1u-djTeWogJQQWG15tprZ
@@ -134,7 +152,8 @@
 - Assets:
   - [MasterShifu8.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522247/catalog_all/pengu_pack_mastershifu8.json)
   - [MasterShifu8.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522247/catalog_all/pengu_pack_mastershifu8.webp)
-- Issusier: Sticker Store
+- Issusier: Goodies
+- Chanse: 0.7%
 
 ## Slon Case
 
@@ -145,6 +164,7 @@
   - [Wylsacom.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522266/catalog_all/slon_case_1_no_lottie_webp_wylsacom.json)
   - [Wylsacom.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522266/catalog_all/slon_case_1_no_lottie_webp_wylsacom.webp)
 - Issusier: Slon
+- Chanse: 12.0%
 
 ### Eugeniy Ponasenkov - Eugeniy Ponasenkov
 - Collection Address: EQDHQRA5G6AqCwqqnEqIyEetqUDQdDWty7vpJwpSOwznav_h
@@ -153,6 +173,7 @@
   - [Panasenkov.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522261/catalog_all/slon_case_1_no_lottie_webp_panasenkov.json)
   - [Panasenkov.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522262/catalog_all/slon_case_1_no_lottie_webp_panasenkov.webp)
 - Issusier: Slon
+- Chanse: 15.5%
 
 ### Nicegram - Nicegram
 - Collection Address: EQDTxIRLBaRviCrxejTJE0sOiw_gETgx1O6YUZgVJCcogI0T
@@ -161,6 +182,7 @@
   - [Nicegram5.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522260/catalog_all/slon_case_1_no_lottie_webp_nicegram5.json)
   - [Nicegram5.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522261/catalog_all/slon_case_1_no_lottie_webp_nicegram5.webp)
 - Issusier: Slon
+- Chanse: 4.5%
 
 ### DuckyGram Stickers - DuckyGram Stickers
 - Collection Address: EQB3S5LEOhcUTvq4ZpCcxKfx-8GgbQq4hutQSg8MNLu9PV9y
@@ -169,6 +191,7 @@
   - [DuckyGram.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522256/catalog_all/slon_case_1_no_lottie_webp_duckygram.json)
   - [DuckyGram.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522256/catalog_all/slon_case_1_no_lottie_webp_duckygram.webp)
 - Issusier: Slon
+- Chanse: 10.0%
 
 ### Elephant Club - Face Control
 - Collection Address: EQDSR8X6AssSqzytrDps7a9eG7nOZy0ofFHJtNu8-1m33hn-
@@ -177,6 +200,7 @@
   - [FaceControl.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522257/catalog_all/slon_case_1_no_lottie_webp_facecontrol.json)
   - [FaceControl.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522258/catalog_all/slon_case_1_no_lottie_webp_facecontrol.webp)
 - Issusier: Slon
+- Chanse: 1.0%
 
 ### Russian Premier League - Russian Premier League
 - Collection Address: EQDih-QkDRfT52h82wbnBC1-lp_wdRp2JAXvKwi9dHzJGkc1
@@ -185,6 +209,7 @@
   - [RussiaPremierLeague1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522263/catalog_all/slon_case_1_no_lottie_webp_russiapremierleague1.json)
   - [RussiaPremierLeague1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522263/catalog_all/slon_case_1_no_lottie_webp_russiapremierleague1.webp)
 - Issusier: Slon
+- Chanse: 6.0%
 
 ### Zolotoe Dno 2: Stickers - Zolotoe Dno
 - Collection Address: EQA0CcZFe04HKGZXBkwEAyr6JKN-epq5XiNGCv6q9JcKQQfY
@@ -192,6 +217,7 @@
 - Assets:
   - [ZolotoeDno2_1.webm](https://res.cloudinary.com/da3hc6qxp/video/upload/v1776522267/catalog_all/slon_case_1_no_lottie_webp_zolotoedno2_1.webm)
 - Issusier: Slon
+- Chanse: 8.0%
 
 ### Gift Fest Grinch - Gift Fest Grinch
 - Collection Address: EQBgqYlspcUjM-8PMT8ETk9FWeciKlhiHF99tUkXfBl8MHBh
@@ -200,6 +226,7 @@
   - [GiftFestGrinch8.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522258/catalog_all/slon_case_1_no_lottie_webp_giftfestgrinch8.json)
   - [GiftFestGrinch8.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522259/catalog_all/slon_case_1_no_lottie_webp_giftfestgrinch8.webp)
 - Issusier: Slon
+- Chanse: 7.0%
 
 ### Degenphone Pump! - Degenphone Pump!
 - Collection Address: EQCta9u-_P0TXg4Vb758GX6yi5W8ojyM_h_e861PuIxOnC3C
@@ -208,7 +235,8 @@
   - [DegenphonePump5.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522254/catalog_all/slon_case_1_no_lottie_webp_degenphonepump5.json)
   - [DegenphonePump5.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522255/catalog_all/slon_case_1_no_lottie_webp_degenphonepump5.webp)
 - Issusier: Slon
-
+- Chanse: 5%
+4
 ### Degenphone Dump! - Degenphone Dump!
 - Collection Address: EQA-VD2tyrKeXDZQSbjqb2Qo851Y9dVBVVxu97ml2jUBOQ5S
 - Max Pool: 3
@@ -216,15 +244,16 @@
   - [DegenphoneDump5.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522253/catalog_all/slon_case_1_no_lottie_webp_degenphonedump5.json)
   - [DegenphoneDump5.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522254/catalog_all/slon_case_1_no_lottie_webp_degenphonedump5.webp)
 - Issusier: Slon
+- Chanse: 5%
 
-### Gift Fest Kryaka - Gift Fest Kryaka
-- Collection Address: EQBFHGpWHEcfli-70N8t_3xjMpHa7V_tWBZSSjh93sFFdpkT
-- Max Pool: 6
+### ILYAREMIX - ILYAREMIX
+- Collection Address: EQASTCCxgTabyETECU5sLNxscmLdo9uwn7jU3_Q9cp8oYKYU
+- Max Pool: 1
 - Assets:
   - [GiftFestKryaka1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522259/catalog_all/slon_case_1_no_lottie_webp_giftfestkryaka1.json)
   - [GiftFestKryaka1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522260/catalog_all/slon_case_1_no_lottie_webp_giftfestkryaka1.webp)
 - Issusier: Slon
-
+- Chanse: 3.5%
 
 
 ### Sticker Family - Sticker Family
@@ -234,6 +263,7 @@
   - [stickerfamily3.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522264/catalog_all/slon_case_1_no_lottie_webp_stickerfamily3.json)
   - [stickerfamily3.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522265/catalog_all/slon_case_1_no_lottie_webp_stickerfamily3.webp)
 - Issusier: Slon
+- Chanse: 13.5%
 
 ## Blum Case
 
@@ -600,6 +630,7 @@
   - [CNY_2092_6.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522235/catalog_all/monkey_case_4_no_lottie_webp_cny_2092_6.json)
   - [CNY_2092_6.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522235/catalog_all/monkey_case_4_no_lottie_webp_cny_2092_6.webp)
 - Issusier: Sticker Store
+- Chanse: 11.0%
 
 ### Bored Stickers - 4017
 - Collection Address: EQBCgvoI82bG9-Jmv8AivjbUrcQCB3KPEj7m_L9uw_SA32Zu
@@ -608,6 +639,7 @@
   - [4017_10.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522223/catalog_all/monkey_case_4_no_lottie_webp_4017_10.json)
   - [4017_10.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522223/catalog_all/monkey_case_4_no_lottie_webp_4017_10.webp)
 - Issusier: Sticker Store
+- Chanse: 15.5%
 
 ### Bored Stickers - 9287
 - Collection Address: EQCNevRJhaMVS7yG863SZuq21UurChbqASBHX1nGFk2xT0JN
@@ -616,6 +648,7 @@
   - [9287_3.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522226/catalog_all/monkey_case_4_no_lottie_webp_9287_3.json)
   - [9287_3.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522226/catalog_all/monkey_case_4_no_lottie_webp_9287_3.webp)
 - Issusier: Sticker Store
+- Chanse: 14.5%
 
 ### Bored Stickers - 5824
 - Collection Address: EQCzYistiLNfJD9TBCNxg7tR0Eq1iY5WHsXK7LGNIpXBuDNS
@@ -624,6 +657,7 @@
   - [5824_2.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522224/catalog_all/monkey_case_4_no_lottie_webp_5824_2.json)
   - [5824_2.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522225/catalog_all/monkey_case_4_no_lottie_webp_5824_2.webp)
 - Issusier: Sticker Store
+- Chanse: 14.5%
 
 ### Bored Stickers - 9765
 - Collection Address: EQDLvgnjV-wLVfl4crDrJpCi37IzhgiuSOWF6RgHpPKJNmA0
@@ -632,6 +666,7 @@
   - [9765_1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522227/catalog_all/monkey_case_4_no_lottie_webp_9765_1.json)
   - [9765_1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522228/catalog_all/monkey_case_4_no_lottie_webp_9765_1.webp)
 - Issusier: Sticker Store
+- Chanse: 15.5%
 
 ### Chimpers Dojo - Chimpers x Jarritos
 - Collection Address: EQD4204FSvO3BsthsGAX0XCe4l0xKhuRHsQchlTgjI0NMZnZ
@@ -640,6 +675,7 @@
   - [ChimpersxJarritos1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776522233/catalog_all/monkey_case_4_no_lottie_webp_chimpersxjarritos1.json)
   - [ChimpersxJarritos1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522234/catalog_all/monkey_case_4_no_lottie_webp_chimpersxjarritos1.webp)
 - Issusier: Sticker Store
+- Chanse: 10.0%
 
 ### CyberKongz - Wilson
 - Collection Address: EQC_SVGRAw4mcnfNai7Bm7gmXWhD3J5MSrgpLdEZzZQMnZbw
@@ -647,6 +683,7 @@
 - Assets:
   - [wilson1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522237/catalog_all/monkey_case_4_no_lottie_webp_wilson1.webp)
 - Issusier: Sticker Store
+- Chanse: 14.0%
 
 ### Ape Edition - Ape Edition
 - Collection Address: Bored Ape Classics
@@ -655,6 +692,7 @@
   - [ApeEdition1.webm](https://res.cloudinary.com/da3hc6qxp/video/upload/v1776522229/catalog_all/monkey_case_4_no_lottie_webp_apeedition1.webm)
   - [ApeEdition1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776522230/catalog_all/monkey_case_4_no_lottie_webp_apeedition1.webp)
 - Issusier: Sticker Store
+- Chanse: 0.2%
 
 ### Bored Ape Classics - BAYC Classic
 - Collection Address: EQCDgzuIppLEHpb3ih5DV55XN3ldeERE1p-zsvMpBW_slYPf
@@ -662,6 +700,7 @@
 - Assets:
   - [BAYCClassic5.webm](https://res.cloudinary.com/da3hc6qxp/video/upload/v1776522231/catalog_all/monkey_case_4_no_lottie_webp_baycclassic5.webm)
 - Issusier: Sticker Store
+- Chanse: 3.5%
 
 ## NOT Case
 
@@ -736,3 +775,152 @@
   - [Not_NY1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776524295/catalog_all/not_case_1_no_lottie_only_tgs_not_ny1.json)
   - [Not_NY1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776524296/catalog_all/not_case_1_no_lottie_only_tgs_not_ny1.webp)
 - Issusier: Sticker Store
+
+
+## Anime Case
+
+### Azuki - Shao
+- Collection Address: EQCoDImGRCIE1VhGEdtqIOSQF41QTZ6syKpOaWWR-9W9xLxD
+- Max Pool: 2
+- Assets:
+  - [Shao1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776716039/catalog_all/anime_case_lottie__webp_shao1.json)
+  - [Shao1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776716039/catalog_all/anime_case_lottie__webp_shao1.webp)
+- Issusier: Sticker Store
+- Chanse: 1%
+
+### Azuki - Raizan
+- Collection Address: EQC5Fq3CdJ49e6LMxtNIyp3htbD3r5B6L8o1I3crZsGvm_oV
+- Max Pool: 2
+- Assets:
+  - [Raizan2.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776716038/catalog_all/anime_case_lottie__webp_raizan2.json)
+  - [Raizan2.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776716038/catalog_all/anime_case_lottie__webp_raizan2.webp)
+- Issusier: Sticker Store
+- Chanse: 1%
+
+### Alley Escape - GAMEE: Legends of the Alley
+- Collection Address: EQDcRpjC9tU8cxcnWDGMrNcZlfuH1udd4ymSQByHPxLCE5E-
+- Max Pool: 10
+- Assets:
+  - [Legends4.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776716035/catalog_all/anime_case_lottie__webp_legends4.json)
+  - [Legends4.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776716036/catalog_all/anime_case_lottie__webp_legends4.webp)
+- Issusier: Goodies
+- Chanse: 35%
+
+### Alley Escape - GAMEE: Escape the Alley
+- Collection Address: EQB9T6HKu8kRMi9fnBBQoim78eqT6bDO7LkE7dBgHsGTCH_O
+- Max Pool: 2
+- Assets:
+  - [Escape5.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776716034/catalog_all/anime_case_lottie__webp_escape5.json)
+  - [Escape5.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776716035/catalog_all/anime_case_lottie__webp_escape5.webp)
+- Issusier: Goodies
+- Chanse: 6%
+
+### Final Bosu - Final Bosu: Letsugo Vol I
+- Collection Address: EQDl_-iTp75pda_mSBmCQnH_D9FE0kz50ziS3hQt09iSA0Lm
+- Max Pool: 5
+- Assets:
+  - [Bosu1_4.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776716031/catalog_all/anime_case_lottie__webp_bosu1_4.json)
+  - [Bosu1_4.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776716032/catalog_all/anime_case_lottie__webp_bosu1_4.webp)
+- Issusier: Goodies
+- Chanse: 18%
+
+### Final Bosu - Final Bosu: Letsugo Vol II
+- Collection Address: EQCJEL5sEaDRrKwAlChsPDpj7V2l8a_4PnwZ71q21_u_2711
+- Max Pool: 3
+- Assets:
+  - [Bosu2_1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776716032/catalog_all/anime_case_lottie__webp_bosu2_1.json)
+  - [Bosu2_1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776716033/catalog_all/anime_case_lottie__webp_bosu2_1.webp)
+- Issusier: Goodies
+- Chanse: 12%
+
+### PUCCA: PUCCA Moods
+- Collection Address: EQBWyHfTLUW6UFXwY44auHz5zivAuBXcOSgXpn9lJU4kwS9n
+- Max Pool: 10
+- Assets:
+  - [Bosu2_1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776716032/catalog_all/anime_case_lottie__webp_bosu2_1.json)
+  - [Bosu2_1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776716033/catalog_all/anime_case_lottie__webp_bosu2_1.webp)
+- Issusier: Sticker Store
+- Chanse: 27%
+
+## Birds Case (Goodies & Sticker Store)
+
+### Moonbirds - Moonbirds Set 2: Sketch
+- Collection Address: EQDilrd0qOqszqQIOjsAmeWpP_YUoTcKaj1QC5i3ZBHdy3Pl
+- Max Pool: 1
+- Assets:
+  - [moonbirdsSkatch9.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776715870/catalog_all/birds_case_flappy_no_mint_moonbirdsskatch9.json)
+  - [moonbirdsSkatch9.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776715871/catalog_all/birds_case_flappy_no_mint_moonbirdsskatch9.webp)
+- Issusier: Sticker Store
+- Chanse: 3%
+
+### Moonbirds - Moonbirds Set 2
+- Collection Address: EQD0FmLPLBdnzAB6emGGhiX1jWe82jvhC89KgdXEJ9SO-_34
+- Max Pool: 1
+- Assets:
+  - [moonbird2pack.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776715866/catalog_all/birds_case_flappy_no_mint_moonbird2pack.json)
+  - [moonbird2pack.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776715867/catalog_all/birds_case_flappy_no_mint_moonbird2pack.webp)
+- Issusier: Sticker Store
+- Chanse: 6%
+
+### Moonbirds - Originals
+- Collection Address: EQA2-QQJWaPojcY9AeVZTTiyJROJ3WUcqs1RsY_G8uePqzlu
+- Max Pool: 1
+- Assets:
+  - [moonbird2pack.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776715866/catalog_all/birds_case_flappy_no_mint_moonbird2pack.json)
+  - [moonbird2pack.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776715867/catalog_all/birds_case_flappy_no_mint_moonbird2pack.webp)
+- Issusier: Sticker Store
+- Chanse: 9%
+
+### Flappy Bird - Blush Flight
+- Collection Address: [link does not exist. No mint for this sticker]
+- Max Pool: 1
+- Assets:
+  - [BlushFlight2.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776715860/catalog_all/birds_case_flappy_no_mint_blushflight2.json)
+  - [BlushFlight2.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776715861/catalog_all/birds_case_flappy_no_mint_blushflight2.webp)
+- Issusier: Sticker Store
+- Chanse: 13%
+
+### Flappy Bird - Light Glide
+- Collection Address: [link does not exist. No mint for this sticker]
+- Max Pool: 1
+- Assets:
+  - [LightGlide21.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776715865/catalog_all/birds_case_flappy_no_mint_lightglide21.json)
+  - [LightGlide21.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776715865/catalog_all/birds_case_flappy_no_mint_lightglide21.webp)
+- Issusier: Sticker Store
+- Chanse: 11%
+
+### Flappy Bird - Ruby Wings
+- Collection Address: [link does not exist. No mint for this sticker]
+- Max Pool: 2
+- Assets:
+  - [RubyWings43.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776715873/catalog_all/birds_case_flappy_no_mint_rubywings43.json)
+  - [RubyWings43.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776715874/catalog_all/birds_case_flappy_no_mint_rubywings43.webp)
+- Issusier: Sticker Store
+- Chanse: 15%
+
+### Flappy Bird - Blue Wings
+- Collection Address: [link does not exist. No mint for this sticker]
+- Max Pool: 2
+- Assets:
+  - [BlueWings7.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776715858/catalog_all/birds_case_flappy_no_mint_bluewings7.json)
+  - [BlueWings7.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776715859/catalog_all/birds_case_flappy_no_mint_bluewings7.webp)
+- Issusier: Sticker Store
+- Chanse: 17%
+
+### Flappy Bird - Frost Flap
+- Collection Address: [link does not exist. No mint for this sticker]
+- Max Pool: 1
+- Assets:
+  - [FrostFlap16.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776715862/catalog_all/birds_case_flappy_no_mint_frostflap16.json)
+  - [FrostFlap16.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776715863/catalog_all/birds_case_flappy_no_mint_frostflap16.webp)
+- Issusier: Sticker Store
+- Chanse: 14%
+
+### NOT Wise - NOT Wise Stonks x Goodies
+- Collection Address: EQCbm_7WLjDdMbF8wzXHRhSIfCkIkUPx9uv3RBM7N4oNY2Vx
+- Max Pool: 1
+- Assets:
+  - [NotWise_1.json](https://res.cloudinary.com/da3hc6qxp/raw/upload/v1776715872/catalog_all/birds_case_flappy_no_mint_notwise_1.json)
+  - [NotWise_1.webp](https://res.cloudinary.com/da3hc6qxp/image/upload/v1776715872/catalog_all/birds_case_flappy_no_mint_notwise_1.webp)
+- Issusier: Goodies
+- Chanse: 12%

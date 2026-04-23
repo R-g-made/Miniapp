@@ -83,24 +83,32 @@ class ConnectionManager:
     async def broadcast(self, message: WSEventMessage):
         """Отправить сообщение ВСЕМ подключенным пользователям (через Redis если включен)"""
         if settings.USE_REDIS:
-            redis_client = await redis_service.connect()
-            payload = json.dumps({
-                "target_user_id": None,
-                "message": message.model_dump()
-            })
-            await redis_client.publish("ws_events", payload)
+            try:
+                redis_client = await redis_service.connect()
+                payload = json.dumps({
+                    "target_user_id": None,
+                    "message": message.model_dump()
+                })
+                await redis_client.publish("ws_events", payload)
+            except Exception as e:
+                logger.warning(f"WS Manager: Redis broadcast failed, falling back to local: {e}")
+                await self._local_broadcast(message)
         else:
             await self._local_broadcast(message)
 
     async def send_to_user(self, user_id: str, message: WSEventMessage):
         """Отправить персональное сообщение пользователю (через Redis если включен)"""
         if settings.USE_REDIS:
-            redis_client = await redis_service.connect()
-            payload = json.dumps({
-                "target_user_id": str(user_id),
-                "message": message.model_dump()
-            })
-            await redis_client.publish("ws_events", payload)
+            try:
+                redis_client = await redis_service.connect()
+                payload = json.dumps({
+                    "target_user_id": str(user_id),
+                    "message": message.model_dump()
+                })
+                await redis_client.publish("ws_events", payload)
+            except Exception as e:
+                logger.warning(f"WS Manager: Redis send_to_user failed, falling back to local: {e}")
+                await self._local_send_to_user(user_id, message)
         else:
             await self._local_send_to_user(user_id, message)
 
