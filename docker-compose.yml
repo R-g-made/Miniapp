@@ -6,9 +6,9 @@ services:
     container_name: miniapp_postgres
     restart: always
     environment:
-      - POSTGRES_USER=stickerloot
-      - POSTGRES_PASSWORD=SecurePass123!
-      - POSTGRES_DB=stickerloot_db
+      - POSTGRES_USER=${POSTGRES_USER:-stickerloot}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-stickerloot_db}
     ports:
       - "5432:5432"
     volumes:
