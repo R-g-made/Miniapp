@@ -16,6 +16,7 @@ from backend.services.thermos_service import thermos_service
 from backend.core.config import settings
 from backend.core.exceptions import EntityNotFound, InvalidOperation
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 class StickerService:
     async def transfer(
@@ -58,7 +59,9 @@ class StickerService:
             target_address = wallet.address
         
         # 3. Проверяем блокировку
-        is_locked = sticker.unlock_date and sticker.unlock_date > datetime.now(timezone.utc)
+        # Убираем таймзону для сравнения, если в базе хранится naive datetime
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        is_locked = sticker.unlock_date and sticker.unlock_date > now
         if is_locked:
             raise InvalidOperation(f"Sticker is locked until {sticker.unlock_date}")
 
