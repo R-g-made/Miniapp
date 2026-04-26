@@ -124,45 +124,42 @@ class WalletService:
             
             logger.info(f"WalletService: TON Proof signature verified for address {address}")
             
-            # 1. Проверяем, есть ли уже активный кошелек
-            active_wallet = await wallet_repository.get_active_by_owner_id(self.db, owner_id=user.id)
-            if active_wallet:
-                if active_wallet.address == address:
-                    # Тот же самый кошелек уже активен - ничего не делаем
-                    logger.info(f"WalletService: User {user.telegram_id} reconnected with already active wallet {address}")
-                    return True
-                else:
-                    # Пытается привязать ДРУГОЙ кошелек, не отвязав старый
-                    logger.warning(f"WalletService: User {user.id} tried to link new wallet {address} without disconnecting {active_wallet.address}")
-                    raise InvalidOperation("Another wallet is already linked. Please disconnect it first.")
+            # 1. Получаем ВСЕ кошельки пользователя (и активные, и нет)
+            stmt = select(Wallet).where(Wallet.owner_id == user.id)
+            result = await self.db.execute(stmt)
+            user_wallets = result.scalars().all()
+            
+            # 2. Проверяем, привязан ли уже этот адрес к КОМУ-ТО другому (активный)
+            other_wallet = await wallet_repository.get_by_address(self.db, address=address)
+            if other_wallet and other_wallet.owner_id != user.id:
+                raise InvalidOperation("Wallet already linked to another account")
 
-            # 2. Привязываем/реактивируем новый кошелек
-            wallet = await wallet_repository.get_by_address(self.db, address=address)
-            if not wallet:
-                # Ищем среди деактивированных ранее этим же пользователем (soft delete)
-                stmt = select(Wallet).where(Wallet.address == address, Wallet.owner_id == user.id)
-                result = await self.db.execute(stmt)
-                existing_wallet = result.scalars().first()
-                
-                if existing_wallet:
-                    # Реактивируем
-                    existing_wallet.is_active = True
-                    self.db.add(existing_wallet)
-                    await self.db.commit()
+            # 3. Деактивируем все текущие кошельки пользователя, кроме того, который мы сейчас привязываем
+            for w in user_wallets:
+                if w.address != address and w.is_active:
+                    w.is_active = False
+                    self.db.add(w)
+
+            # 4. Ищем, есть ли этот адрес уже в списке кошельков пользователя
+            target_wallet = next((w for w in user_wallets if w.address == address), None)
+
+            if target_wallet:
+                # Если нашли - просто активируем (если был деактивирован)
+                if not target_wallet.is_active:
+                    target_wallet.is_active = True
+                    self.db.add(target_wallet)
                     logger.info(f"WalletService: Reactivated wallet {address} for user {user.id}")
                 else:
-                    # Создаем новый
-                    await wallet_repository.create(
-                        self.db,
-                        obj_in=WalletCreate(owner_id=user.id, address=address)
-                    )
-                    # create метод в BaseRepository по умолчанию делает commit, 
-                    # но для уверенности в WalletService лучше убедиться, что транзакция завершена
-                    logger.info(f"WalletService: Linked new wallet {address} for user {user.id}")
-            elif wallet.owner_id != user.id:
-                # Кошелек уже привязан к другому пользователю (активный)
-                raise InvalidOperation("Wallet already linked to another account")
-                
+                    logger.info(f"WalletService: Wallet {address} is already active for user {user.id}")
+            else:
+                # Если такого адреса у пользователя еще нет - создаем новый
+                await wallet_repository.create(
+                    self.db,
+                    obj_in=WalletCreate(owner_id=user.id, address=address, is_active=True)
+                )
+                logger.info(f"WalletService: Linked new wallet {address} for user {user.id}")
+
+            await self.db.commit()
             return True
             
         except Exception as e:

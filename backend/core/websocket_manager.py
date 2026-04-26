@@ -114,26 +114,46 @@ class ConnectionManager:
 
     async def _local_broadcast(self, message: WSEventMessage):
         """Внутренний метод для локальной рассылки"""
+        from starlette.websockets import WebSocketState
         payload = message.model_dump_json()
-        for user_id, user_connections in self.active_connections.items():
-            for websocket in user_connections:
+        
+        for user_id, user_connections in list(self.active_connections.items()):
+            for websocket in list(user_connections):
                 try:
-                    await websocket.send_text(payload)
-                except Exception as e:
-                    logger.warning(f"WS Manager: Failed local broadcast to {user_id}: {e}")
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        await websocket.send_text(payload)
+                    else:
+                        # Если соединение не активно, удаляем его
+                        user_connections.remove(websocket)
+                except Exception:
+                    if websocket in user_connections:
+                        user_connections.remove(websocket)
                     continue
+            
+            # Если у пользователя больше нет соединений, удаляем его из словаря
+            if not user_connections:
+                self.active_connections.pop(user_id, None)
 
     async def _local_send_to_user(self, user_id: str, message: WSEventMessage):
         """Внутренний метод для локальной отправки пользователю"""
+        from starlette.websockets import WebSocketState
         user_id_str = str(user_id)
         if user_id_str in self.active_connections:
             payload = message.model_dump_json()
-            for websocket in self.active_connections[user_id_str]:
+            connections = self.active_connections[user_id_str]
+            for websocket in list(connections):
                 try:
-                    await websocket.send_text(payload)
-                except Exception as e:
-                    logger.warning(f"WS Manager: Failed local direct send to {user_id_str}: {e}")
+                    if websocket.client_state == WebSocketState.CONNECTED:
+                        await websocket.send_text(payload)
+                    else:
+                        connections.remove(websocket)
+                except Exception:
+                    if websocket in connections:
+                        connections.remove(websocket)
                     continue
+            
+            if not connections:
+                del self.active_connections[user_id_str]
 
     async def listen_and_deliver(self, websocket: WebSocket, user_id: str):
         """
