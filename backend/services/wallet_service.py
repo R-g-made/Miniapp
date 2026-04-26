@@ -167,6 +167,48 @@ class WalletService:
             print(f"TON Proof verification failed: {e}")
             return False
 
+    async def link_wallet_to_user(self, user: User, address: str) -> bool:
+        """
+        Прямая привязка адреса кошелька для авторизованного пользователя.
+        """
+        try:
+            # 1. Получаем ВСЕ кошельки пользователя
+            stmt = select(Wallet).where(Wallet.owner_id == user.id)
+            result = await self.db.execute(stmt)
+            user_wallets = result.scalars().all()
+            
+            # 2. Проверяем, не занят ли адрес другим АКТИВНЫМ пользователем
+            other_wallet = await wallet_repository.get_by_address(self.db, address=address)
+            if other_wallet and other_wallet.owner_id != user.id:
+                raise InvalidOperation("Wallet already linked to another account")
+
+            # 3. Деактивируем все текущие кошельки пользователя, кроме того, который мы сейчас привязываем
+            for w in user_wallets:
+                if w.address != address and w.is_active:
+                    w.is_active = False
+                    self.db.add(w)
+
+            # 4. Ищем, есть ли этот адрес уже в списке кошельков пользователя
+            target_wallet = next((w for w in user_wallets if w.address == address), None)
+
+            if target_wallet:
+                if not target_wallet.is_active:
+                    target_wallet.is_active = True
+                    self.db.add(target_wallet)
+            else:
+                await wallet_repository.create(
+                    self.db,
+                    obj_in=WalletCreate(owner_id=user.id, address=address, is_active=True)
+                )
+
+            await self.db.commit()
+            await self.db.refresh(user)
+            return True
+        except Exception as e:
+            logger.error(f"WalletService: Direct link failed: {e}")
+            await self.db.rollback()
+            return False
+
     async def create_stars_invoice(self, user: User, amount: int, transaction_id: str) -> str:
         """
         Создание счета в Telegram Stars.

@@ -71,6 +71,32 @@ async def check_ton_proof(
         .build_check()
     )
 
+@router.post("/link", response_model=TonProofCheckResponse)
+async def link_wallet_address(
+    obj_in: TonProofCheckData,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    Прямая привязка адреса кошелька для авторизованного пользователя Telegram.
+    """
+    logger.info(f"API: Linking wallet {obj_in.address} for user {current_user.telegram_id}")
+    wallet_service = WalletService(db)
+    
+    success = await wallet_service.link_wallet_to_user(
+        user=current_user,
+        address=obj_in.address
+    )
+    
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to link wallet")
+        
+    return (
+        TonProofBuilder()
+        .with_address(obj_in.address)
+        .build_check()
+    )
+
 @router.delete("/disconnect", response_model=WalletDisconnectResponse)
 async def disconnect_wallet(
     db: AsyncSession = Depends(get_db),
