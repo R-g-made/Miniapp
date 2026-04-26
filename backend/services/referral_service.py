@@ -106,7 +106,7 @@ class ReferralService:
                 continue
                 
             # Получаем запись реферала
-            stmt_ref = select(Referral).where(Referral.id = referral_id)
+            stmt_ref = select(Referral).where(Referral.id == referral_id)
             res_ref = await self.db.execute(stmt_ref)
             ref_record = res_ref.scalar_one_or_none()
             
@@ -132,6 +132,15 @@ class ReferralService:
             logger.info(f"ReferralService: Unlocked {unlocked_count} star rewards")
             
         return unlocked_count
+
+    async def withdraw_ton(
+        self, 
+        user_id: uuid.UUID, 
+        amount: float, 
+        address: str, 
+        is_stars_conversion: bool = False, 
+        stars_amount: float = 0
+    ) -> dict:
         """
         Вывод реферальных вознаграждений в TON через tonutils.
         """
