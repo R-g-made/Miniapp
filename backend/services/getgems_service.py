@@ -242,9 +242,9 @@ class GetGemsService:
         logger.info(f"GetGemsService: Transferring NFT {nft_address} to {destination_address}...")
         
         try:
-            from ton_core import to_nano, Address
+            from ton_core import to_nano, Address, begin_cell
             from tonutils.contracts.wallet import WalletV5R1, TONTransferBuilder
-            from tonutils.contracts.nft import NFTItemStandard, NFTCollectionStandard, NFTTransferBody
+            from tonutils.contracts.nft import NFTItemStandard, NFTCollectionStandard
             
             client = await self._get_ton_client()
             mnemonic_list = settings.NFT_SENDER_MNEMONIC.split()
@@ -293,16 +293,24 @@ class GetGemsService:
             # 5. Подготовка сообщений для транзакции
             messages = []
             
-            # Сообщение 1: Перевод NFT (Standard TIP-4 / NFT 2.0)
-            nft_transfer_body = NFTTransferBody(
-                destination=destination_address,
-                forward_amount=to_nano(0.01, 9), # Минимальное количество TON для форварда (нотис)
-                response_address=wallet.address.to_str()
-            ).serialize()
+            # Сообщение 1: Перевод NFT (Standard TIP-4 / Telemint)
+            # Конструируем тело сообщения вручную, так как NFTTransferBody может отсутствовать в некоторых версиях tonutils
+            # Op: 0x5fcc3d14 (transfer), query_id: 0
+            nft_transfer_body = (
+                begin_cell()
+                .store_uint(0x5fcc3d14, 32)  # op::transfer
+                .store_uint(0, 64)           # query_id
+                .store_address(Address(destination_address)) # new_owner
+                .store_address(Address(wallet.address.to_str())) # response_destination
+                .store_maybe_ref(None)       # custom_payload
+                .store_coins(to_nano(0.01, 9)) # forward_amount
+                .store_maybe_ref(None)       # forward_payload
+                .end_cell()
+            )
             
             messages.append(TONTransferBuilder(
                 destination=nft_address,
-                amount=to_nano(0.05, 9), # Количество TON для выполнения операции в смарт-контракте
+                amount=to_nano(0.05, 9), # Количество TON для выполнения операции (газ)
                 body=nft_transfer_body
             ))
             
