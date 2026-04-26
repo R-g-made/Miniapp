@@ -70,20 +70,21 @@ class CaseService:
         
         if not won_sticker:
             logger.error(f"CaseService: No available stickers in pool for catalog {catalog_id}")
+            await self._handle_case_stock_change(db, case_obj.id)
             
-            # Сразу деактивируем кейс, если выбранный стикер закончился!
-            case_obj.is_active = False
-            db.add(case_obj)
-            await db.commit()
+            # # Сразу деактивируем кейс, если выбранный стикер закончился!
+            # case_obj.is_active = False
+            # db.add(case_obj)
+            # await db.commit()
             
-            # WS broadcast for case deactivation
-            await manager.broadcast(WSEventMessage(
-                type=WSMessageType.CASE_STATUS_UPDATE,
-                data={
-                    "case_slug": case_slug,
-                    "is_active": False
-                }
-            ))
+            # # WS broadcast for case deactivation
+            # await manager.broadcast(WSEventMessage(
+            #     type=WSMessageType.CASE_STATUS_UPDATE,
+            #     data={
+            #         "case_slug": case_slug,
+            #         "is_active": False
+            #     }
+            # ))
             
             raise InvalidOperation(f"Case {case_slug} is temporarily unavailable (out of stock)")
         
@@ -127,6 +128,8 @@ class CaseService:
         )
         db.add(transaction)
 
+        #Статистика
+
         user.total_cases_opened += 1
         if currency == Currency.TON:
             user.total_spent_ton = round(user.total_spent_ton + price, 9)
@@ -138,16 +141,17 @@ class CaseService:
         await db.commit()
         
         # WS notification for balance update after case opening
-        await manager.send_to_user(
-            user_id=str(user.id),
-            message=WSEventMessage(
-                type=WSMessageType.BALANCE_UPDATE,
-                data={
-                    "currency": currency.value,
-                    "new_balance": float(new_balance)
-                }
-            )
-        )
+        #Нужно ли
+        # await manager.send_to_user(
+        #     user_id=str(user.id),
+        #     message=WSEventMessage(
+        #         type=WSMessageType.BALANCE_UPDATE,
+        #         data={
+        #             "currency": currency.value,
+        #             "new_balance": float(new_balance)
+        #         }
+        #     )
+        # )
         
         logger.info(f"CaseService: Transaction and analytics updated for user {user.telegram_id}")
         
@@ -177,23 +181,15 @@ class CaseService:
         referral_record = result.scalar_one_or_none()
         
         if referral_record:
-            bonus_amount = amount * (referral_record.ref_percentage / 100)
+            bonus_amount = amount * (referral_record.ref_percentage)
             
             logger.info(f"ReferralService: Awarding {bonus_amount} {currency.value} to referrer {referral_record.referrer_id} for purchase by {user.id}")
             
             if currency == Currency.TON:
                 referral_record.reward_ton += bonus_amount
             else:
-                referral_record.reward_stars_available += bonus_amount
-            
-            # Lock referrer for balance update
-            referrer = await user_service.get_locked(db, referral_record.referrer_id)
-            if referrer:
-                if currency == Currency.TON:
-                    referrer.balance_ton += bonus_amount
-                else:
-                    referrer.balance_stars += bonus_amount
-                db.add(referrer)
+                # Награды за Stars попадают в холдинг на 21 день
+                referral_record.reward_stars_locked += bonus_amount
             
             referral_transaction = Transaction(
                 user_id=referral_record.referrer_id,

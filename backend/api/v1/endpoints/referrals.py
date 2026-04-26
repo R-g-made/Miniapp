@@ -69,7 +69,7 @@ async def withdraw_referrals(
     if obj_in.currency == Currency.TON:
         referral_service = ReferralService(db)
         result = await referral_service.withdraw_ton(
-            user=current_user,
+            user_id=current_user.id,
             amount=obj_in.amount,
             address=wallet.address
         )
@@ -80,9 +80,9 @@ async def withdraw_referrals(
         amount_ton = obj_in.amount * settings.STARS_TO_TON_RATE
         
         result = await referral_service.withdraw_ton(
-             user=current_user,
+             user_id=current_user.id,
              amount=amount_ton,
-             address=current_user.wallet_address,
+             address=wallet.address,
              is_stars_conversion=True,
              stars_amount=obj_in.amount
          )

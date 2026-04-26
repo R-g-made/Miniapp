@@ -8,9 +8,9 @@ class Settings(BaseSettings):
     
     # Database
     POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "miniapp"
+    POSTGRES_USER: str = ""
+    POSTGRES_PASSWORD: str = ""
+    POSTGRES_DB: str = ""
     DATABASE_URL: Optional[str] = None
     USE_SQLITE: bool = False
 
@@ -72,9 +72,9 @@ class Settings(BaseSettings):
     # Business Logic
     REFERRAL_PERCENTAGE: float = 0.05
     MARKET_FEE_PERCENTAGE: float = 0.05 # Комиссия системы (5%)
-    STARS_TO_TON_RATE: float = 0.0013
+    STARS_TO_TON_RATE: float = 0.013
     LIVE_DROP_INTERVAL: int = 5 # Интервал генерации дропов в секундах (имитация активности)
-    MIN_DEPOSIT: float = 0.1
+    MIN_DEPOSIT: float = 0.1#TODO
     WALLET_ADDRESS: str = "UQDSokuUeDuRCbIKeeCgaiCa001aV0Q3wc6ZX-pdPcnbpNFt"
     
     @property

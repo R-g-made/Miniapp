@@ -57,6 +57,7 @@ class ExternalApiService:
                             new_price = float(items[0].get("price", 0)) / 10**9
                             success = True
                             details["new_price"] = new_price
+
                     elif collection_address:
                         # Фолбэк на флор коллекции
                         new_price = await laffka_service.get_floor_price(collection_address)
@@ -67,8 +68,8 @@ class ExternalApiService:
                 # Default fallback for TON_API or unimplemented providers
                 if not success and provider == ExternalProviderType.TON_API:
                     logger.info(f"Mock: Updating floor price for {update.catalog_id} via {provider}")
-                    success = True
-                    details["new_price"] = update.new_price_ton or 0.1 # Mock price
+                    # success = True
+                    # details["new_price"] = update.new_price_ton or 0.1 # Mock price
 
                 results.append(ExternalApiResult(
                     success=success,
@@ -76,6 +77,7 @@ class ExternalApiService:
                     details=details,
                     error=None if success else "Failed to fetch price"
                 ))
+
             except Exception as e:
                 logger.error(f"ExternalApiService: Error updating floor price for {update.catalog_id}: {e}")
                 results.append(ExternalApiResult(
@@ -172,12 +174,14 @@ class ExternalApiService:
                         error="Laffka withdrawal failed"
                     )
 
-            logger.info(f"Mock: Transferring sticker via {provider}")
+            logger.info(f"ExternalApiService: Transferring sticker via {provider}")
+
             return ExternalApiResult(
                 success=True,
                 provider=provider,
                 details={"tx_hash": "tx_mocked_hash"}
             )
+
         except Exception as e:
             logger.error(f"ExternalApiService: Error during transfer: {e}")
             return ExternalApiResult(

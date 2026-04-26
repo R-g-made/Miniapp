@@ -302,30 +302,30 @@ class ChanceService:
 
         await db.commit()
 
-    async def _simple_pool_check(self, db: AsyncSession, case_obj: Case):
-        """Упрощенная проверка наличия в пуле (предыдущая логика)"""
-        items: list[CaseItem] = case_obj.items
-        available_items = []
-        unavailable_chance_sum = 0.0
+    # async def _simple_pool_check(self, db: AsyncSession, case_obj: Case):
+    #     """Упрощенная проверка наличия в пуле (предыдущая логика)"""
+    #     items: list[CaseItem] = case_obj.items
+    #     available_items = []
+    #     unavailable_chance_sum = 0.0
 
-        for item in items:
-            count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
-            if count > 0:
-                available_items.append(item)
-            else:
-                unavailable_chance_sum += item.chance
-                item.chance = 0.0
+    #     for item in items:
+    #         count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
+    #         if count > 0:
+    #             available_items.append(item)
+    #         else:
+    #             unavailable_chance_sum += item.chance
+    #             item.chance = 0.0
 
-        if unavailable_chance_sum > 0 and available_items:
-            current_available_sum = sum(item.chance for item in available_items)
-            if current_available_sum > 0:
-                for item in available_items:
-                    item.chance += (item.chance / current_available_sum) * unavailable_chance_sum
-            else:
-                equal_share = unavailable_chance_sum / len(available_items)
-                for item in available_items:
-                    item.chance = equal_share
+    #     if unavailable_chance_sum > 0 and available_items:
+    #         current_available_sum = sum(item.chance for item in available_items)
+    #         if current_available_sum > 0:
+    #             for item in available_items:
+    #                 item.chance += (item.chance / current_available_sum) * unavailable_chance_sum
+    #         else:
+    #             equal_share = unavailable_chance_sum / len(available_items)
+    #             for item in available_items:
+    #                 item.chance = equal_share
         
-        await db.commit()
+    #     await db.commit()
 
 chance_service = ChanceService()

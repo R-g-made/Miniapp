@@ -222,13 +222,13 @@ class GetGemsService:
             logger.error(f"GetGemsService: Error fetching floor from {collection_address}: {e}")
             return None
 
-    async def get_floor_price(self, collection_address: str) -> Optional[float]:
-        """Старый метод для обратной совместимости (через GraphQL или новый API)"""
-        await self._ensure_connected()
-        nfts = await self.get_on_sale_nfts(collection_address)
-        if nfts:
-            return float(nfts[0].get("price", 0)) / 10**9
-        return None
+    # async def get_floor_price(self, collection_address: str) -> Optional[float]:
+    #     """Старый метод для обратной совместимости (через GraphQL или новый API)"""
+    #     await self._ensure_connected()
+    #     nfts = await self.get_on_sale_nfts(collection_address)
+    #     if nfts:
+    #         return float(nfts[0].get("price", 0)) / 10**9
+    #     return None
 
     async def transfer_nft(self, nft_address: str, destination_address: str, price_ton: Optional[float] = None) -> Optional[str]:
         """

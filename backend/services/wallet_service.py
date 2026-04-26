@@ -148,6 +148,7 @@ class WalletService:
                     # Реактивируем
                     existing_wallet.is_active = True
                     self.db.add(existing_wallet)
+                    await self.db.commit()
                     logger.info(f"WalletService: Reactivated wallet {address} for user {user.id}")
                 else:
                     # Создаем новый
@@ -155,6 +156,8 @@ class WalletService:
                         self.db,
                         obj_in=WalletCreate(owner_id=user.id, address=address)
                     )
+                    # create метод в BaseRepository по умолчанию делает commit, 
+                    # но для уверенности в WalletService лучше убедиться, что транзакция завершена
                     logger.info(f"WalletService: Linked new wallet {address} for user {user.id}")
             elif wallet.owner_id != user.id:
                 # Кошелек уже привязан к другому пользователю (активный)

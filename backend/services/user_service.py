@@ -37,13 +37,14 @@ class UserService:
         
         if operation == "add":
             new_balance = current_balance + amount
-            # Убираем таймзону для TIMESTAMP WITHOUT TIME ZONE
             user.last_deposit_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
         elif operation == "sub":
             if current_balance < amount:
                 logger.warning(f"UserService: Insufficient funds for {user.telegram_id}. Needs {amount}, has {current_balance} {currency_val}")
                 raise InsufficientFunds(currency=currency_val.upper())
             new_balance = current_balance - amount
+            
         else:
             logger.error(f"UserService: Unknown operation '{operation}'")
             raise InvalidOperation(f"Unknown balance operation: {operation}")

@@ -65,7 +65,7 @@ class ReferralService:
 
     async def withdraw_ton(
         self, 
-        user: User, 
+        user_id: uuid.UUID, 
         amount: float, 
         address: str, 
         is_stars_conversion: bool = False, 
@@ -74,10 +74,15 @@ class ReferralService:
         """
         Вывод реферальных вознаграждений в TON через tonutils.
         """
-        logger.info(f"ReferralService: Withdrawal request from {user.telegram_id}: {amount} TON to {address}")
+        logger.info(f"ReferralService: Withdrawal request from user {user_id}: {amount} TON to {address}")
 
         try:
-            # 1. Проверяем доступный баланс в зависимости от типа
+            # 1. Получаем пользователя с блокировкой
+            user = await user_service.get_locked(self.db, user_id)
+            if not user:
+                raise EntityNotFound("User not found")
+
+            # 2. Проверяем доступный баланс в зависимости от типа
             from backend.crud.referral import referral_repository
             from backend.models.referral import Referral
             
@@ -91,12 +96,12 @@ class ReferralService:
                 logger.warning(f"ReferralService: Insufficient {currency_to_check} balance. Available: {available}, Requested: {amount_to_check}")
                 raise InsufficientFunds(currency=currency_to_check)
 
-            # 2. Списываем баланс из реферальных записей
+            # 3. Списываем баланс из реферальных записей
             remaining_to_withdraw = amount_to_check
             reward_attr = Referral.reward_stars_available if is_stars_conversion else Referral.reward_ton
             
             # Проверка минимальной суммы (0.1 TON или 10 Stars)
-            min_amount = 10.0 if is_stars_conversion else 0.1
+            min_amount = 100 if is_stars_conversion else 0.1
             if amount_to_check < min_amount:
                 logger.warning(f"ReferralService: Withdrawal amount too small. Min: {min_amount}, Requested: {amount_to_check}")
                 raise InvalidOperation(f"Minimum withdrawal amount is {min_amount} {currency_to_check}")
@@ -118,7 +123,7 @@ class ReferralService:
                     setattr(rec, reward_attr.key, 0.0)
                 self.db.add(rec)
 
-            # 3. Выполняем перевод в блокчейне
+            # 4. Выполняем перевод в блокчейне
             from ton_core import to_nano
             from tonutils.clients import TonapiClient
             from tonutils.contracts.wallet import WalletV5R1
@@ -164,11 +169,6 @@ class ReferralService:
             
             logger.info(f"ReferralService: Blockchain transfer successful. Hash: {tx_hash}")
 
-            if is_stars_conversion:
-                user.balance_stars = float(user.balance_stars) - stars_amount
-            else:
-                user.balance_ton = float(user.balance_ton) - amount
-            
             transaction = Transaction(
                 user_id=user.id,
                 amount=amount,
@@ -185,25 +185,10 @@ class ReferralService:
                 }
             )
             
-            self.db.add(user)
             self.db.add(transaction)
             await self.db.commit()
             
-            # WS notification for balance update
-            from backend.core.websocket_manager import manager
-            from backend.schemas.websocket import WSEventMessage, WSMessageType
-            await manager.send_to_user(
-                user_id=str(user.id),
-                message=WSEventMessage(
-                    type=WSMessageType.BALANCE_UPDATE,
-                    data={
-                        "currency": Currency.STARS.value if is_stars_conversion else Currency.TON.value,
-                        "new_balance": float(user.balance_stars) if is_stars_conversion else float(user.balance_ton)
-                    }
-                )
-            )
-            
-            logger.info(f"ReferralService: Withdrawal completed for {user.telegram_id}. New balance: {user.balance_ton}")
+            logger.info(f"ReferralService: Withdrawal completed for {user.telegram_id}. Records updated.")
             
             return {
                 "status": "success",

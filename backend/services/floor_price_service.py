@@ -118,12 +118,10 @@ class FloorPriceService:
             
             # Если приоритет GetGems, получаем флор через список сделок (items)
             if priority == PriorityMarket.GETGEMS.value:
-                # Если приоритет GetGems, получаем флор через список сделок (items)
                 if catalog.collection_address:
                     logger.info(f"FloorPriceService: Fetching floor for {catalog.name} via GetGems API (collection: {catalog.collection_address})")
                     from backend.services.getgems_service import getgems_service
                     
-                    # Пытаемся найти флор с фильтрацией по имени
                     new_price_ton = await getgems_service.get_floor_price_from_items(
                         collection_address=catalog.collection_address,
                         name_filter=catalog.name
@@ -141,12 +139,13 @@ class FloorPriceService:
 
             # Если приоритет не GetGems ИЛИ в GetGems не нашли - пробуем stickers.tools
             if new_price_ton is None:
-                col_name = catalog.collection_name
-                pack_name = catalog.name
+                logger.debug(f"FloorPriceService: don`t found price for {catalog.name}")
+                # col_name = catalog.collection_name
+                # pack_name = catalog.name
                 
-                if col_name in tools_floors and pack_name in tools_floors[col_name]:
-                    new_price_ton = tools_floors[col_name][pack_name]
-                    logger.debug(f"FloorPriceService: Found price for {pack_name} in stickers.tools: {new_price_ton} TON")
+                # if col_name in tools_floors and pack_name in tools_floors[col_name]:
+                #     new_price_ton = tools_floors[col_name][pack_name]
+                #     logger.debug(f"FloorPriceService: Found price for {pack_name} in stickers.tools: {new_price_ton} TON")
             
             # 5. Применяем логику 20% порога
             if new_price_ton is not None:
