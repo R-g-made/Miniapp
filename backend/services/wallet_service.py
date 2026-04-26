@@ -160,6 +160,7 @@ class WalletService:
                 logger.info(f"WalletService: Linked new wallet {address} for user {user.id}")
 
             await self.db.commit()
+            await self.db.refresh(user)
             return True
             
         except Exception as e:
