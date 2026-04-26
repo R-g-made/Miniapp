@@ -37,9 +37,17 @@ async def run_bot():
     from backend.services.case_service import case_service
     from backend.db.session import async_session_factory
     
+    from backend.services.referral_service import ReferralService
+    
     # Инициализируем сервис уведомлений
     notification_service.set_bot(bot)
     
+    async def referral_unlock_job():
+        logger.info("Running referral unlock job...")
+        async with async_session_factory() as db:
+            referral_service = ReferralService(db)
+            await referral_service.process_unlocks()
+            
     # # async def auto_buy_job():
     #     logger.info("Running auto-buy job...")
     #     async with async_session_factory() as db:
@@ -80,6 +88,11 @@ async def run_bot():
         case_recovery_job,
         "interval",
         minutes=settings.CASE_RECOVERY_CHECK_INTERVAL_MINUTES
+    )
+    scheduler.add_job(
+        referral_unlock_job,
+        "interval",
+        hours=6
     )
     
     logger.info("Starting scheduler...")

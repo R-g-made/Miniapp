@@ -350,7 +350,8 @@ class GetGemsService:
             
             # Получаем хеш транзакции вручную (этот способ точно работает в ваших тестах)
             from ton_core import Cell
-            tx_hash = Cell.one_from_boc(ext_msg.to_boc()).hash.hex()
+            tx_hash_obj = Cell.one_from_boc(ext_msg.to_boc()).hash.hex()
+            tx_hash = str(tx_hash_obj)
             
             if tx_hash:
                 logger.success(f"GetGemsService: NFT 2.0 Batch Transfer initiated (1 TX). Hash: {tx_hash}")

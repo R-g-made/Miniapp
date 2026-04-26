@@ -63,14 +63,75 @@ class ReferralService:
         except Exception as e:
             logger.exception(f"ReferralService: Unexpected error processing referral: {e}")
 
-    async def withdraw_ton(
-        self, 
-        user_id: uuid.UUID, 
-        amount: float, 
-        address: str, 
-        is_stars_conversion: bool = False, 
-        stars_amount: float = 0
-    ) -> dict:
+    async def process_unlocks(self) -> int:
+        """
+        Перевод заблокированных звезд в доступные по истечении 21 дня.
+        Использует транзакции для отслеживания времени начисления.
+        """
+        from datetime import datetime, timedelta, timezone
+        from backend.models.transaction import Transaction, TransactionType, TransactionStatus
+        from backend.models.referral import Referral
+        from backend.models.user import Currency
+        
+        # Порог разблокировки - 21 день назад
+        # Используем наивное время для сравнения с БД, если там TIMESTAMP WITHOUT TIME ZONE
+        now_utc = datetime.now(timezone.utc)
+        unlock_threshold = now_utc - timedelta(days=21)
+        
+        # Находим транзакции реферальных наград в Stars, которые:
+        # 1. Старше 21 дня
+        # 2. Еще не были разблокированы (нет пометки в details)
+        stmt = (
+            select(Transaction)
+            .where(
+                Transaction.type == TransactionType.REFERRAL_REWARD,
+                Transaction.currency == Currency.STARS,
+                Transaction.status == TransactionStatus.COMPLETED,
+                Transaction.created_at <= unlock_threshold.replace(tzinfo=None)
+            )
+        )
+        
+        result = await self.db.execute(stmt)
+        transactions = result.scalars().all()
+        
+        unlocked_count = 0
+        for tx in transactions:
+            # Проверяем, не разблокирована ли уже эта транзакция
+            details = tx.details or {}
+            if details.get("unlocked"):
+                continue
+                
+            referral_id = details.get("referral_record_id")
+            if not referral_id:
+                continue
+                
+            # Получаем запись реферала
+            stmt_ref = select(Referral).where(Referral.id = referral_id)
+            res_ref = await self.db.execute(stmt_ref)
+            ref_record = res_ref.scalar_one_or_none()
+            
+            if ref_record:
+                amount = float(tx.amount)
+                
+                # Переносим баланс
+                if ref_record.reward_stars_locked >= amount:
+                    ref_record.reward_stars_locked -= amount
+                    ref_record.reward_stars_available += amount
+                    
+                    # Помечаем транзакцию как разблокированную
+                    details["unlocked"] = True
+                    details["unlocked_at"] = now_utc.isoformat()
+                    tx.details = details
+                    
+                    self.db.add(ref_record)
+                    self.db.add(tx)
+                    unlocked_count += 1
+                    
+        if unlocked_count > 0:
+            await self.db.commit()
+            logger.info(f"ReferralService: Unlocked {unlocked_count} star rewards")
+            
+        return unlocked_count
         """
         Вывод реферальных вознаграждений в TON через tonutils.
         """
