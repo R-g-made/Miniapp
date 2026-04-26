@@ -21,6 +21,7 @@ class StickerTransferRequest(BaseModel):
     target_address: str
     amount_nano: Optional[int] = None # Например для оплаты газа или трансфера
     memo: Optional[str] = None
+    details: Dict[str, Any] = {}
 
 class ExternalApiResult(BaseModel):
     success: bool
