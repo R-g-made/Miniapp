@@ -341,12 +341,11 @@ class GetGemsService:
             # 6. Отправка мульти-транзакции (1 ТРАНЗАКЦИЯ)
             logger.info(f"GetGemsService: Sending batch transfer with {len(messages)} messages")
             
-            # Чтобы отправить список сообщений одной транзакцией и не получить TypeError,
-            # мы передаем список в destination и указываем фиктивный amount=0, 
-            # так как реальные суммы уже указаны внутри каждого TONTransferBuilder в списке messages.
+            # В WalletV5R1 пакетная отправка выполняется через transfer,
+            # где список TONTransferBuilder передается в именованный аргумент 'builders'.
+            # Это самый надежный способ, исключающий ошибки с позиционными аргументами.
             ext_msg = await wallet.transfer(
-                destination=messages,
-                amount=0
+                builders=messages
             )
             
             # Получаем хеш транзакции вручную, как в ваших рабочих тестах
