@@ -189,33 +189,44 @@ export default {
       const tc = await initTonConnect();
       
       tc.onStatusChange(async (wallet) => {
+        console.log('Wallet status changed:', wallet);
+        
         if (wallet) {
           const wasConnected = isConnected.value;
           isConnected.value = true;
           walletAddress.value = wallet.account.address;
+          console.log('Wallet connected. Address:', wallet.account.address);
           
-          // Проверяем подпись на бэкенде, если она пришла или если мы только что подключились
-          if (wallet.connectItems?.tonProof && !wallet.connectItems.tonProof.error) {
+          // Проверяем наличие Proof
+          if (wallet.connectItems?.tonProof) {
+            if (wallet.connectItems.tonProof.error) {
+              console.error('TonProof error from wallet:', wallet.connectItems.tonProof.error);
+              return;
+            }
+            
+            console.log('TonProof received, starting verification on backend...');
             isVerifying.value = true;
             try {
               const success = await checkWalletProof(wallet);
               if (!success) {
-                console.error('Wallet verification failed on backend');
+                console.error('Wallet verification FAILED on backend');
                 await disconnectWallet();
               } else {
-                console.log('Wallet successfully verified and linked');
+                console.log('Wallet successfully VERIFIED and LINKED in DB');
               }
             } catch (e) {
-              console.error('Error during wallet verification:', e);
+              console.error('Exception during wallet verification:', e);
             } finally {
               isVerifying.value = false;
             }
-          } else if (!wasConnected) {
-            // Если подключились без Proof (например, авто-коннект), 
-            // в идеале нужно запросить ре-коннект с Proof, но пока просто логируем
-            console.warn('Wallet connected without proof item');
+          } else {
+            console.warn('Wallet connected but NO TonProof item found. DB linking skipped.');
+            if (!wasConnected) {
+              console.info('Tip: Ensure tonConnectUI.setConnectRequestParameters was called with a fresh payload before connecting.');
+            }
           }
         } else {
+          console.log('Wallet disconnected');
           isConnected.value = false;
           walletAddress.value = '';
           isVerifying.value = false;
