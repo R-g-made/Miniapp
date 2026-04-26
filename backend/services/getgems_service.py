@@ -341,14 +341,14 @@ class GetGemsService:
             # 6. Отправка мульти-транзакции (1 ТРАНЗАКЦИЯ)
             logger.info(f"GetGemsService: Sending batch transfer with {len(messages)} messages")
             
-            # В WalletV5R1 пакетная отправка выполняется через transfer,
-            # где список TONTransferBuilder передается в именованный аргумент 'builders'.
-            # Это самый надежный способ, исключающий ошибки с позиционными аргументами.
-            ext_msg = await wallet.transfer(
-                builders=messages
-            )
+            # Согласно списку методов WalletV5R1: используем batch_transfer_message.
+            # Он упаковывает список билдеров в одно внешнее сообщение.
+            ext_msg = await wallet.batch_transfer_message(messages)
             
-            # Получаем хеш транзакции вручную, как в ваших рабочих тестах
+            # Отправляем сообщение в блокчейн через клиент
+            await client.send_message(ext_msg)
+            
+            # Получаем хеш транзакции вручную (этот способ точно работает в ваших тестах)
             from ton_core import Cell
             tx_hash = Cell.one_from_boc(ext_msg.to_boc()).hash.hex()
             
