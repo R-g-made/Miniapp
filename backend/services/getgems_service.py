@@ -242,21 +242,32 @@ class GetGemsService:
         logger.info(f"GetGemsService: Transferring NFT {nft_address} to {destination_address}...")
         
         try:
-            from ton_core import to_nano
+            from ton_core import to_nano, Address
             from tonutils.contracts.wallet import WalletV5R1, TONTransferBuilder
             from tonutils.contracts.nft import NFTItemStandard, NFTCollectionStandard, NFTTransferBody
             
             client = await self._get_ton_client()
             mnemonic_list = settings.NFT_SENDER_MNEMONIC.split()
             wallet, _, _, _ = WalletV5R1.from_mnemonic(client, mnemonic_list)
-            our_address = wallet.address.to_str()
+            
+            # Проверка баланса кошелька отправителя
+            account_info = await client.get_info(wallet.address.to_str())
+            balance = int(account_info.balance) if hasattr(account_info, 'balance') else 0
+            logger.info(f"GetGemsService: Server wallet {wallet.address.to_str()} balance: {balance / 10**9} TON")
+            
+            if balance < to_nano(0.1, 9): # Минимум 0.1 TON для газа и роялти
+                logger.error("GetGemsService: Insufficient server wallet balance")
+                return None
 
-            # 1. Получаем данные об NFT один раз
+            # 1. Получаем данные об NFT
             nft_item = await NFTItemStandard.from_address(client, nft_address)
             
-            # 2. Проверка владения
-            if nft_item.owner_address.to_str() != our_address:
-                logger.error(f"GetGemsService: Transfer failed. Server wallet ({our_address}) does not own NFT {nft_address}")
+            # 2. Проверка владения (сравниваем как объекты Address)
+            our_addr_obj = Address(wallet.address.to_str())
+            owner_addr_obj = Address(nft_item.owner_address.to_str())
+            
+            if our_addr_obj.to_str(is_user_friendly=False) != owner_addr_obj.to_str(is_user_friendly=False):
+                logger.error(f"GetGemsService: Transfer failed. Server wallet does not own NFT {nft_address}. Owner: {owner_addr_obj.to_str()}")
                 return None
 
             # 3. Получаем адрес роялти автора из коллекции (опционально)
@@ -321,21 +332,20 @@ class GetGemsService:
             
             # 6. Отправка мульти-транзакции
             logger.info(f"GetGemsService: Sending batch transfer with {len(messages)} messages")
-            ext_msg = await wallet.batch_transfer_message(messages)
             
-            # Получаем хеш транзакции
-            if hasattr(ext_msg, "normalized_hash"):
-                tx_hash = ext_msg.normalized_hash
-            elif hasattr(ext_msg, "hash"):
-                tx_hash = ext_msg.hash
+            # В tonutils для отправки пачки сообщений используем wallet.transfer
+            # и передаем список объектов TONTransferBuilder
+            tx_hash = await wallet.transfer(messages)
+            
+            if tx_hash:
+                logger.success(f"GetGemsService: NFT 2.0 Transfer initiated. Hash: {tx_hash}")
+                return tx_hash
             else:
-                from ton_core import Cell
-                tx_hash = Cell.one_from_boc(ext_msg.to_boc()).hash.hex()
-            
-            logger.success(f"GetGemsService: NFT 2.0 Transfer initiated. Royalties (0.01 TON each) sent to author, fund, and TG. Hash: {tx_hash}")
-            return tx_hash
+                logger.error("GetGemsService: wallet.transfer returned no hash")
+                return None
+                
         except Exception as e:
-            logger.error(f"GetGemsService: Failed to transfer NFT {nft_address}: {e}")
+            logger.exception(f"GetGemsService: Failed to transfer NFT {nft_address}: {e}")
             return None
 
 getgems_service = GetGemsService()
