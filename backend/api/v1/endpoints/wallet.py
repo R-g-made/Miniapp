@@ -11,6 +11,7 @@ from backend.schemas.wallet import (
     TonProofPayloadResponse, 
     TonProofCheckRequest,
     TonProofCheckResponse,
+    TonProofCheckData,
     WalletDisconnectResponse,
     WalletDisconnectData,
     WalletWithdrawRequest,

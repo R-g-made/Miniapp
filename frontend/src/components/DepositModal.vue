@@ -197,33 +197,21 @@ export default {
           walletAddress.value = wallet.account.address;
           console.log('Wallet connected. Address:', wallet.account.address);
           
-          // Проверяем наличие Proof
-          if (wallet.connectItems?.tonProof) {
-            if (wallet.connectItems.tonProof.error) {
-              console.error('TonProof error from wallet:', wallet.connectItems.tonProof.error);
-              return;
+          // Вызываем проверку/привязку в любом случае. 
+          // Метод checkWalletProof сам разберется: использовать Proof или прямой Link.
+          isVerifying.value = true;
+          try {
+            const success = await checkWalletProof(wallet);
+            if (!success) {
+              console.error('Wallet linking FAILED on backend');
+              await disconnectWallet();
+            } else {
+              console.log('Wallet successfully LINKED in DB');
             }
-            
-            console.log('TonProof received, starting verification on backend...');
-            isVerifying.value = true;
-            try {
-              const success = await checkWalletProof(wallet);
-              if (!success) {
-                console.error('Wallet verification FAILED on backend');
-                await disconnectWallet();
-              } else {
-                console.log('Wallet successfully VERIFIED and LINKED in DB');
-              }
-            } catch (e) {
-              console.error('Exception during wallet verification:', e);
-            } finally {
-              isVerifying.value = false;
-            }
-          } else {
-            console.warn('Wallet connected but NO TonProof item found. DB linking skipped.');
-            if (!wasConnected) {
-              console.info('Tip: Ensure tonConnectUI.setConnectRequestParameters was called with a fresh payload before connecting.');
-            }
+          } catch (e) {
+            console.error('Exception during wallet linking:', e);
+          } finally {
+            isVerifying.value = false;
           }
         } else {
           console.log('Wallet disconnected');
