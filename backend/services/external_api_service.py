@@ -145,7 +145,7 @@ class ExternalApiService:
                     return ExternalApiResult(
                         success=False,
                         provider=provider,
-                        error="Blockchain transfer failed"
+                        error="Blockchain transfer failed: provider returned no transaction hash. Check server logs for details."
                     )
             
             elif provider == ExternalProviderType.LAFFKA:

@@ -259,23 +259,20 @@ class GetGemsService:
                 logger.error(f"GetGemsService: Transfer failed. Server wallet ({our_address}) does not own NFT {nft_address}")
                 return None
 
-            # 3. Получаем адрес роялти автора из коллекции
+            # 3. Получаем адрес роялти автора из коллекции (опционально)
             royalty_author_address = None
             try:
                 collection_address = nft_item.collection_address
-                collection = await NFTCollectionStandard.from_address(client, collection_address)
-                royalty = await collection.royalty_params()
-                
-                if royalty and len(royalty) >= 3:
-                    author_addr_obj = royalty[2]
-                    royalty_author_address = author_addr_obj.to_str() if hasattr(author_addr_obj, "to_str") else str(author_addr_obj)
-                    logger.info(f"GetGemsService: Found royalty author address: {royalty_author_address}")
+                if collection_address:
+                    collection = await NFTCollectionStandard.from_address(client, collection_address)
+                    royalty = await collection.royalty_params()
+                    
+                    if royalty and len(royalty) >= 3:
+                        author_addr_obj = royalty[2]
+                        royalty_author_address = author_addr_obj.to_str() if hasattr(author_addr_obj, "to_str") else str(author_addr_obj)
+                        logger.info(f"GetGemsService: Found royalty author address: {royalty_author_address}")
             except Exception as e:
-                logger.warning(f"GetGemsService: Could not fetch NFT royalty info: {e}")
-
-            if not royalty_author_address:
-                logger.error(f"GetGemsService: Royalty address not found for NFT {nft_address}. Operation cancelled.")
-                return None
+                logger.warning(f"GetGemsService: Could not fetch NFT royalty info (skipping author royalty): {e}")
 
             # 4. Определение фиксированных сумм (0.01 TON)
             fixed_royalty_nano = to_nano(0.01, 9)
@@ -298,31 +295,32 @@ class GetGemsService:
                 body=nft_transfer_body
             ))
             
-            # Сообщение 2: Отправка автору (0.01 TON) - из метаданных
-            if royalty_author_address and royalty_author_address != "EQ...":
-                logger.info(f"GetGemsService: Sending 0.01 TON royalty to author (from metadata): {royalty_author_address}")
+            # Сообщение 2: Отправка автору (0.01 TON) - если нашли адрес
+            if royalty_author_address and not royalty_author_address.startswith("EQ0000000000000000000000000000000000000000000000"):
+                logger.info(f"GetGemsService: Adding 0.01 TON royalty for author: {royalty_author_address}")
                 messages.append(TONTransferBuilder(
                     destination=royalty_author_address,
                     amount=fixed_royalty_nano
                 ))
             
-            # Сообщение 3: Отправка фонду (0.01 TON) - из конфига
-            if royalty_fund_address and royalty_fund_address != "EQ...":
-                logger.info(f"GetGemsService: Sending 0.01 TON royalty to fund (from config): {royalty_fund_address}")
+            # Сообщение 3: Отправка фонду (0.01 TON) - если адрес в конфиге валиден
+            if royalty_fund_address and len(royalty_fund_address) > 10:
+                logger.info(f"GetGemsService: Adding 0.01 TON royalty for fund: {royalty_fund_address}")
                 messages.append(TONTransferBuilder(
                     destination=royalty_fund_address,
                     amount=fixed_royalty_nano
                 ))
 
-            # Сообщение 4: Отправка ТГ (0.01 TON) - из конфига
-            if royalty_tg_address and royalty_tg_address != "EQ...":
-                logger.info(f"GetGemsService: Sending 0.01 TON royalty to TG (from config): {royalty_tg_address}")
+            # Сообщение 4: Отправка ТГ (0.01 TON) - если адрес в конфиге валиден
+            if royalty_tg_address and len(royalty_tg_address) > 10:
+                logger.info(f"GetGemsService: Adding 0.01 TON royalty for TG: {royalty_tg_address}")
                 messages.append(TONTransferBuilder(
                     destination=royalty_tg_address,
                     amount=fixed_royalty_nano
                 ))
             
-            # 4. Отправка мульти-транзакции
+            # 6. Отправка мульти-транзакции
+            logger.info(f"GetGemsService: Sending batch transfer with {len(messages)} messages")
             ext_msg = await wallet.batch_transfer_message(messages)
             
             # Получаем хеш транзакции
