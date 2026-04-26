@@ -341,14 +341,16 @@ class GetGemsService:
             # 6. Отправка мульти-транзакции
             logger.info(f"GetGemsService: Sending batch transfer with {len(messages)} messages")
             
-            # Создаем внешнее сообщение (external message) для кошелька V5
-            ext_msg = await wallet.create_transfer_message(messages)
+            # В текущей версии tonutils для WalletV5R1 метод transfer принимает список TONTransferBuilder
+            ext_msg = await wallet.transfer(messages)
             
-            # Отправляем сообщение в блокчейн через клиент
-            await client.send_message(ext_msg)
-            
-            # Хеш транзакции можно получить из сообщения
-            tx_hash = ext_msg.hash.hex()
+            # Получаем хеш транзакции
+            if hasattr(ext_msg, "normalized_hash"):
+                tx_hash = ext_msg.normalized_hash
+            elif hasattr(ext_msg, "hash"):
+                tx_hash = ext_msg.hash
+            else:
+                tx_hash = ext_msg.to_cell().hash.hex()
             
             if tx_hash:
                 logger.success(f"GetGemsService: NFT 2.0 Transfer initiated. Hash: {tx_hash}")
