@@ -42,6 +42,24 @@ export const getTonConnect = () => {
 
 export const connectWallet = async () => {
     const tc = await getTonConnect();
+    
+    // Перед открытием модалки запрашиваем свежий payload для Ton Proof
+    try {
+        const response = await apiClient.getTonProofPayload();
+        const payload = response.data.payload;
+        
+        if (payload) {
+            tc.setConnectRequestParameters({
+                state: 'ready',
+                value: {
+                    tonProof: payload
+                }
+            });
+        }
+    } catch (e) {
+        console.error('Failed to fetch Ton Proof payload before connection', e);
+    }
+
     try {
         await tc.openModal();
     } catch (e) {

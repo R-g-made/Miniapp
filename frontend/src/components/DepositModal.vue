@@ -190,22 +190,35 @@ export default {
       
       tc.onStatusChange(async (wallet) => {
         if (wallet) {
+          const wasConnected = isConnected.value;
           isConnected.value = true;
           walletAddress.value = wallet.account.address;
           
-          // Проверяем подпись на бэкенде
-          if (wallet.connectItems?.tonProof) {
+          // Проверяем подпись на бэкенде, если она пришла или если мы только что подключились
+          if (wallet.connectItems?.tonProof && !wallet.connectItems.tonProof.error) {
             isVerifying.value = true;
-            const success = await checkWalletProof(wallet);
-            isVerifying.value = false;
-            if (!success) {
-              // Если проверка не прошла, отключаем кошелек
-              await disconnectWallet();
+            try {
+              const success = await checkWalletProof(wallet);
+              if (!success) {
+                console.error('Wallet verification failed on backend');
+                await disconnectWallet();
+              } else {
+                console.log('Wallet successfully verified and linked');
+              }
+            } catch (e) {
+              console.error('Error during wallet verification:', e);
+            } finally {
+              isVerifying.value = false;
             }
+          } else if (!wasConnected) {
+            // Если подключились без Proof (например, авто-коннект), 
+            // в идеале нужно запросить ре-коннект с Proof, но пока просто логируем
+            console.warn('Wallet connected without proof item');
           }
         } else {
           isConnected.value = false;
           walletAddress.value = '';
+          isVerifying.value = false;
         }
       });
     });
