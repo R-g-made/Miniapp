@@ -19,6 +19,156 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 class StickerService:
+    async def sync_pool_with_external_sources(self, db: AsyncSession) -> dict:
+        """
+        Синхронизирует пул стикеров с Thermos API и кошельком TON.
+        Добавляет новые стикеры, если они появились во внешних источниках.
+        """
+        logger.info("StickerService: Starting pool synchronization...")
+        results = {"thermos_added": 0, "onchain_added": 0, "errors": []}
+
+        # 1. Синхронизация с Thermos
+        try:
+            thermos_stickers = await thermos_service.get_my_stickers()
+            if thermos_stickers:
+                # Подгружаем маппинги и каталог
+                from backend.models.sticker import ThermosMapping, StickerCatalog
+                stmt_map = select(ThermosMapping)
+                res_map = await db.execute(stmt_map)
+                mapping_dict = {(m.thermos_collection_id, m.thermos_character_id): m.catalog_id for m in res_map.scalars().all()}
+                
+                stmt_cat = select(StickerCatalog)
+                res_cat = await db.execute(stmt_cat)
+                catalog_items = {c.id: c for c in res_cat.scalars().all()}
+
+                for ts in thermos_stickers:
+                    coll_id, char_id, instance = ts.get("collection_id"), ts.get("character_id"), ts.get("instance")
+                    if coll_id is None or char_id is None or instance is None: continue
+                    
+                    catalog_id = mapping_dict.get((coll_id, char_id))
+                    if not catalog_id or catalog_id not in catalog_items: continue
+                    
+                    # Проверка на существование в БД
+                    stmt_exists = select(UserSticker).where(UserSticker.catalog_id == catalog_id, UserSticker.number == instance)
+                    existing = (await db.execute(stmt_exists)).scalar_one_or_none()
+                    
+                    if existing:
+                        # Если стикер в БД есть, но он "в архиве" (нет владельца и недоступен)
+                        # значит он вернулся в пул (например, после ручного перевода обратно на аккаунт Thermos)
+                        if existing.owner_id is None and not existing.is_available:
+                            existing.is_available = True
+                            existing.is_onchain = False
+                            existing.unlock_date = None
+                            results["thermos_added"] += 1
+                        continue
+
+                    catalog = catalog_items[catalog_id]
+                    db.add(UserSticker(
+                        catalog_id=catalog_id,
+                        number=instance,
+                        is_available=True,
+                        is_onchain=False,
+                        ton_price=catalog.floor_price_ton,
+                        stars_price=catalog.floor_price_stars,
+                        nft_address=ts.get("nft_address") or ts.get("address"),
+                        owner_id=None
+                    ))
+                    results["thermos_added"] += 1
+        except Exception as e:
+            logger.error(f"StickerService: Thermos sync failed: {e}")
+            results["errors"].append(f"Thermos: {str(e)}")
+
+        # 2. Синхронизация с Blockchain (On-chain)
+        try:
+            merchant_address = settings.MERCHANT_TON_ADDRESS
+            if merchant_address:
+                import httpx
+                from ton_core import Address
+                base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
+                headers = {"Authorization": f"Bearer {settings.TON_API_KEY}"} if settings.TON_API_KEY else {}
+                
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    resp = await client.get(f"{base_url}/accounts/{merchant_address}/nfts", headers=headers)
+                    resp.raise_for_status()
+                    nfts = resp.json().get("nft_items", [])
+
+                if nfts:
+                    stmt_cat = select(StickerCatalog).where(StickerCatalog.collection_address != None)
+                    catalog_items = (await db.execute(stmt_cat)).scalars().all()
+                    catalog_map = {}
+                    for c in catalog_items:
+                        try: catalog_map[Address(c.collection_address).to_str(is_user_friendly=False)] = c
+                        except: continue
+
+                    for nft in nfts:
+                        nft_addr = nft.get("address")
+                        coll_addr = nft.get("collection", {}).get("address")
+                        if not nft_addr or not coll_addr: continue
+                        
+                        try: norm_coll_addr = Address(coll_addr).to_str(is_user_friendly=False)
+                        except: continue
+                        
+                        catalog = catalog_map.get(norm_coll_addr)
+                        if not catalog: continue
+
+                        stmt_exists = select(UserSticker).where(UserSticker.nft_address == nft_addr)
+                        existing = (await db.execute(stmt_exists)).scalar_one_or_none()
+                        
+                        if existing:
+                            # Если ончейн стикер вернулся на кошелек мерчанта
+                            if existing.owner_id is None and not existing.is_available:
+                                existing.is_available = True
+                                existing.is_onchain = True
+                                existing.unlock_date = None
+                                results["onchain_added"] += 1
+                            continue
+
+                        import re
+                        match = re.search(r'#(\d+)', nft.get("metadata", {}).get("name", ""))
+                        number = int(match.group(1)) if match else 0
+
+                        db.add(UserSticker(
+                            catalog_id=catalog.id,
+                            number=number,
+                            is_available=True,
+                            is_onchain=True,
+                            nft_address=nft_addr,
+                            ton_price=catalog.floor_price_ton,
+                            stars_price=catalog.floor_price_stars,
+                            owner_id=None
+                        ))
+                        results["onchain_added"] += 1
+        except Exception as e:
+            logger.error(f"StickerService: On-chain sync failed: {e}")
+            results["errors"].append(f"On-chain: {str(e)}")
+
+        await db.commit()
+        logger.success(f"StickerService: Sync finished. Thermos: +{results['thermos_added']}, On-chain: +{results['onchain_added']}")
+        return results
+
+    async def process_sticker_unlocks(self, db: AsyncSession) -> int:
+        """
+        Снимает блокировку со стикеров, у которых истек срок (21 день).
+        """
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        
+        stmt = (
+            update(UserSticker)
+            .where(
+                UserSticker.unlock_date.isnot(None),
+                UserSticker.unlock_date <= now
+            )
+            .values(unlock_date=None)
+        )
+        
+        result = await db.execute(stmt)
+        await db.commit()
+        
+        count = result.rowcount
+        if count > 0:
+            logger.info(f"StickerService: Unlocked {count} stickers.")
+        return count
+
     async def transfer(
         self,
         db: AsyncSession,

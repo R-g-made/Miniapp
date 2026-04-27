@@ -3,7 +3,6 @@ import sys
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from backend.core.config import settings
 from backend.bot.handlers import common
 from loguru import logger
@@ -27,76 +26,10 @@ async def run_bot():
         .build()
     )
     
-    # Инициализация планировщика
-    scheduler = AsyncIOScheduler()
-    
-    from backend.services.market_buy_service import market_buy_service
-    from backend.services.floor_price_service import floor_price_service
-    from backend.services.refund_service import refund_service
     from backend.services.notification_service import notification_service
-    from backend.services.case_service import case_service
-    from backend.db.session import async_session_factory
-    
-    from backend.services.referral_service import ReferralService
     
     # Инициализируем сервис уведомлений
     notification_service.set_bot(bot)
-    
-    async def referral_unlock_job():
-        logger.info("Running referral unlock job...")
-        async with async_session_factory() as db:
-            referral_service = ReferralService(db)
-            await referral_service.process_unlocks()
-            
-    # # async def auto_buy_job():
-    #     logger.info("Running auto-buy job...")
-    #     async with async_session_factory() as db:
-    #         await market_buy_service.run_auto_buy(db)
-            
-    async def floor_check_job():
-        logger.info("Running floor check job...")
-        async with async_session_factory() as db:
-            await floor_price_service.update_all_prices(db)
-
-    async def refund_check_job():
-        logger.info("Running refund check job...")
-        async with async_session_factory() as db:
-            await refund_service.check_refunds(db, bot)
-
-    async def case_recovery_job():
-        logger.info("Running case recovery job...")
-        async with async_session_factory() as db:
-            await case_service.check_inactive_cases(db)
-
-    # Добавляем задачи
-    # scheduler.add_job(
-    #     auto_buy_job, 
-    #     "interval", 
-    #     hours=settings.AUTO_BUY_INTERVAL_HOURS
-    # )
-    scheduler.add_job(
-        floor_check_job, 
-        "interval", 
-        hours=settings.FLOOR_CHECK_INTERVAL_HOURS
-    )
-    scheduler.add_job(
-        refund_check_job,
-        "interval",
-        minutes=settings.REFUND_CHECK_INTERVAL_MINUTES
-    )
-    scheduler.add_job(
-        case_recovery_job,
-        "interval",
-        minutes=settings.CASE_RECOVERY_CHECK_INTERVAL_MINUTES
-    )
-    scheduler.add_job(
-        referral_unlock_job,
-        "interval",
-        hours=6
-    )
-    
-    logger.info("Starting scheduler...")
-    scheduler.start()
     
     logger.info("Starting bot...")
     try:

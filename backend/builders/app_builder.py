@@ -36,8 +36,10 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables initialized.")
 
-    from backend.services.live_drop_service import live_drop_service
-    asyncio.create_task(live_drop_service.run_random_drops())
+    from backend.services.worker_service import worker_service
+    
+    # Запускаем все фоновые воркеры (дропы, цены, разблокировки, рефаунды)
+    await worker_service.start_all()
     
     yield
     

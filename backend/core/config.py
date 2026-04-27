@@ -105,13 +105,19 @@ class Settings(BaseSettings):
     NFT_FUND_ADDRESS: str = "EQDo0y1Ix8Wzqms84bFjL8Vh51RPaEIYwziBBRIi1NMadXui" # Адрес фонда
     NFT_TG_ADDRESS: str = "EQB4ZBNOFNSIpi8Qnikm0M0PE1Hv-D-qi40J_nPyYtzA5SAX" # Адрес ТГ
 
-    # Scheduler Settings
-    AUTO_BUY_INTERVAL_HOURS: int = 1
-    FLOOR_CHECK_INTERVAL_HOURS: int = 3
-    CASE_RECOVERY_CHECK_INTERVAL_MINUTES: int = 10 # Каждые 10 минут проверяем пустые кейсы
-    MAX_FLOOR_PRICE_CHANGE_PERCENTAGE: Optional[float] = 0.2 # 20% допустимая разница
-    REFUND_CHECK_INTERVAL_MINUTES: int = 30
+    # Scheduler Settings (Intervals)
+    MAINTENANCE_INTERVAL_HOURS: float = 0.083    # 5 минут для теста (было 6 часов)
+    CASE_RECOVERY_INTERVAL_MINUTES: int = 5  # Проверка пустых кейсов
+    LIVE_DROP_INTERVAL: int = 5               # Скорость живой ленты (сек)
+    
+    # Scheduler Settings (Logic)
+    MAX_FLOOR_PRICE_CHANGE_PERCENTAGE: Optional[float] = 0.2 
     REFUND_LOOKBACK_DAYS: int = 30
+    AUTO_BUY_ENABLED: bool = False
+    
+    # Удаляем старые/дублирующие:
+    # AUTO_BUY_INTERVAL_HOURS, FLOOR_CHECK_INTERVAL_HOURS и т.д.
+    
     #TODO конкертика
     ANOTHER_SETTING: int = 1
     
