@@ -209,9 +209,13 @@ class StickerService:
             target_address = wallet.address
         
         # 3. Проверяем блокировку
-        # Убираем таймзону для сравнения, если в базе хранится naive datetime
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
-        is_locked = sticker.unlock_date and sticker.unlock_date > now
+        now = datetime.now(timezone.utc)
+        # Убеждаемся, что обе даты имеют таймзону для сравнения
+        sticker_unlock = sticker.unlock_date
+        if sticker_unlock and sticker_unlock.tzinfo is None:
+            sticker_unlock = sticker_unlock.replace(tzinfo=timezone.utc)
+            
+        is_locked = sticker_unlock and sticker_unlock > now
         if is_locked:
             raise InvalidOperation(f"Sticker is locked until {sticker.unlock_date}")
 
@@ -460,7 +464,12 @@ class StickerService:
             raise InvalidOperation("Sticker does not belong to user")
             
         # 3. Проверка блокировки
-        is_locked = sticker.unlock_date and sticker.unlock_date > datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        sticker_unlock = sticker.unlock_date
+        if sticker_unlock and sticker_unlock.tzinfo is None:
+            sticker_unlock = sticker_unlock.replace(tzinfo=timezone.utc)
+            
+        is_locked = sticker_unlock and sticker_unlock > now
         if is_locked:
             # Если заблокирован - продажа ТОЛЬКО за Stars
             currency = Currency.STARS
