@@ -97,6 +97,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import lottie from 'lottie-web';
 import api from '../api/client';
 import { useAuthStore } from '../store/auth';
+import { useAppStore } from '../store/app';
 import { useNotificationStore } from '../store/notification';
 import { connectWallet } from '../api/tonConnect';
 import tonDogsLottie from '@/assets/icons/ton_dogs.json';
@@ -105,6 +106,8 @@ import starsDogsLottie from '@/assets/icons/stars_dogs.json';
 export default {
   name: 'ReferralsView',
   setup() {
+    const authStore = useAuthStore();
+    const appStore = useAppStore();
     const lottieContainer = ref(null);
     let lottieInstance = null;
     const activeRefCurrency = ref('TON');
@@ -131,8 +134,6 @@ export default {
     });
 
     const fetchStats = async () => {
-      const appStore = useAppStore();
-      
       try {
         const response = await api.getReferralStats();
         // Благодаря перехватчику в api/client.js, response.data — это уже объект ReferralStats

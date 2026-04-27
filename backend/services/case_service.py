@@ -100,7 +100,7 @@ class CaseService:
         won_sticker.is_available = False 
         
         if currency == Currency.STARS:
-            won_sticker.unlock_date = datetime.now(timezone.utc) + timedelta(days=21)
+            won_sticker.unlock_date = (datetime.now(timezone.utc) + timedelta(days=21)).replace(tzinfo=None)
             logger.info(f"CaseService: Sticker {won_sticker.id} locked until {won_sticker.unlock_date} (STARS payment)")
         else:
             won_sticker.unlock_date = None
