@@ -4,6 +4,7 @@ from loguru import logger
 from backend.api import deps
 from backend.db.session import get_db
 from backend.models.user import User
+from backend.models.enums import Currency
 from backend.schemas.referral import ReferralStats, ReferralWithdrawRequest, ReferralStatsResponse, ReferralWithdrawResponse
 from backend.crud.referral import referral_repository
 from backend.services.referral_service import ReferralService

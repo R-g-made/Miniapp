@@ -71,7 +71,7 @@ class ReferralService:
         from datetime import datetime, timedelta, timezone
         from backend.models.transaction import Transaction, TransactionType, TransactionStatus
         from backend.models.referral import Referral
-        from backend.models.user import Currency
+        from backend.models.enums import Currency
         
         # Порог разблокировки - 21 день назад
         # Используем наивное время для сравнения с БД, если там TIMESTAMP WITHOUT TIME ZONE
@@ -171,7 +171,7 @@ class ReferralService:
             reward_attr = Referral.reward_stars_available if is_stars_conversion else Referral.reward_ton
             
             # Проверка минимальной суммы (0.1 TON или 10 Stars)
-            min_amount = 100 if is_stars_conversion else 0.1
+            min_amount = 10.0 if is_stars_conversion else 0.1
             if amount_to_check < min_amount:
                 logger.warning(f"ReferralService: Withdrawal amount too small. Min: {min_amount}, Requested: {amount_to_check}")
                 raise InvalidOperation(f"Minimum withdrawal amount is {min_amount} {currency_to_check}")
