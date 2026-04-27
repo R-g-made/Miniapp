@@ -15,7 +15,7 @@ from backend.services.refund_service import refund_service
 from backend.services.thermos_service import thermos_service
 from backend.core.config import settings
 from backend.core.exceptions import EntityNotFound, InvalidOperation
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 
 class StickerService:
@@ -25,13 +25,17 @@ class StickerService:
         Добавляет новые стикеры, если они появились во внешних источниках.
         """
         logger.info("StickerService: Starting pool synchronization...")
-        results = {"thermos_added": 0, "onchain_added": 0, "errors": []}
+        results = {"thermos_added": 0, "onchain_added": 0, "archived": 0, "errors": []}
+        
+        # Списки для отслеживания того, что реально есть во внешних источниках
+        seen_thermos_identifiers = set() # set of (catalog_id, number)
+        seen_onchain_addresses = set()    # set of nft_address
 
         # 1. Синхронизация с Thermos
         try:
             thermos_stickers = await thermos_service.get_my_stickers()
             if thermos_stickers:
-                # Подгружаем маппинги и каталог
+                # ... (загрузка маппингов и каталога)
                 from backend.models.sticker import ThermosMapping, StickerCatalog
                 stmt_map = select(ThermosMapping)
                 res_map = await db.execute(stmt_map)
@@ -48,13 +52,14 @@ class StickerService:
                     catalog_id = mapping_dict.get((coll_id, char_id))
                     if not catalog_id or catalog_id not in catalog_items: continue
                     
+                    # Помечаем как увиденный
+                    seen_thermos_identifiers.add((catalog_id, instance))
+                    
                     # Проверка на существование в БД
                     stmt_exists = select(UserSticker).where(UserSticker.catalog_id == catalog_id, UserSticker.number == instance)
                     existing = (await db.execute(stmt_exists)).scalar_one_or_none()
                     
                     if existing:
-                        # Если стикер в БД есть, но он "в архиве" (нет владельца и недоступен)
-                        # значит он вернулся в пул (например, после ручного перевода обратно на аккаунт Thermos)
                         if existing.owner_id is None and not existing.is_available:
                             existing.is_available = True
                             existing.is_onchain = False
@@ -93,10 +98,11 @@ class StickerService:
                     nfts = resp.json().get("nft_items", [])
 
                 if nfts:
+                    # ... (загрузка каталога)
                     stmt_cat = select(StickerCatalog).where(StickerCatalog.collection_address != None)
-                    catalog_items = (await db.execute(stmt_cat)).scalars().all()
+                    catalog_items_onchain = (await db.execute(stmt_cat)).scalars().all()
                     catalog_map = {}
-                    for c in catalog_items:
+                    for c in catalog_items_onchain:
                         try: catalog_map[Address(c.collection_address).to_str(is_user_friendly=False)] = c
                         except: continue
 
@@ -111,11 +117,13 @@ class StickerService:
                         catalog = catalog_map.get(norm_coll_addr)
                         if not catalog: continue
 
+                        # Помечаем как увиденный
+                        seen_onchain_addresses.add(nft_addr)
+
                         stmt_exists = select(UserSticker).where(UserSticker.nft_address == nft_addr)
                         existing = (await db.execute(stmt_exists)).scalar_one_or_none()
                         
                         if existing:
-                            # Если ончейн стикер вернулся на кошелек мерчанта
                             if existing.owner_id is None and not existing.is_available:
                                 existing.is_available = True
                                 existing.is_onchain = True
@@ -142,8 +150,30 @@ class StickerService:
             logger.error(f"StickerService: On-chain sync failed: {e}")
             results["errors"].append(f"On-chain: {str(e)}")
 
+        # 3. Архивация исчезнувших стикеров
+        # Ищем все доступные стикеры в пуле (owner_id is None, is_available is True)
+        stmt_pool = select(UserSticker).where(UserSticker.owner_id == None, UserSticker.is_available == True)
+        pool_items = (await db.execute(stmt_pool)).scalars().all()
+        
+        for item in pool_items:
+            should_archive = False
+            
+            if item.is_onchain:
+                # Если ончейн стикера нет в текущем списке NFT кошелька - архивируем
+                if item.nft_address not in seen_onchain_addresses:
+                    should_archive = True
+            else:
+                # Если оффчейн стикера (Thermos) нет в текущем списке Thermos - архивируем
+                if (item.catalog_id, item.number) not in seen_thermos_identifiers:
+                    should_archive = True
+            
+            if should_archive:
+                item.is_available = False
+                results["archived"] += 1
+                logger.info(f"StickerService: Archiving missing sticker {item.catalog_id} #{item.number}")
+
         await db.commit()
-        logger.success(f"StickerService: Sync finished. Thermos: +{results['thermos_added']}, On-chain: +{results['onchain_added']}")
+        logger.success(f"StickerService: Sync finished. Added: {results['thermos_added'] + results['onchain_added']}, Archived: {results['archived']}")
         return results
 
     async def process_sticker_unlocks(self, db: AsyncSession) -> int:
