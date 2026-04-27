@@ -2,7 +2,7 @@ import asyncio
 import random
 from datetime import datetime, timezone
 from loguru import logger
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode

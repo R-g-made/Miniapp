@@ -19,7 +19,7 @@ class RefundService:
         """
         logger.info("RefundService: Starting periodic check for Stars refunds...")
         
-        lookback_date = datetime.now(timezone.utc) - timedelta(days=settings.REFUND_LOOKBACK_DAYS)
+        lookback_date = (datetime.now(timezone.utc) - timedelta(days=settings.REFUND_LOOKBACK_DAYS)).replace(tzinfo=None)
         
         query = select(Transaction).where(
             Transaction.currency == Currency.STARS,
