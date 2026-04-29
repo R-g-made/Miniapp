@@ -85,7 +85,7 @@ class ThermosService:
             return data.get("stickers") or data.get("gifts") or []
         except Exception as e:
             logger.error(f"ThermosService: Failed to fetch owned stickers: {e}")
-            return []
+            return None
 
     async def transfer_sticker(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """

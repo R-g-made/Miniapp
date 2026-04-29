@@ -27,6 +27,10 @@ class StickerService:
         logger.info("StickerService: Starting pool synchronization...")
         results = {"thermos_added": 0, "onchain_added": 0, "archived": 0, "errors": []}
         
+        # Флаги успешности запросов к внешним API
+        thermos_synced = False
+        onchain_synced = False
+        
         # Списки для отслеживания того, что реально есть во внешних источниках
         seen_thermos_identifiers = set() # set of (catalog_id, number)
         seen_onchain_addresses = set()    # set of nft_address
@@ -34,7 +38,9 @@ class StickerService:
         # 1. Синхронизация с Thermos
         try:
             thermos_stickers = await thermos_service.get_my_stickers()
-            if thermos_stickers:
+            # Важно: get_my_stickers теперь должен возвращать None при ошибке, а не []
+            if thermos_stickers is not None:
+                thermos_synced = True
                 # ... (загрузка маппингов и каталога)
                 from backend.models.sticker import ThermosMapping, StickerCatalog
                 stmt_map = select(ThermosMapping)
@@ -94,10 +100,13 @@ class StickerService:
                 
                 async with httpx.AsyncClient(timeout=30.0) as client:
                     resp = await client.get(f"{base_url}/accounts/{merchant_address}/nfts", headers=headers)
-                    resp.raise_for_status()
-                    nfts = resp.json().get("nft_items", [])
+                    if resp.status_code == 200:
+                        nfts = resp.json().get("nft_items", [])
+                        onchain_synced = True
+                    else:
+                        nfts = []
 
-                if nfts:
+                if onchain_synced:
                     # ... (загрузка каталога)
                     stmt_cat = select(StickerCatalog).where(StickerCatalog.collection_address != None)
                     catalog_items_onchain = (await db.execute(stmt_cat)).scalars().all()
@@ -150,30 +159,31 @@ class StickerService:
             logger.error(f"StickerService: On-chain sync failed: {e}")
             results["errors"].append(f"On-chain: {str(e)}")
 
-        # 3. Архивация исчезнувших стикеров
-        # Ищем все доступные стикеры в пуле (owner_id is None, is_available is True)
-        stmt_pool = select(UserSticker).where(UserSticker.owner_id == None, UserSticker.is_available == True)
-        pool_items = (await db.execute(stmt_pool)).scalars().all()
-        
-        for item in pool_items:
-            should_archive = False
+        # 3. Безопасная архивация исчезнувших стикеров
+        # Только если синхронизация с соответствующим источником прошла успешно!
+        if thermos_synced or onchain_synced:
+            stmt_pool = select(UserSticker).where(UserSticker.owner_id == None, UserSticker.is_available == True)
+            pool_items = (await db.execute(stmt_pool)).scalars().all()
             
-            if item.is_onchain:
-                # Если ончейн стикера нет в текущем списке NFT кошелька - архивируем
-                if item.nft_address not in seen_onchain_addresses:
-                    should_archive = True
-            else:
-                # Если оффчейн стикера (Thermos) нет в текущем списке Thermos - архивируем
-                if (item.catalog_id, item.number) not in seen_thermos_identifiers:
-                    should_archive = True
-            
-            if should_archive:
-                item.is_available = False
-                results["archived"] += 1
-                logger.info(f"StickerService: Archiving missing sticker {item.catalog_id} #{item.number}")
+            for item in pool_items:
+                should_archive = False
+                
+                if item.is_onchain and onchain_synced:
+                    # Если ончейн синхронизирован, а этого стикера нет на кошельке - в архив
+                    if item.nft_address not in seen_onchain_addresses:
+                        should_archive = True
+                elif not item.is_onchain and thermos_synced:
+                    # Если оффчейн синхронизирован, а этого стикера нет в списке - в архив
+                    if (item.catalog_id, item.number) not in seen_thermos_identifiers:
+                        should_archive = True
+                
+                if should_archive:
+                    item.is_available = False
+                    results["archived"] += 1
+                    logger.warning(f"StickerService: Archiving missing sticker {item.catalog_id} #{item.number}")
 
         await db.commit()
-        logger.success(f"StickerService: Sync finished. Added: {results['thermos_added'] + results['onchain_added']}, Archived: {results['archived']}")
+        logger.success(f"StickerService: Sync finished. Added/Reactivated: {results['thermos_added'] + results['onchain_added']}, Archived: {results['archived']}")
         return results
 
     async def process_sticker_unlocks(self, db: AsyncSession) -> int:
