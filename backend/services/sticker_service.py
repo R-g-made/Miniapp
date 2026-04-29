@@ -38,10 +38,8 @@ class StickerService:
         # 1. Синхронизация с Thermos
         try:
             thermos_stickers = await thermos_service.get_my_stickers()
-            # Важно: get_my_stickers теперь должен возвращать None при ошибке, а не []
             if thermos_stickers is not None:
                 thermos_synced = True
-                # ... (загрузка маппингов и каталога)
                 from backend.models.sticker import ThermosMapping, StickerCatalog
                 stmt_map = select(ThermosMapping)
                 res_map = await db.execute(stmt_map)
@@ -52,13 +50,16 @@ class StickerService:
                 catalog_items = {c.id: c for c in res_cat.scalars().all()}
 
                 for ts in thermos_stickers:
-                    coll_id, char_id, instance = ts.get("collection_id"), ts.get("character_id"), ts.get("instance")
-                    if coll_id is None or char_id is None or instance is None: continue
-                    
+                    try:
+                        coll_id = int(ts.get("collection_id"))
+                        char_id = int(ts.get("character_id"))
+                        instance = int(ts.get("instance"))
+                    except (TypeError, ValueError):
+                        continue
+                        
                     catalog_id = mapping_dict.get((coll_id, char_id))
                     if not catalog_id or catalog_id not in catalog_items: continue
                     
-                    # Помечаем как увиденный
                     seen_thermos_identifiers.add((catalog_id, instance))
                     
                     # Проверка на существование в БД
@@ -98,21 +99,37 @@ class StickerService:
                 base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
                 headers = {"Authorization": f"Bearer {settings.TON_API_KEY}"} if settings.TON_API_KEY else {}
                 
+                nfts = []
+                offset = 0
+                limit = 100
+                
                 async with httpx.AsyncClient(timeout=30.0) as client:
-                    resp = await client.get(f"{base_url}/accounts/{merchant_address}/nfts", headers=headers)
-                    if resp.status_code == 200:
-                        nfts = resp.json().get("nft_items", [])
-                        onchain_synced = True
-                    else:
-                        nfts = []
+                    while True:
+                        resp = await client.get(
+                            f"{base_url}/accounts/{merchant_address}/nfts", 
+                            params={"limit": limit, "offset": offset},
+                            headers=headers
+                        )
+                        if resp.status_code != 200:
+                            break
+                            
+                        data = resp.json()
+                        items = data.get("nft_items", [])
+                        nfts.extend(items)
+                        
+                        if len(items) < limit:
+                            onchain_synced = True
+                            break
+                        offset += limit
 
                 if onchain_synced:
-                    # ... (загрузка каталога)
                     stmt_cat = select(StickerCatalog).where(StickerCatalog.collection_address != None)
                     catalog_items_onchain = (await db.execute(stmt_cat)).scalars().all()
                     catalog_map = {}
                     for c in catalog_items_onchain:
-                        try: catalog_map[Address(c.collection_address).to_str(is_user_friendly=False)] = c
+                        try: 
+                            norm_addr = Address(c.collection_address).to_str(is_user_friendly=False)
+                            catalog_map[norm_addr] = c
                         except: continue
 
                     for nft in nfts:
@@ -120,16 +137,17 @@ class StickerService:
                         coll_addr = nft.get("collection", {}).get("address")
                         if not nft_addr or not coll_addr: continue
                         
-                        try: norm_coll_addr = Address(coll_addr).to_str(is_user_friendly=False)
+                        try: 
+                            norm_nft_addr = Address(nft_addr).to_str(is_user_friendly=False)
+                            norm_coll_addr = Address(coll_addr).to_str(is_user_friendly=False)
                         except: continue
                         
                         catalog = catalog_map.get(norm_coll_addr)
                         if not catalog: continue
 
-                        # Помечаем как увиденный
-                        seen_onchain_addresses.add(nft_addr)
+                        seen_onchain_addresses.add(norm_nft_addr)
 
-                        stmt_exists = select(UserSticker).where(UserSticker.nft_address == nft_addr)
+                        stmt_exists = select(UserSticker).where(UserSticker.nft_address == norm_nft_addr)
                         existing = (await db.execute(stmt_exists)).scalar_one_or_none()
                         
                         if existing:
@@ -169,9 +187,13 @@ class StickerService:
                 should_archive = False
                 
                 if item.is_onchain and onchain_synced:
-                    # Если ончейн синхронизирован, а этого стикера нет на кошельке - в архив
-                    if item.nft_address not in seen_onchain_addresses:
-                        should_archive = True
+                    try:
+                        norm_item_addr = Address(item.nft_address).to_str(is_user_friendly=False)
+                        if norm_item_addr not in seen_onchain_addresses:
+                            should_archive = True
+                    except:
+                        # Если адрес в БД кривой, на всякий случай не архивируем
+                        continue
                 elif not item.is_onchain and thermos_synced:
                     # Если оффчейн синхронизирован, а этого стикера нет в списке - в архив
                     if (item.catalog_id, item.number) not in seen_thermos_identifiers:
