@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Float, Boolean, ForeignKey, DateTime, Integer, Enum
+from sqlalchemy import String, Float, Boolean, ForeignKey, DateTime, Integer, Enum, UniqueConstraint
 from sqlalchemy.sql import func
 from backend.models.base import UUIDModel
 import uuid
@@ -82,6 +82,10 @@ class UserSticker(UUIDModel):
     catalog: Mapped["StickerCatalog"] = relationship("StickerCatalog", back_populates="instances")
     owner: Mapped["User"] = relationship("User", back_populates="stickers")
     actions: Mapped[List["StickerAction"]] = relationship("StickerAction", back_populates="user_sticker")
+
+    __table_args__ = (
+        UniqueConstraint("catalog_id", "number", name="uq_sticker_catalog_number"),
+    )
 
 class ThermosMapping(UUIDModel):
     """Таблица соответствия наших стикеров с ID в API Thermos"""

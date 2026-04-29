@@ -62,6 +62,8 @@ class StickerService:
                 res_cat = await db.execute(stmt_cat)
                 catalog_items = {c.id: c for c in res_cat.scalars().all()}
 
+                # 1. Сначала соберем все пары (catalog_id, instance) из Thermos
+                thermos_to_sync = []
                 for ts in thermos_stickers:
                     try:
                         coll_id = int(ts.get("collection_id"))
@@ -71,43 +73,52 @@ class StickerService:
                         continue
                         
                     catalog_ids = mapping_dict.get((coll_id, char_id)) or []
-                    if not catalog_ids:
-                        # logger.debug(f"StickerService: No mapping for thermos {coll_id}:{char_id}")
-                        continue
-                    
                     for catalog_id in catalog_ids:
-                        if catalog_id not in catalog_items:
-                            continue
-                            
-                        # Помечаем как увиденный (используем строку для надежности сравнения)
-                        seen_thermos_identifiers.add((str(catalog_id), instance))
+                        if catalog_id in catalog_items:
+                            thermos_to_sync.append({
+                                "catalog_id": catalog_id,
+                                "instance": instance,
+                                "nft_address": ts.get("nft_address") or ts.get("address")
+                            })
+
+                # 2. Получим все существующие стикеры для этих каталогов одним запросом
+                if thermos_to_sync:
+                    target_catalog_ids = list(set(s["catalog_id"] for s in thermos_to_sync))
+                    stmt_existing = select(UserSticker).where(UserSticker.catalog_id.in_(target_catalog_ids))
+                    res_existing = await db.execute(stmt_existing)
+                    # Кэшируем существующие в словарь для быстрого поиска: (catalog_id, number) -> sticker
+                    existing_map = {(s.catalog_id, s.number): s for s in res_existing.scalars().all()}
+
+                    for item in thermos_to_sync:
+                        cat_id = item["catalog_id"]
+                        inst = item["instance"]
                         
-                        # Проверка на существование и реактивация
-                        stmt_exists = select(UserSticker).where(UserSticker.catalog_id == catalog_id, UserSticker.number == instance)
-                        existing = (await db.execute(stmt_exists)).scalar_one_or_none()
+                        # Помечаем как увиденный
+                        seen_thermos_identifiers.add((str(cat_id), inst))
+                        
+                        existing = existing_map.get((cat_id, inst))
                         
                         if existing:
                             if not existing.is_available:
-                                logger.info(f"StickerService: Reactivating archived thermos sticker {catalog_id} #{instance}")
+                                logger.info(f"StickerService: Reactivating archived thermos sticker {cat_id} #{inst}")
                                 existing.is_available = True
                                 existing.owner_id = None
                                 existing.unlock_date = None
                                 results["thermos_added"] += 1
                             elif existing.owner_id is not None:
-                                # Если стикер у пользователя, но он есть в пуле Thermos - это ошибка синхронизации,
-                                # но мы не должны его реактивировать как свободный
-                                logger.warning(f"StickerService: Sticker {catalog_id} #{instance} is in Thermos pool but owned by {existing.owner_id}")
+                                logger.warning(f"StickerService: Sticker {cat_id} #{inst} is in Thermos pool but owned by {existing.owner_id}")
                             continue
 
-                        catalog = catalog_items[catalog_id]
+                        # Если не нашли — создаем
+                        catalog = catalog_items[cat_id]
                         db.add(UserSticker(
-                            catalog_id=catalog_id,
-                            number=instance,
+                            catalog_id=cat_id,
+                            number=inst,
                             is_available=True,
                             is_onchain=False,
                             ton_price=catalog.floor_price_ton,
                             stars_price=catalog.floor_price_stars,
-                            nft_address=ts.get("nft_address") or ts.get("address"),
+                            nft_address=item["nft_address"],
                             owner_id=None
                         ))
                         results["thermos_added"] += 1
@@ -184,8 +195,12 @@ class StickerService:
                         if not catalog: continue
 
                         seen_onchain_addresses.add(nft_addr)
-                        stmt_exists = select(UserSticker).where(UserSticker.nft_address == nft_addr)
-                        existing = (await db.execute(stmt_exists)).scalar_one_or_none()
+                        stmt_exists = (
+                            select(UserSticker)
+                            .where(UserSticker.nft_address == nft_addr)
+                            .limit(1)
+                        )
+                        existing = (await db.execute(stmt_exists)).scalars().first()
                         
                         if existing:
                             if not existing.is_available:
