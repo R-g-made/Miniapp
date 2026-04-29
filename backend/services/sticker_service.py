@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models.sticker import UserSticker, ThermosMapping
+from backend.models.sticker import UserSticker, ThermosMapping, StickerCatalog
 from backend.models.sticker_action import StickerAction
 from backend.models.transaction import Transaction
 from backend.models.enums import Currency, TransactionType, TransactionStatus, StickerActionType, ExternalProviderType
@@ -41,13 +41,22 @@ class StickerService:
             thermos_stickers = await thermos_service.get_my_stickers()
             if thermos_stickers is not None:
                 thermos_synced = True
-                from backend.models.sticker import ThermosMapping, StickerCatalog
                 
                 # Загружаем маппинги и каталог
                 stmt_map = select(ThermosMapping)
                 res_map = await db.execute(stmt_map)
-                # Ключ - (coll_id, char_id), Значение - catalog_id (UUID)
-                mapping_dict = {(m.thermos_collection_id, m.thermos_character_id): m.catalog_id for m in res_map.scalars().all()}
+                mappings = res_map.scalars().all()
+                
+                # Ключ - (coll_id, char_id), Значение - список catalog_id (UUID)
+                # Это важно, если один стикер в Thermos соответствует нескольким записям в нашем каталоге
+                mapping_dict = {}
+                all_mapped_catalog_ids = set()
+                for m in mappings:
+                    key = (m.thermos_collection_id, m.thermos_character_id)
+                    if key not in mapping_dict:
+                        mapping_dict[key] = []
+                    mapping_dict[key].append(m.catalog_id)
+                    all_mapped_catalog_ids.add(str(m.catalog_id))
                 
                 stmt_cat = select(StickerCatalog)
                 res_cat = await db.execute(stmt_cat)
@@ -61,43 +70,47 @@ class StickerService:
                     except (TypeError, ValueError):
                         continue
                         
-                    catalog_id = mapping_dict.get((coll_id, char_id))
-                    if not catalog_id or catalog_id not in catalog_items:
+                    catalog_ids = mapping_dict.get((coll_id, char_id)) or []
+                    if not catalog_ids:
                         # logger.debug(f"StickerService: No mapping for thermos {coll_id}:{char_id}")
                         continue
                     
-                    # Помечаем как увиденный (используем строку для надежности сравнения)
-                    seen_thermos_identifiers.add((str(catalog_id), instance))
-                    
-                    # Проверка на существование и реактивация
-                    stmt_exists = select(UserSticker).where(UserSticker.catalog_id == catalog_id, UserSticker.number == instance)
-                    existing = (await db.execute(stmt_exists)).scalar_one_or_none()
-                    
-                    if existing:
-                        if not existing.is_available:
-                            logger.info(f"StickerService: Reactivating archived thermos sticker {catalog_id} #{instance}")
-                            existing.is_available = True
-                            existing.owner_id = None
-                            existing.unlock_date = None
-                            results["thermos_added"] += 1
-                        elif existing.owner_id is not None:
-                            # Если стикер у пользователя, но он есть в пуле Thermos - это ошибка синхронизации,
-                            # но мы не должны его реактивировать как свободный
-                            logger.warning(f"StickerService: Sticker {catalog_id} #{instance} is in Thermos pool but owned by {existing.owner_id}")
-                        continue
+                    for catalog_id in catalog_ids:
+                        if catalog_id not in catalog_items:
+                            continue
+                            
+                        # Помечаем как увиденный (используем строку для надежности сравнения)
+                        seen_thermos_identifiers.add((str(catalog_id), instance))
+                        
+                        # Проверка на существование и реактивация
+                        stmt_exists = select(UserSticker).where(UserSticker.catalog_id == catalog_id, UserSticker.number == instance)
+                        existing = (await db.execute(stmt_exists)).scalar_one_or_none()
+                        
+                        if existing:
+                            if not existing.is_available:
+                                logger.info(f"StickerService: Reactivating archived thermos sticker {catalog_id} #{instance}")
+                                existing.is_available = True
+                                existing.owner_id = None
+                                existing.unlock_date = None
+                                results["thermos_added"] += 1
+                            elif existing.owner_id is not None:
+                                # Если стикер у пользователя, но он есть в пуле Thermos - это ошибка синхронизации,
+                                # но мы не должны его реактивировать как свободный
+                                logger.warning(f"StickerService: Sticker {catalog_id} #{instance} is in Thermos pool but owned by {existing.owner_id}")
+                            continue
 
-                    catalog = catalog_items[catalog_id]
-                    db.add(UserSticker(
-                        catalog_id=catalog_id,
-                        number=instance,
-                        is_available=True,
-                        is_onchain=False,
-                        ton_price=catalog.floor_price_ton,
-                        stars_price=catalog.floor_price_stars,
-                        nft_address=ts.get("nft_address") or ts.get("address"),
-                        owner_id=None
-                    ))
-                    results["thermos_added"] += 1
+                        catalog = catalog_items[catalog_id]
+                        db.add(UserSticker(
+                            catalog_id=catalog_id,
+                            number=instance,
+                            is_available=True,
+                            is_onchain=False,
+                            ton_price=catalog.floor_price_ton,
+                            stars_price=catalog.floor_price_stars,
+                            nft_address=ts.get("nft_address") or ts.get("address"),
+                            owner_id=None
+                        ))
+                        results["thermos_added"] += 1
         except Exception as e:
             logger.error(f"StickerService: Thermos sync failed: {e}")
             results["errors"].append(f"Thermos: {str(e)}")
@@ -129,21 +142,45 @@ class StickerService:
                         offset += limit
 
                 if onchain_synced:
-                    stmt_cat = select(StickerCatalog).where(StickerCatalog.collection_address != None)
-                    catalog_items_onchain = (await db.execute(stmt_cat)).scalars().all()
-                    catalog_map = {}
-                    for c in catalog_items_onchain:
-                        try: 
-                            catalog_map[Address(c.collection_address).to_str(is_user_friendly=False)] = c
-                        except: continue
+                    stmt_cat = select(StickerCatalog)
+                    all_catalogs = (await db.execute(stmt_cat)).scalars().all()
+                    
+                    from ton_core import Address
+                    from backend.services.floor_price_service import floor_price_service
+                    
+                    # 1. Строим маппинг по адресу коллекции
+                    catalog_map_by_address = {}
+                    for c in all_catalogs:
+                        if c.collection_address:
+                            try: 
+                                norm_addr = Address(c.collection_address).to_str(is_user_friendly=False)
+                                catalog_map_by_address[norm_addr] = c
+                            except: continue
+
+                    # 2. Строим маппинг по нормализованному имени коллекции (для случаев без адреса)
+                    catalog_map_by_name = {}
+                    for c in all_catalogs:
+                        norm_cname = floor_price_service._normalize_name(c.collection_name or "")
+                        if norm_cname:
+                            catalog_map_by_name[norm_cname] = c
 
                     for nft in nfts:
                         try:
                             nft_addr = Address(nft.get("address")).to_str(is_user_friendly=False)
-                            coll_addr = Address(nft.get("collection", {}).get("address")).to_str(is_user_friendly=False)
+                            coll_data = nft.get("collection") or {}
+                            coll_addr = Address(coll_data.get("address")).to_str(is_user_friendly=False) if coll_data.get("address") else None
+                            coll_name = coll_data.get("name") or ""
                         except: continue
                         
-                        catalog = catalog_map.get(coll_addr)
+                        # Пытаемся найти каталог сначала по адресу, затем по имени
+                        catalog = None
+                        if coll_addr:
+                            catalog = catalog_map_by_address.get(coll_addr)
+                        
+                        if not catalog and coll_name:
+                            norm_coll_name = floor_price_service._normalize_name(coll_name)
+                            catalog = catalog_map_by_name.get(norm_coll_name)
+
                         if not catalog: continue
 
                         seen_onchain_addresses.add(nft_addr)
@@ -177,23 +214,50 @@ class StickerService:
         if thermos_synced or onchain_synced:
             stmt_pool = select(UserSticker).where(UserSticker.owner_id == None, UserSticker.is_available == True)
             pool_items = (await db.execute(stmt_pool)).scalars().all()
+            from ton_core import Address
+            
             for item in pool_items:
                 should_archive = False
+                
+                # Архивация On-chain стикеров
                 if item.is_onchain and onchain_synced:
-                    if item.nft_address not in seen_onchain_addresses:
+                    if item.nft_address:
+                        try:
+                            # Нормализуем адрес перед сравнением
+                            norm_addr = Address(item.nft_address).to_str(is_user_friendly=False)
+                            if norm_addr not in seen_onchain_addresses:
+                                should_archive = True
+                                logger.warning(f"StickerService: Archiving onchain sticker {item.nft_address} - not found on wallet")
+                        except Exception as e:
+                            logger.error(f"StickerService: Error normalizing address {item.nft_address}: {e}")
+                    else:
                         should_archive = True
-                        logger.warning(f"StickerService: Archiving onchain sticker {item.nft_address} - not found on wallet")
+                        
+                # Архивация Thermos стикеров
                 elif not item.is_onchain and thermos_synced:
-                    # Проверяем наличие в "белом списке" Thermos (используем строку для UUID)
-                    if (str(item.catalog_id), item.number) not in seen_thermos_identifiers:
-                        should_archive = True
-                        logger.warning(f"StickerService: Archiving missing thermos sticker {item.catalog_id} #{item.number} - not found in API")
+                    # Архивация ТОЛЬКО если для этого каталога существует маппинг в Thermos
+                    # Если маппинга нет, мы не можем доверять результатам синхронизации Thermos для этого стикера
+                    if str(item.catalog_id) in all_mapped_catalog_ids:
+                        if (str(item.catalog_id), item.number) not in seen_thermos_identifiers:
+                            should_archive = True
+                            logger.warning(f"StickerService: Archiving missing thermos sticker {item.catalog_id} #{item.number} - not found in API")
                 
                 if should_archive:
                     item.is_available = False
                     results["archived"] += 1
 
         await db.commit()
+        
+        # 4. Восстановление кейсов
+        # Если были добавлены или реактивированы стикеры, проверяем, не нужно ли включить кейсы
+        if results["thermos_added"] > 0 or results["onchain_added"] > 0:
+            from backend.services.case_service import case_service
+            try:
+                await case_service.check_inactive_cases(db)
+                logger.info("StickerService: Case reactivation check completed after sync")
+            except Exception as e:
+                logger.error(f"StickerService: Failed to reactivate cases: {e}")
+
         logger.success(f"StickerService: Sync finished. Added/Reactivated: {results['thermos_added'] + results['onchain_added']}, Archived: {results['archived']}")
         return results
 
