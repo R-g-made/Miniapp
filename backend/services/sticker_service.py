@@ -15,7 +15,7 @@ from backend.services.refund_service import refund_service
 from backend.services.thermos_service import thermos_service
 from backend.core.config import settings
 from backend.core.exceptions import EntityNotFound, InvalidOperation
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.orm import selectinload
 
 class StickerService:
@@ -32,7 +32,7 @@ class StickerService:
         onchain_synced = False
         
         # Списки для отслеживания того, что реально есть во внешних источниках
-        # Используем кортежи (UUID, int) для Thermos и строки для On-chain
+        # Используем кортежи (str, int) для Thermos и строки для On-chain
         seen_thermos_identifiers = set() 
         seen_onchain_addresses = set()    
 
@@ -63,10 +63,11 @@ class StickerService:
                         
                     catalog_id = mapping_dict.get((coll_id, char_id))
                     if not catalog_id or catalog_id not in catalog_items:
+                        # logger.debug(f"StickerService: No mapping for thermos {coll_id}:{char_id}")
                         continue
                     
-                    # Помечаем как увиденный (используем объект UUID напрямую)
-                    seen_thermos_identifiers.add((catalog_id, instance))
+                    # Помечаем как увиденный (используем строку для надежности сравнения)
+                    seen_thermos_identifiers.add((str(catalog_id), instance))
                     
                     # Проверка на существование и реактивация
                     stmt_exists = select(UserSticker).where(UserSticker.catalog_id == catalog_id, UserSticker.number == instance)
@@ -74,10 +75,15 @@ class StickerService:
                     
                     if existing:
                         if not existing.is_available:
+                            logger.info(f"StickerService: Reactivating archived thermos sticker {catalog_id} #{instance}")
                             existing.is_available = True
                             existing.owner_id = None
                             existing.unlock_date = None
                             results["thermos_added"] += 1
+                        elif existing.owner_id is not None:
+                            # Если стикер у пользователя, но он есть в пуле Thermos - это ошибка синхронизации,
+                            # но мы не должны его реактивировать как свободный
+                            logger.warning(f"StickerService: Sticker {catalog_id} #{instance} is in Thermos pool but owned by {existing.owner_id}")
                         continue
 
                     catalog = catalog_items[catalog_id]
@@ -146,6 +152,7 @@ class StickerService:
                         
                         if existing:
                             if not existing.is_available:
+                                logger.info(f"StickerService: Reactivating archived onchain sticker {nft_addr}")
                                 existing.is_available = True
                                 existing.owner_id = None
                                 existing.unlock_date = None
@@ -177,10 +184,10 @@ class StickerService:
                         should_archive = True
                         logger.warning(f"StickerService: Archiving onchain sticker {item.nft_address} - not found on wallet")
                 elif not item.is_onchain and thermos_synced:
-                    # Проверяем наличие в "белом списке" Thermos (по UUID объекта и номеру)
-                    if (item.catalog_id, item.number) not in seen_thermos_identifiers:
+                    # Проверяем наличие в "белом списке" Thermos (используем строку для UUID)
+                    if (str(item.catalog_id), item.number) not in seen_thermos_identifiers:
                         should_archive = True
-                        logger.warning(f"StickerService: Archiving missing thermos sticker {item.catalog_id} #{item.number}")
+                        logger.warning(f"StickerService: Archiving missing thermos sticker {item.catalog_id} #{item.number} - not found in API")
                 
                 if should_archive:
                     item.is_available = False

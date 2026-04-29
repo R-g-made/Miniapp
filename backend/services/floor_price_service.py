@@ -1,4 +1,5 @@
 import httpx
+import re
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from loguru import logger
@@ -16,13 +17,24 @@ from backend.services.chance_service import chance_service
 class FloorPriceService:
     """Сервис для синхронизации флор-прайсов с внешними маркетплейсами"""
     
+    def _normalize_name(self, name: str) -> str:
+        """Мягкая нормализация имени для сравнения (нижний регистр, удаление спецсимволов)"""
+        if not name: return ""
+        # Приводим к нижнему регистру и удаляем все кроме букв, цифр и кириллицы
+        name = re.sub(r'[^a-z0-9а-яё]', '', name.lower())
+        # Удаляем лишние слова-шум, которые могут мешать сравнению
+        noise = ["pack", "collection", "case", "sticker", "gift", "nft"]
+        for word in noise:
+            name = name.replace(word, "")
+        return name.strip()
+
     @property
     def api_url(self) -> str:
         return settings.STICKERS_TOOLS_API_URL
 
     async def _fetch_all_floors_from_tools(self) -> Dict[str, Dict[str, float]]:
         """
-        Получает все флор-прайсы с stickers.tools по логике из allfloors.py
+        Получает все флор-прайсы с stickers.tools и возвращает словарь с нормализованными именами.
         """
         headers = {
             "User-Agent": "sticker-floor-bot/2.0",
@@ -41,21 +53,23 @@ class FloorPriceService:
                 if not isinstance(collections, dict):
                     return {}
 
-                all_floors = {}
+                all_floors = {} # {normalized_collection_name: {normalized_pack_name: price}}
                 for col in collections.values():
                     cname = col.get("name")
                     if not cname: continue
+                    norm_cname = self._normalize_name(cname)
                     
                     stickers = col.get("stickers") or {}
                     for pack in stickers.values():
                         pname = pack.get("name")
                         if not pname: continue
+                        norm_pname = self._normalize_name(pname)
                         
                         ton_floor = self._get_pack_floor_ton(pack)
                         if ton_floor:
-                            if cname not in all_floors:
-                                all_floors[cname] = {}
-                            all_floors[cname][pname] = ton_floor
+                            if norm_cname not in all_floors:
+                                all_floors[norm_cname] = {}
+                            all_floors[norm_cname][norm_pname] = ton_floor
                 
                 return all_floors
             except Exception as e:
@@ -63,15 +77,18 @@ class FloorPriceService:
                 return {}
 
     def _get_pack_floor_ton(self, pack: Dict[str, Any]) -> Optional[float]:
-        """Приоритет: current -> 24h -> 7d -> 30d"""
-        prio_ton = [
+        """Приоритет: current -> 24h -> 7d -> 30d. Поддерживает разные структуры JSON."""
+        # Возможные пути к цене TON в разных версиях API
+        paths = [
             ["current", "price", "floor", "ton"],
+            ["current", "floor", "ton"],
+            ["current", "floor"],
             ["24h", "price", "floor", "ton"],
             ["7d", "price", "floor", "ton"],
             ["30d", "price", "floor", "ton"],
         ]
         
-        for path in prio_ton:
+        for path in paths:
             val = pack
             for key in path:
                 if isinstance(val, dict) and key in val:
@@ -79,10 +96,11 @@ class FloorPriceService:
                 else:
                     val = None
                     break
+            
             if val is not None:
                 try:
                     return float(val)
-                except:
+                except (ValueError, TypeError):
                     continue
         return None
 
@@ -134,18 +152,24 @@ class FloorPriceService:
             
             # Если приоритет Laffka, пробуем Laffka API
             elif priority == PriorityMarket.LAFFKA.value:
-                # Временно используем stickers.tools как основной источник для Laffka
-                pass
-
-            # Если приоритет не GetGems ИЛИ в GetGems не нашли - пробуем stickers.tools
-            if new_price_ton is None:
-                logger.debug(f"FloorPriceService: don`t found price for {catalog.name}")
-                # col_name = catalog.collection_name
-                # pack_name = catalog.name
+                # Используем stickers.tools как основной источник для Laffka (мягкое сравнение)
+                norm_col = self._normalize_name(catalog.collection_name or "")
+                norm_pack = self._normalize_name(catalog.name)
                 
-                # if col_name in tools_floors and pack_name in tools_floors[col_name]:
-                #     new_price_ton = tools_floors[col_name][pack_name]
-                #     logger.debug(f"FloorPriceService: Found price for {pack_name} in stickers.tools: {new_price_ton} TON")
+                if norm_col in tools_floors and norm_pack in tools_floors[norm_col]:
+                    new_price_ton = tools_floors[norm_col][norm_pack]
+                    logger.debug(f"FloorPriceService: Found price for {catalog.name} in stickers.tools (Laffka): {new_price_ton} TON")
+
+            # Если приоритет не GetGems ИЛИ в GetGems не нашли - пробуем stickers.tools как запасной вариант (мягкое сравнение)
+            if new_price_ton is None:
+                norm_col = self._normalize_name(catalog.collection_name or "")
+                norm_pack = self._normalize_name(catalog.name)
+                
+                if norm_col in tools_floors and norm_pack in tools_floors[norm_col]:
+                    new_price_ton = tools_floors[norm_col][norm_pack]
+                    logger.debug(f"FloorPriceService: Found price for {catalog.name} in stickers.tools (fallback): {new_price_ton} TON")
+                else:
+                    logger.debug(f"FloorPriceService: No price found for {catalog.name} in stickers.tools after normalization")
             
             # 5. Применяем логику 20% порога
             if new_price_ton is not None:
