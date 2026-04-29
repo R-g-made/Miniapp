@@ -32,8 +32,9 @@ class StickerService:
         onchain_synced = False
         
         # Списки для отслеживания того, что реально есть во внешних источниках
-        seen_thermos_identifiers = set() # set of (catalog_id, number)
-        seen_onchain_addresses = set()    # set of nft_address
+        # Используем кортежи (UUID, int) для Thermos и строки для On-chain
+        seen_thermos_identifiers = set() 
+        seen_onchain_addresses = set()    
 
         # 1. Синхронизация с Thermos
         try:
@@ -41,8 +42,11 @@ class StickerService:
             if thermos_stickers is not None:
                 thermos_synced = True
                 from backend.models.sticker import ThermosMapping, StickerCatalog
+                
+                # Загружаем маппинги и каталог
                 stmt_map = select(ThermosMapping)
                 res_map = await db.execute(stmt_map)
+                # Ключ - (coll_id, char_id), Значение - catalog_id (UUID)
                 mapping_dict = {(m.thermos_collection_id, m.thermos_character_id): m.catalog_id for m in res_map.scalars().all()}
                 
                 stmt_cat = select(StickerCatalog)
@@ -58,18 +62,20 @@ class StickerService:
                         continue
                         
                     catalog_id = mapping_dict.get((coll_id, char_id))
-                    if not catalog_id or catalog_id not in catalog_items: continue
+                    if not catalog_id or catalog_id not in catalog_items:
+                        continue
                     
+                    # Помечаем как увиденный (используем объект UUID напрямую)
                     seen_thermos_identifiers.add((catalog_id, instance))
                     
-                    # Проверка на существование в БД
+                    # Проверка на существование и реактивация
                     stmt_exists = select(UserSticker).where(UserSticker.catalog_id == catalog_id, UserSticker.number == instance)
                     existing = (await db.execute(stmt_exists)).scalar_one_or_none()
                     
                     if existing:
-                        if existing.owner_id is None and not existing.is_available:
+                        if not existing.is_available:
                             existing.is_available = True
-                            existing.is_onchain = False
+                            existing.owner_id = None
                             existing.unlock_date = None
                             results["thermos_added"] += 1
                         continue
@@ -100,9 +106,7 @@ class StickerService:
                 headers = {"Authorization": f"Bearer {settings.TON_API_KEY}"} if settings.TON_API_KEY else {}
                 
                 nfts = []
-                offset = 0
-                limit = 100
-                
+                offset, limit = 0, 100
                 async with httpx.AsyncClient(timeout=30.0) as client:
                     while True:
                         resp = await client.get(
@@ -110,13 +114,9 @@ class StickerService:
                             params={"limit": limit, "offset": offset},
                             headers=headers
                         )
-                        if resp.status_code != 200:
-                            break
-                            
-                        data = resp.json()
-                        items = data.get("nft_items", [])
+                        if resp.status_code != 200: break
+                        items = resp.json().get("nft_items", [])
                         nfts.extend(items)
-                        
                         if len(items) < limit:
                             onchain_synced = True
                             break
@@ -128,32 +128,26 @@ class StickerService:
                     catalog_map = {}
                     for c in catalog_items_onchain:
                         try: 
-                            norm_addr = Address(c.collection_address).to_str(is_user_friendly=False)
-                            catalog_map[norm_addr] = c
+                            catalog_map[Address(c.collection_address).to_str(is_user_friendly=False)] = c
                         except: continue
 
                     for nft in nfts:
-                        nft_addr = nft.get("address")
-                        coll_addr = nft.get("collection", {}).get("address")
-                        if not nft_addr or not coll_addr: continue
-                        
-                        try: 
-                            norm_nft_addr = Address(nft_addr).to_str(is_user_friendly=False)
-                            norm_coll_addr = Address(coll_addr).to_str(is_user_friendly=False)
+                        try:
+                            nft_addr = Address(nft.get("address")).to_str(is_user_friendly=False)
+                            coll_addr = Address(nft.get("collection", {}).get("address")).to_str(is_user_friendly=False)
                         except: continue
                         
-                        catalog = catalog_map.get(norm_coll_addr)
+                        catalog = catalog_map.get(coll_addr)
                         if not catalog: continue
 
-                        seen_onchain_addresses.add(norm_nft_addr)
-
-                        stmt_exists = select(UserSticker).where(UserSticker.nft_address == norm_nft_addr)
+                        seen_onchain_addresses.add(nft_addr)
+                        stmt_exists = select(UserSticker).where(UserSticker.nft_address == nft_addr)
                         existing = (await db.execute(stmt_exists)).scalar_one_or_none()
                         
                         if existing:
-                            if existing.owner_id is None and not existing.is_available:
+                            if not existing.is_available:
                                 existing.is_available = True
-                                existing.is_onchain = True
+                                existing.owner_id = None
                                 existing.unlock_date = None
                                 results["onchain_added"] += 1
                             continue
@@ -163,46 +157,34 @@ class StickerService:
                         number = int(match.group(1)) if match else 0
 
                         db.add(UserSticker(
-                            catalog_id=catalog.id,
-                            number=number,
-                            is_available=True,
-                            is_onchain=True,
-                            nft_address=nft_addr,
-                            ton_price=catalog.floor_price_ton,
-                            stars_price=catalog.floor_price_stars,
-                            owner_id=None
+                            catalog_id=catalog.id, number=number, is_available=True, is_onchain=True,
+                            nft_address=nft_addr, ton_price=catalog.floor_price_ton,
+                            stars_price=catalog.floor_price_stars, owner_id=None
                         ))
                         results["onchain_added"] += 1
         except Exception as e:
             logger.error(f"StickerService: On-chain sync failed: {e}")
             results["errors"].append(f"On-chain: {str(e)}")
 
-        # 3. Безопасная архивация исчезнувших стикеров
-        # Только если синхронизация с соответствующим источником прошла успешно!
+        # 3. Безопасная архивация
         if thermos_synced or onchain_synced:
             stmt_pool = select(UserSticker).where(UserSticker.owner_id == None, UserSticker.is_available == True)
             pool_items = (await db.execute(stmt_pool)).scalars().all()
-            
             for item in pool_items:
                 should_archive = False
-                
                 if item.is_onchain and onchain_synced:
-                    try:
-                        norm_item_addr = Address(item.nft_address).to_str(is_user_friendly=False)
-                        if norm_item_addr not in seen_onchain_addresses:
-                            should_archive = True
-                    except:
-                        # Если адрес в БД кривой, на всякий случай не архивируем
-                        continue
+                    if item.nft_address not in seen_onchain_addresses:
+                        should_archive = True
+                        logger.warning(f"StickerService: Archiving onchain sticker {item.nft_address} - not found on wallet")
                 elif not item.is_onchain and thermos_synced:
-                    # Если оффчейн синхронизирован, а этого стикера нет в списке - в архив
+                    # Проверяем наличие в "белом списке" Thermos (по UUID объекта и номеру)
                     if (item.catalog_id, item.number) not in seen_thermos_identifiers:
                         should_archive = True
+                        logger.warning(f"StickerService: Archiving missing thermos sticker {item.catalog_id} #{item.number}")
                 
                 if should_archive:
                     item.is_available = False
                     results["archived"] += 1
-                    logger.warning(f"StickerService: Archiving missing sticker {item.catalog_id} #{item.number}")
 
         await db.commit()
         logger.success(f"StickerService: Sync finished. Added/Reactivated: {results['thermos_added'] + results['onchain_added']}, Archived: {results['archived']}")
