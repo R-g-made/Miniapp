@@ -54,7 +54,7 @@ class ChanceService:
         result = await db.execute(stmt)
         case_obj = result.scalar_one_or_none()
 
-        if not case_obj or not case_obj.is_active:
+        if not case_obj:
             return
 
         # Если динамическое распределение выключено, мы НЕ трогаем шансы (оставляем из сида),
@@ -84,8 +84,13 @@ class ChanceService:
 
         if not available_items:
             logger.error(f"ChanceService: No available items in pool for case {case_obj.slug}")
+            # Если вообще ничего нет, обнуляем все шансы
+            for item in case_obj.items:
+                item.chance = 0.0
+            await db.commit()
             return
 
+        # Важно: сначала обнуляем шансы у ВСЕХ, кто недоступен
         for item_info in items_data:
             if not item_info["is_available"]:
                 item_info["item_obj"].chance = 0.0

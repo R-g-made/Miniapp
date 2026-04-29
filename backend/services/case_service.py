@@ -234,13 +234,19 @@ class CaseService:
                 empty_item_names.append(item.sticker_catalog.name)
 
         if has_empty_items:
-            if case_obj.is_chance_distribution:
-                # Если включено распределение — просто пересчитываем шансы
+            # Считаем общее количество доступных стикеров в кейсе
+            total_available = 0
+            for item in case_obj.items:
+                total_available += await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
+
+            if case_obj.is_chance_distribution and total_available > 0:
+                # Если включено распределение и есть хоть что-то — просто пересчитываем шансы
                 logger.info(f"CaseService: Item(s) {empty_item_names} empty in case {case_obj.slug}. Redistributing chances.")
                 await chance_service.recalculate_case_chances(db, case_obj.id)
             else:
-                # Если выключено — отключаем кейс и уведомляем всех
-                logger.warning(f"CaseService: Item(s) {empty_item_names} empty in case {case_obj.slug}. Deactivating case.")
+                # Если распределение выключено ИЛИ вообще нет стикеров — отключаем кейс
+                reason = "All items empty" if total_available <= 0 else f"Item(s) {empty_item_names} empty"
+                logger.warning(f"CaseService: {reason} in case {case_obj.slug}. Deactivating case.")
                 case_obj.is_active = False
                 db.add(case_obj)
                 
@@ -254,7 +260,7 @@ class CaseService:
                 ))
                 
                 # Уведомляем админов
-                admin_msg = f"⚠️ <b>Кейс отключен!</b>\nКейс: <code>{case_obj.name}</code> ({case_obj.slug})\nЗакончились стикеры: {', '.join(empty_item_names)}"
+                admin_msg = f"⚠️ <b>Кейс отключен!</b>\nКейс: <code>{case_obj.name}</code> ({case_obj.slug})\nПричина: {reason}"
                 await notification_service.notify_admins(admin_msg)
 
     async def check_inactive_cases(self, db: AsyncSession):
@@ -262,25 +268,40 @@ class CaseService:
         Периодическая проверка неактивных кейсов. 
         Если стикеры появились — включаем кейс обратно.
         """
-        # Добавляем selectinload, чтобы избежать lazy loading ошибки (greenlet_spawn)
+        # Добавляем selectinload, чтобы избежать lazy loading ошибки
         stmt = select(Case).options(selectinload(Case.items)).where(Case.is_active == False)
         result = await db.execute(stmt)
         inactive_cases = result.scalars().all()
         
         for case_obj in inactive_cases:
-            # Проверяем, есть ли хотя бы один стикер для каждого айтема
-            all_available = True
+            # Проверяем наличие стикеров
+            available_items_count = 0
+            all_items_available = True
+            
             for item in case_obj.items:
                 count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
-                if count <= 0:
-                    all_available = False
-                    break
+                if count > 0:
+                    available_items_count += 1
+                else:
+                    all_items_available = False
             
-            if all_available:
-                logger.info(f"CaseService: All items back in stock for case {case_obj.slug}. Reactivating.")
+            should_activate = False
+            if case_obj.is_chance_distribution:
+                # Если распределение включено, достаточно хотя бы одного айтема
+                should_activate = available_items_count > 0
+            else:
+                # Если выключено, нужны ВСЕ айтемы
+                should_activate = all_items_available and len(case_obj.items) > 0
+            
+            if should_activate:
+                logger.info(f"CaseService: Reactivating case {case_obj.slug}. Distribution: {case_obj.is_chance_distribution}")
                 case_obj.is_active = True
+                
+                # Если включено распределение, нужно пересчитать шансы при активации
+                if case_obj.is_chance_distribution:
+                    await chance_service.recalculate_case_chances(db, case_obj.id)
+                
                 db.add(case_obj)
-                await db.commit()
                 
                 # Уведомляем админов
                 await notification_service.notify_admins(f"✅ <b>Кейс восстановлен!</b>\nКейс: <code>{case_obj.name}</code> снова доступен.")
@@ -290,5 +311,8 @@ class CaseService:
                     type=WSMessageType.CASE_STATUS_UPDATE,
                     data={"case_slug": case_obj.slug, "is_active": True}
                 ))
+        
+        # Коммитим все изменения разом в конце
+        await db.commit()
 
 case_service = CaseService()
