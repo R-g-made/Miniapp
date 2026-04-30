@@ -43,8 +43,8 @@ class ChanceService:
 
     async def recalculate_case_chances(self, db: AsyncSession, case_id: uuid.UUID):
         """
-        Пересчитывает шансы для кейса и его цену для поддержания 90% RTP.
-        Учитывает наличие стикеров в пуле и их текущую рыночную стоимость.
+        Пересчитывает шансы для кейса и его цену.
+        Логика: Шансы распределяются ТОЛЬКО между стикерами в наличии.
         """
         stmt = (
             select(Case)
@@ -57,20 +57,20 @@ class ChanceService:
         if not case_obj:
             return
 
-        # Если динамическое распределение выключено, мы НЕ трогаем шансы (оставляем из сида),
-        # но ОБЯЗАТЕЛЬНО обновляем цену кейса на основе текущего флора.
+        logger.info(f"ChanceService: Processing rebalance for '{case_obj.name}' (Dist: {case_obj.is_chance_distribution})")
+
+        # Если динамическое распределение выключено, только обновляем цену
         if not case_obj.is_chance_distribution:
             await self._update_case_price_only(db, case_obj)
             return
 
-        logger.info(f"ChanceService: Starting smart rebalance for case {case_obj.slug} (RTP {self.target_rtp*100}%)")
-
         items_data = []
         available_items = []
         
+        # Собираем данные по всем айтемам
         for item in case_obj.items:
             count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
-            price = item.sticker_catalog.floor_price_ton or 0.1 # Дефолтная цена если нет флора
+            price = item.sticker_catalog.floor_price_ton or 0.1
             
             item_info = {
                 "item_obj": item,
@@ -81,20 +81,17 @@ class ChanceService:
             items_data.append(item_info)
             if count > 0:
                 available_items.append(item_info)
+            else:
+                # СРАЗУ обнуляем шанс для тех, кого нет в наличии
+                item.chance = 0.0
 
         if not available_items:
-            logger.error(f"ChanceService: No available items in pool for case {case_obj.slug}")
-            # Если вообще ничего нет, обнуляем все шансы
-            for item in case_obj.items:
-                item.chance = 0.0
-            await db.commit()
+            logger.warning(f"ChanceService: No available items for '{case_obj.name}'. Case should be inactive.")
             return
 
-        # Важно: сначала обнуляем шансы у ВСЕХ, кто недоступен
-        for item_info in items_data:
-            if not item_info["is_available"]:
-                item_info["item_obj"].chance = 0.0
+        logger.info(f"ChanceService: {len(available_items)}/{len(items_data)} items available. Recalculating probabilities...")
 
+        # Определяем категории для доступных предметов на основе их цен
         prices = [it["price"] for it in available_items]
         min_p, max_p = min(prices), max(prices)
         p_range = max_p - min_p if max_p > min_p else 1.0
