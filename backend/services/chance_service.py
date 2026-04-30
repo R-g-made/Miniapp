@@ -117,20 +117,18 @@ class ChanceService:
 
         # Округление шансов до 4 знаков.
         # Чтобы сумма была ровно 1.0, корректируем элемент с самым большим шансом.
-        rounded_chances = [round(c, 4) for c in best_chances]
+        rounded_chances = [max(0.0, round(c, 4)) for c in best_chances]
         if rounded_chances:
             diff = 1.0 - sum(rounded_chances)
             # Находим индекс максимального шанса для корректировки
             max_idx = rounded_chances.index(max(rounded_chances))
-            rounded_chances[max_idx] = round(rounded_chances[max_idx] + diff, 4)
+            # Прибавляем diff и еще раз гарантируем неотрицательность
+            rounded_chances[max_idx] = max(0.0, round(rounded_chances[max_idx] + diff, 4))
             
-            # Финальная проверка на отрицательные значения (на всякий случай)
-            for i in range(len(rounded_chances)):
-                if rounded_chances[i] < 0: rounded_chances[i] = 0.0
-            
-            # Повторная нормализация если были отрицательные
+            # Если после всех правок сумма все еще не 1.0 (крайне редкий случай),
+            # делаем финальную нормализацию
             final_sum = sum(rounded_chances)
-            if final_sum > 0:
+            if abs(final_sum - 1.0) > 1e-6 and final_sum > 0:
                 rounded_chances = [c / final_sum for c in rounded_chances]
 
         for it, chance in zip(available_items, rounded_chances):

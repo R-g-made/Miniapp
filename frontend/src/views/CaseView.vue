@@ -8,17 +8,6 @@
       <div class="loader"></div>
     </div>
 
-    <div v-else-if="currentCase && currentCase.is_active === false" class="case-inactive">
-      <div class="inactive-content">
-        <img src="@/assets/icons/box.svg" alt="Case" class="inactive-icon">
-        <h2 class="inactive-title">Case Unavailable</h2>
-        <p class="inactive-text">This case is temporarily out of stock.</p>
-        <button class="btn-inactive-back" @click="$router.back()">
-          Go Back
-        </button>
-      </div>
-    </div>
-
     <div v-else-if="currentCase" class="case-content">
       <div class="case-header">
         <div class="case-title-row">
@@ -55,7 +44,7 @@
         <!-- Основная белая кнопка (всегда на месте, меняется только контент) -->
         <button 
           :class="['btn-open-main', { 'btn-sell': isResultMode }]" 
-          :disabled="isSpinning || isAwaitingResult" 
+          :disabled="isSpinning || isAwaitingResult || (!isResultMode && currentCase.is_active === false)" 
           @click="isResultMode ? sellWinningSticker() : startRealSpin()"
         >
           <template v-if="isSpinning || isAwaitingResult">
@@ -291,6 +280,7 @@ export default {
     };
 
     const isAwaitingResult = ref(false);
+    const pendingInactivityRedirect = ref(false);
 
     const startRealSpin = async () => {
       if (isSpinning.value || isAwaitingResult.value) return;
@@ -336,7 +326,13 @@ export default {
         
       } catch (e) {
         isAwaitingResult.value = false;
-        alert(e.response?.data?.detail || "Ошибка открытия кейса");
+        // Если стикеров нет или кейс неактивен — сразу на главную
+        const errorDetail = e.response?.data?.detail || "";
+        if (errorDetail.includes("unavailable") || errorDetail.includes("stock") || errorDetail.includes("active")) {
+          router.push('/');
+        } else {
+          alert(errorDetail || "Ошибка открытия кейса");
+        }
       }
     };
 
@@ -398,6 +394,11 @@ export default {
         authStore.updateBalance(newBalance, activeCurrency.value);
 
         resetCase();
+        
+        // Если за это время пришел сигнал о неактивности кейса — уходим на главную
+        if (pendingInactivityRedirect.value) {
+          router.push('/');
+        }
       } catch (e) {
         alert(e.response?.data?.detail || "Ошибка продажи");
       }
@@ -444,6 +445,11 @@ export default {
       offset.value = -(targetIndexInNewList * step + 95);
       
       startIdleAnimation();
+
+      // Если за это время пришел сигнал о неактивности кейса — уходим на главную
+      if (pendingInactivityRedirect.value) {
+        router.push('/');
+      }
     };
 
     const playingLottieId = ref(null);
@@ -566,6 +572,17 @@ export default {
         if (event.detail.case_slug === route.params.slug && currentCase.value) {
           if (event.detail.is_active !== undefined) {
             currentCase.value.is_active = event.detail.is_active;
+            
+            // Если кейс стал неактивным
+            if (!event.detail.is_active) {
+              // Если мы НЕ крутим и НЕ смотрим результат — уходим сразу
+              if (!isSpinning.value && !isResultMode.value && !isAwaitingResult.value) {
+                router.push('/');
+              } else {
+                // Иначе ставим флаг, чтобы уйти после завершения действий
+                pendingInactivityRedirect.value = true;
+              }
+            }
           }
           if (event.detail.price_ton !== undefined) {
             currentCase.value.price_ton = event.detail.price_ton;

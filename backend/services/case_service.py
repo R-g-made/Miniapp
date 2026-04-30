@@ -250,6 +250,9 @@ class CaseService:
                 case_obj.is_active = False
                 db.add(case_obj)
                 
+                # ВСЕГДА коммитим изменение статуса кейса
+                await db.commit()
+                
                 # WS broadcast for case deactivation
                 await manager.broadcast(WSEventMessage(
                     type=WSMessageType.CASE_STATUS_UPDATE,
@@ -267,59 +270,63 @@ class CaseService:
         """
         Периодическая проверка неактивных кейсов. 
         """
-        # Загружаем неактивные кейсы со всеми связями
-        stmt = (
-            select(Case)
-            .options(selectinload(Case.items).selectinload(CaseItem.sticker_catalog))
-            .where(Case.is_active == False)
-        )
-        result = await db.execute(stmt)
-        inactive_cases = result.scalars().all()
-        
-        if not inactive_cases:
-            # logger.info("CaseService: No inactive cases to check.")
-            return
+        try:
+            # Загружаем неактивные кейсы со всеми связями
+            stmt = (
+                select(Case)
+                .options(
+                    selectinload(Case.items).selectinload(CaseItem.sticker_catalog)
+                )
+                .where(Case.is_active == False)
+            )
+            result = await db.execute(stmt)
+            inactive_cases = result.scalars().all()
+            
+            if not inactive_cases:
+                return
 
-        for case_obj in inactive_cases:
-            available_types = []
-            missing_types = []
-            
-            for item in case_obj.items:
-                count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
-                if count > 0:
-                    available_types.append(f"{item.sticker_catalog.name} ({count} шт.)")
-                else:
-                    missing_types.append(item.sticker_catalog.name)
-            
-            # Логика активации по вашему запросу
-            if case_obj.is_chance_distribution:
-                # Если распределение включено — достаточно хотя бы одного типа стикера
-                should_activate = len(available_types) > 0
-                condition_msg = "Distribution ON: At least one item required."
-            else:
-                # Если выключено — нужны ВСЕ типы стикеров
-                should_activate = len(missing_types) == 0 and len(case_obj.items) > 0
-                condition_msg = "Distribution OFF: ALL items required."
-            
-            logger.info(f"CaseService: Checking '{case_obj.name}' | {condition_msg} | Found: {len(available_types)}, Missing: {len(missing_types)}")
+            for case_obj in inactive_cases:
+                try:
+                    available_types = []
+                    missing_types = []
+                    
+                    for item in case_obj.items:
+                        count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
+                        if count > 0:
+                            available_types.append(f"{item.sticker_catalog.name} ({count} шт.)")
+                        else:
+                            missing_types.append(item.sticker_catalog.name)
+                    
+                    # Логика активации
+                    if case_obj.is_chance_distribution:
+                        should_activate = len(available_types) > 0
+                        condition_msg = "Distribution ON: At least one item required."
+                    else:
+                        should_activate = len(missing_types) == 0 and len(case_obj.items) > 0
+                        condition_msg = "Distribution OFF: ALL items required."
+                    
+                    logger.info(f"CaseService: Checking '{case_obj.name}' | {condition_msg} | Found: {len(available_types)}, Missing: {len(missing_types)}")
 
-            if should_activate:
-                logger.success(f"CaseService: RE-ACTIVATING case '{case_obj.name}' ({case_obj.slug})")
-                case_obj.is_active = True
-                
-                # Если включено распределение, сразу вызываем пересчет шансов
-                if case_obj.is_chance_distribution:
-                    await chance_service.recalculate_case_chances(db, case_obj.id)
-                
-                db.add(case_obj)
-                
-                # Уведомляем админов и по вебсокетам
-                await notification_service.notify_admins(f"✅ <b>Кейс восстановлен!</b>\nКейс: <code>{case_obj.name}</code> снова доступен.")
-                await manager.broadcast(WSEventMessage(
-                    type=WSMessageType.CASE_STATUS_UPDATE,
-                    data={"case_slug": case_obj.slug, "is_active": True}
-                ))
-        
-        await db.commit()
+                    if should_activate:
+                        logger.success(f"CaseService: RE-ACTIVATING case '{case_obj.name}' ({case_obj.slug})")
+                        case_obj.is_active = True
+                        
+                        if case_obj.is_chance_distribution:
+                            await chance_service.recalculate_case_chances(db, case_obj.id)
+                        
+                        db.add(case_obj)
+                        
+                        await notification_service.notify_admins(f"✅ <b>Кейс восстановлен!</b>\nКейс: <code>{case_obj.name}</code> снова доступен.")
+                        await manager.broadcast(WSEventMessage(
+                            type=WSMessageType.CASE_STATUS_UPDATE,
+                            data={"case_slug": case_obj.slug, "is_active": True}
+                        ))
+                except Exception as e:
+                    logger.error(f"CaseService: Error processing case {case_obj.slug}: {e}")
+            
+            await db.commit()
+        except Exception as e:
+            logger.error(f"CaseService: check_inactive_cases global error: {e}")
+            await db.rollback()
 
 case_service = CaseService()
