@@ -73,13 +73,23 @@ class StickerRepository(BaseRepository[UserSticker]):
         """
         Считает количество доступных стикеров в пуле для конкретного каталога.
         """
+        # Сначала посчитаем вообще все стикеры этого каталога для отладки
+        from loguru import logger
+        total_stmt = select(func.count(UserSticker.id)).where(UserSticker.catalog_id == catalog_id)
+        total_in_db = await db.scalar(total_stmt) or 0
+        
         query = select(func.count(UserSticker.id)).where(
             UserSticker.catalog_id == catalog_id,
             UserSticker.owner_id == None,
             UserSticker.is_available == True
         )
         result = await db.execute(query)
-        return result.scalar() or 0
+        available = result.scalar() or 0
+        
+        if total_in_db > 0 and available == 0:
+            logger.warning(f"StickerCRUD: Catalog {catalog_id} has {total_in_db} total stickers, but 0 are available (archived or owned)!")
+            
+        return available
 
     async def get_all_pool_counts(self, db: AsyncSession) -> List[Tuple[UUID, int]]:
         """
