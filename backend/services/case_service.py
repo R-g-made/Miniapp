@@ -277,14 +277,18 @@ class CaseService:
             # Проверяем наличие стикеров
             available_items_count = 0
             all_items_available = True
+            details = []
             
             for item in case_obj.items:
                 count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
+                details.append(f"{item.sticker_catalog.name}: {count}")
                 if count > 0:
                     available_items_count += 1
                 else:
                     all_items_available = False
             
+            logger.debug(f"CaseService: Checking case {case_obj.slug} (is_dist: {case_obj.is_chance_distribution}). Items: {', '.join(details)}")
+
             should_activate = False
             if case_obj.is_chance_distribution:
                 # Если распределение включено, достаточно хотя бы одного айтема

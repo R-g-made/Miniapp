@@ -162,18 +162,15 @@ class ChanceService:
         # Обеспечиваем округление цены TON вверх до 2 знаков
         case_price = math.ceil(initial_price * 100) / 100
         
-        chances = []
-        for cat in categories:
-            if cat == "cheap":
-                chances.append(self.category_limits["cheap"]["max"])
-            else:
-                chances.append(self.category_limits[cat]["min"])
+        best_chances = []
+        best_ev = 0.0
 
-        for _ in range(30):
+        for _ in range(50): # Увеличили количество итераций до 50
             chances = self._compute_initial_chances(available_items)
             target_ev = case_price * self.target_rtp
             
             chances, ev = self._greedy_adjust(prices, chances, categories, target_ev)
+            best_chances, best_ev = chances, ev
             
             current_fee = (case_price - ev) / case_price * 100
             tolerance = self.base_fee * (self.fee_tolerance / 100)
@@ -181,50 +178,56 @@ class ChanceService:
             if self.base_fee - tolerance <= current_fee <= self.base_fee + tolerance:
                 return chances, ev, case_price
             
-            # 4. Если не попали, корректируем цену кейса
+            # Если не попали, корректируем цену кейса
             price_min = ev / (1 - (self.base_fee + self.fee_tolerance) / 100)
             price_max = ev / (1 - (self.base_fee - self.fee_tolerance) / 100)
             avg_price = (price_min + price_max) / 2
-            # Округление до 2 знаков в большую сторону для TON
             case_price = math.ceil(avg_price * 100) / 100
 
-        return chances, ev, case_price
+        return best_chances, best_ev, case_price
 
     def _compute_initial_chances(self, available_items: List[Dict]) -> List[float]:
-        """Первичное распределение по весам категорий с учетом цены внутри категории"""
+        """Первичное распределение на основе весов категорий"""
         categories = [it["category"] for it in available_items]
-        prices = [it["price"] for it in available_items]
         
-        cheap_indices = [i for i, c in enumerate(categories) if c == "cheap"]
-        remaining_indices = [i for i in range(len(categories)) if i not in cheap_indices]
+        # Считаем суммарный вес
+        total_weight = sum(self.category_limits[cat]["weight"] for cat in categories) or 1.0
         
-        p = [0.0] * len(categories)
-        
-        # 1. Распределяем для дешевых (инвертированная пропорция цене)
-        if cheap_indices:
-            cheap_total_target = self.category_limits["cheap"]["max"]
-            # Чем выше цена, тем меньше вес внутри категории
-            cheap_prices = [prices[i] for i in cheap_indices]
-            max_cp = max(cheap_prices) + 0.1
-            inv_prices = [max_cp - pr for pr in cheap_prices]
-            sum_inv = sum(inv_prices) or 1.0
+        p = []
+        for cat in categories:
+            # Начальный шанс пропорционален весу категории
+            base_share = self.category_limits[cat]["weight"] / total_weight
+            # Ограничиваем лимитами категории
+            clamped = max(self.category_limits[cat]["min"], min(base_share, self.category_limits[cat]["max"]))
+            p.append(clamped)
             
-            for idx, inv_p in zip(cheap_indices, inv_prices):
-                p[idx] = (inv_p / sum_inv) * cheap_total_target
+        # Нормализация к 1.0 с сохранением лимитов
+        return self._normalize_with_limits(p, categories)
 
-        # 2. Распределяем для остальных
-        if remaining_indices:
-            remaining_total = 1.0 - sum(p)
-            weight_sum = sum(self.category_limits[categories[i]]["weight"] for i in remaining_indices) or 1.0
-            
-            for idx in remaining_indices:
-                cat = categories[idx]
-                # Базовый вес категории
-                base_share = (self.category_limits[cat]["weight"] / weight_sum) * remaining_total
-                p[idx] = max(self.category_limits[cat]["min"], min(base_share, self.category_limits[cat]["max"]))
-            
-        total = sum(p)
-        return [x / total for x in p]
+    def _normalize_with_limits(self, chances: List[float], categories: List[str]) -> List[float]:
+        """Нормализация суммы шансов к 1.0 с учетом min/max лимитов"""
+        p = chances[:]
+        for _ in range(10): # Максимум 10 проходов для стабилизации
+            current_sum = sum(p)
+            if abs(current_sum - 1.0) < 1e-6:
+                break
+                
+            diff = 1.0 - current_sum
+            # Распределяем разницу между всеми элементами пропорционально их "свободному месту"
+            if diff > 0:
+                # Нужно увеличить
+                total_room = sum(self.category_limits[categories[i]]["max"] - p[i] for i in range(len(p))) or 1.0
+                for i in range(len(p)):
+                    room = self.category_limits[categories[i]]["max"] - p[i]
+                    p[i] += diff * (room / total_room)
+            else:
+                # Нужно уменьшить
+                total_room = sum(p[i] - self.category_limits[categories[i]]["min"] for i in range(len(p))) or 1.0
+                for i in range(len(p)):
+                    room = p[i] - self.category_limits[categories[i]]["min"]
+                    p[i] += diff * (room / total_room)
+        
+        return p
 
     def _greedy_adjust(
         self, 
@@ -233,51 +236,78 @@ class ChanceService:
         categories: List[str], 
         target_ev: float,
         max_iter: int = 100,
-        eps: float = 1e-9
+        eps: float = 1e-7
     ) -> Tuple[List[float], float]:
         """Жадная подстройка шансов для достижения целевого EV"""
         p = chances[:]
         n = len(p)
-        ev = sum(prices[i] * p[i] for i in range(n))
-        
-        # Сортируем индексы по цене
-        asc = sorted(range(n), key=lambda i: prices[i])
-        desc = asc[::-1]
         
         for _ in range(max_iter):
+            ev = sum(prices[i] * p[i] for i in range(n))
             if abs(ev - target_ev) <= eps:
                 break
                 
-            for i in asc:
-                if categories[i] == "cheap": continue
+            # Если EV слишком большой, нужно переливать из дорогих в дешевые
+            # Если EV слишком маленький, нужно переливать из дешевых в дорогие
+            is_too_high = ev > target_ev
+            
+            # Сортируем для переливания
+            # asc: дешевые -> дорогие, desc: дорогие -> дешевые
+            asc = sorted(range(n), key=lambda i: prices[i])
+            desc = asc[::-1]
+            
+            moved = False
+            if is_too_high:
+                # Нужно уменьшить EV: забираем у дорогих (j), отдаем дешевым (i)
                 for j in desc:
-                    if i == j or categories[j] == "cheap": continue
-                    if prices[j] <= prices[i]: continue
-                    
-                    room_i = self.category_limits[categories[i]]["max"] - p[i]
                     avail_j = p[j] - self.category_limits[categories[j]]["min"]
+                    if avail_j <= eps: continue
                     
-                    if room_i <= eps or avail_j <= eps: continue
-                    
-                    need = (ev - target_ev) / (prices[j] - prices[i])
-                    delta = min(room_i, avail_j, abs(need), 0.05)
-                    
-                    if ev > target_ev:
-                        p[i] += delta
+                    for i in asc:
+                        if i == j: continue
+                        room_i = self.category_limits[categories[i]]["max"] - p[i]
+                        if room_i <= eps: continue
+                        
+                        price_diff = prices[j] - prices[i]
+                        if price_diff <= eps: continue
+                        
+                        need = (ev - target_ev) / price_diff
+                        delta = min(avail_j, room_i, need, 0.02) # Ограничиваем шаг для плавности
+                        
                         p[j] -= delta
-                        ev -= delta * (prices[j] - prices[i])
-                    else:
+                        p[i] += delta
+                        ev -= delta * price_diff
+                        moved = True
+                        if ev <= target_ev: break
+                    if ev <= target_ev: break
+            else:
+                # Нужно увеличить EV: забираем у дешевых (i), отдаем дорогим (j)
+                for i in asc:
+                    avail_i = p[i] - self.category_limits[categories[i]]["min"]
+                    if avail_i <= eps: continue
+                    
+                    for j in desc:
+                        if i == j: continue
+                        room_j = self.category_limits[categories[j]]["max"] - p[j]
+                        if room_j <= eps: continue
+                        
+                        price_diff = prices[j] - prices[i]
+                        if price_diff <= eps: continue
+                        
+                        need = (target_ev - ev) / price_diff
+                        delta = min(avail_i, room_j, need, 0.02)
+                        
                         p[i] -= delta
                         p[j] += delta
-                        ev += delta * (prices[j] - prices[i])
+                        ev += delta * price_diff
+                        moved = True
+                        if ev >= target_ev: break
+                    if ev >= target_ev: break
             
-            # Clamp
-            for k in range(n):
-                cat = categories[k]
-                p[k] = max(self.category_limits[cat]["min"], min(p[k], self.category_limits[cat]["max"]))
-        
-        total = sum(p)
-        return [x / total for x in p], sum(prices[i] * (p[i]/total) for i in range(n))
+            if not moved: break
+            
+        final_ev = sum(prices[i] * p[i] for i in range(n))
+        return p, final_ev
 
     async def _update_case_price_only(self, db: AsyncSession, case_obj: Case):
         """
