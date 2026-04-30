@@ -268,8 +268,12 @@ class CaseService:
         Периодическая проверка неактивных кейсов. 
         Если стикеры появились — включаем кейс обратно.
         """
-        # Добавляем selectinload, чтобы избежать lazy loading ошибки
-        stmt = select(Case).options(selectinload(Case.items)).where(Case.is_active == False)
+        # Добавляем selectinload для айтемов и их каталогов, чтобы избежать lazy loading ошибки
+        stmt = (
+            select(Case)
+            .options(selectinload(Case.items).selectinload(CaseItem.sticker_catalog))
+            .where(Case.is_active == False)
+        )
         result = await db.execute(stmt)
         inactive_cases = result.scalars().all()
         

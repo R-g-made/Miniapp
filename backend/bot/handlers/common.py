@@ -19,15 +19,18 @@ async def cmd_start(message: types.Message):
     """
     builder = InlineKeyboardBuilder()
     
-    builder.row(types.InlineKeyboardButton(
-        text="Open Stickerloot", 
-        web_app=types.WebAppInfo(url=settings.MINI_APP_URL)
-    ))
+    # Добавляем кнопки только если URL валидны
+    if settings.MINI_APP_URL and settings.MINI_APP_URL.startswith("https://"):
+        builder.row(types.InlineKeyboardButton(
+            text="Open Stickerloot", 
+            web_app=types.WebAppInfo(url=settings.MINI_APP_URL)
+        ))
     
-    builder.row(types.InlineKeyboardButton(
-        text="Join the Community", 
-        url=settings.BOT_COMMUNITY_URL
-    ))
+    if settings.BOT_COMMUNITY_URL and settings.BOT_COMMUNITY_URL.startswith("https://"):
+        builder.row(types.InlineKeyboardButton(
+            text="Join the Community", 
+            url=settings.BOT_COMMUNITY_URL
+        ))
 
     caption = "Welcome to Stickerloot! Open box and collect unique stickers in our mini-app. Start Now!"
     

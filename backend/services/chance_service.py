@@ -118,12 +118,23 @@ class ChanceService:
             available_items, current_case_price
         )
 
-        # Округление шансов до 4 знаков (соответствует 2 знакам после запятой в процентах).
-        # Чтобы сумма была ровно 1.0, корректируем последний элемент.
+        # Округление шансов до 4 знаков.
+        # Чтобы сумма была ровно 1.0, корректируем элемент с самым большим шансом.
         rounded_chances = [round(c, 4) for c in best_chances]
         if rounded_chances:
             diff = 1.0 - sum(rounded_chances)
-            rounded_chances[-1] = round(rounded_chances[-1] + diff, 4)
+            # Находим индекс максимального шанса для корректировки
+            max_idx = rounded_chances.index(max(rounded_chances))
+            rounded_chances[max_idx] = round(rounded_chances[max_idx] + diff, 4)
+            
+            # Финальная проверка на отрицательные значения (на всякий случай)
+            for i in range(len(rounded_chances)):
+                if rounded_chances[i] < 0: rounded_chances[i] = 0.0
+            
+            # Повторная нормализация если были отрицательные
+            final_sum = sum(rounded_chances)
+            if final_sum > 0:
+                rounded_chances = [c / final_sum for c in rounded_chances]
 
         for it, chance in zip(available_items, rounded_chances):
             it["item_obj"].chance = chance
@@ -206,26 +217,36 @@ class ChanceService:
 
     def _normalize_with_limits(self, chances: List[float], categories: List[str]) -> List[float]:
         """Нормализация суммы шансов к 1.0 с учетом min/max лимитов"""
-        p = chances[:]
-        for _ in range(10): # Максимум 10 проходов для стабилизации
+        p = [max(self.category_limits[categories[i]]["min"], min(chances[i], self.category_limits[categories[i]]["max"])) for i in range(len(chances))]
+        
+        for _ in range(20): # Увеличили количество проходов
             current_sum = sum(p)
-            if abs(current_sum - 1.0) < 1e-6:
+            if abs(current_sum - 1.0) < 1e-7:
                 break
                 
             diff = 1.0 - current_sum
-            # Распределяем разницу между всеми элементами пропорционально их "свободному месту"
             if diff > 0:
-                # Нужно увеличить
-                total_room = sum(self.category_limits[categories[i]]["max"] - p[i] for i in range(len(p))) or 1.0
-                for i in range(len(p)):
+                # Нужно увеличить: распределяем среди тех, у кого p < max
+                room_indices = [i for i in range(len(p)) if p[i] < self.category_limits[categories[i]]["max"]]
+                if not room_indices: break
+                total_room = sum(self.category_limits[categories[i]]["max"] - p[i] for i in room_indices)
+                if total_room <= 0: break
+                for i in room_indices:
                     room = self.category_limits[categories[i]]["max"] - p[i]
                     p[i] += diff * (room / total_room)
             else:
-                # Нужно уменьшить
-                total_room = sum(p[i] - self.category_limits[categories[i]]["min"] for i in range(len(p))) or 1.0
-                for i in range(len(p)):
+                # Нужно уменьшить: распределяем среди тех, у кого p > min
+                room_indices = [i for i in range(len(p)) if p[i] > self.category_limits[categories[i]]["min"]]
+                if not room_indices: break
+                total_room = sum(p[i] - self.category_limits[categories[i]]["min"] for i in room_indices)
+                if total_room <= 0: break
+                for i in room_indices:
                     room = p[i] - self.category_limits[categories[i]]["min"]
                     p[i] += diff * (room / total_room)
+            
+            # Принудительно ограничиваем после каждого шага
+            for i in range(len(p)):
+                p[i] = max(self.category_limits[categories[i]]["min"], min(p[i], self.category_limits[categories[i]]["max"]))
         
         return p
 
