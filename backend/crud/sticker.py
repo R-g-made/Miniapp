@@ -72,35 +72,25 @@ class StickerRepository(BaseRepository[UserSticker]):
     async def count_available_in_pool(self, db: AsyncSession, catalog_id: UUID) -> int:
         """
         Считает количество доступных стикеров в пуле для конкретного каталога.
+        В таблице sticker_pool поле называется catalog_id.
         """
-        # Принудительно приводим к UUID если пришла строка
+        # Принудительно приводим к UUID для чистоты поиска
         if isinstance(catalog_id, str):
             try:
                 catalog_id = UUID(catalog_id)
             except:
                 pass
 
-        # Сначала посчитаем вообще все стикеры этого каталога для отладки
-        from loguru import logger
-        
-        # Пробуем найти через UUID объект
-        total_stmt = select(func.count(UserSticker.id)).where(UserSticker.catalog_id == catalog_id)
-        total_in_db = await db.scalar(total_stmt) or 0
-        
-        # Если не нашли, и мы на SQLite, попробуем через строку (на всякий случай)
-        if total_in_db == 0:
-            total_stmt_str = select(func.count(UserSticker.id)).where(UserSticker.catalog_id == str(catalog_id))
-            total_in_db = await db.scalar(total_stmt_str) or 0
-
+        # Поиск доступных (is_available=True, owner_id=None)
+        # Пробуем по UUID
         query = select(func.count(UserSticker.id)).where(
             UserSticker.catalog_id == catalog_id,
             UserSticker.owner_id == None,
             UserSticker.is_available == True
         )
-        result = await db.execute(query)
-        available = result.scalar() or 0
+        available = await db.scalar(query) or 0
         
-        # Если по UUID не нашли, пробуем по строке
+        # Fallback для SQLite/строковых ID
         if available == 0:
             query_str = select(func.count(UserSticker.id)).where(
                 UserSticker.catalog_id == str(catalog_id),
@@ -108,16 +98,6 @@ class StickerRepository(BaseRepository[UserSticker]):
                 UserSticker.is_available == True
             )
             available = await db.scalar(query_str) or 0
-
-        if total_in_db > 0 and available == 0:
-            # Ищем причину: может они все заняты или неактивны?
-            owned_stmt = select(func.count(UserSticker.id)).where(UserSticker.catalog_id == catalog_id, UserSticker.owner_id != None)
-            owned_count = await db.scalar(owned_stmt) or 0
-            
-            archived_stmt = select(func.count(UserSticker.id)).where(UserSticker.catalog_id == catalog_id, UserSticker.is_available == False)
-            archived_count = await db.scalar(archived_stmt) or 0
-            
-            logger.warning(f"StickerCRUD: Catalog {catalog_id} has {total_in_db} stickers, but 0 available! Owned: {owned_count}, Archived: {archived_count}")
             
         return available
 

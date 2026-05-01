@@ -59,34 +59,42 @@ class CaseService:
         price = case_obj.price_ton if currency == Currency.TON else case_obj.price_stars
         logger.info(f"CaseService: Case price: {price} {currency.value}")
         
-        # Сначала проверяем, что все ок и выбранный стикер есть в пуле!
+        # Сначала проверяем наличие каждого айтема в пуле и формируем веса
         items = case_obj.items
-        weights = [item.chance for item in items]
+        weights = []
+        has_missing_items = False
+        
+        for item in items:
+            cat_id = UUID(str(item.sticker_catalog_id))
+            count = await crud_sticker.count_available_in_pool(db, cat_id)
+            if count > 0:
+                weights.append(item.chance)
+            else:
+                has_missing_items = True
+                # Если стикера нет в пуле — шанс 0 для этого открытия (только если distribution включено)
+                weights.append(0.0)
+        
+        # ЖЕСТКАЯ ПРОВЕРКА: Если распределение выключено и чего-то не хватает — кейс не работает
+        if not case_obj.is_chance_distribution and has_missing_items:
+            logger.warning(f"CaseService: Case '{case_slug}' missing items with Dist: OFF. Deactivating.")
+            await self._handle_case_stock_change(db, case_obj.id)
+            raise InvalidOperation(f"Case {case_slug} is temporarily unavailable (out of stock)")
+
+        if sum(weights) <= 0:
+            logger.error(f"CaseService: No available stickers in pool for any item in case {case_slug}")
+            await self._handle_case_stock_change(db, case_obj.id)
+            raise InvalidOperation(f"Case {case_slug} is temporarily unavailable (out of stock)")
+
         selected_catalog_item: CaseItem = random.choices(items, weights=weights, k=1)[0]
         catalog_id = UUID(str(selected_catalog_item.sticker_catalog_id))
         logger.info(f"CaseService: Selected catalog item: {catalog_id}")
         
-        won_sticker = await crud_sticker.get_random_from_pool(db, catalog_id)#Переделать логику сейчас ок,но при больших объмах будет медленее
+        won_sticker = await crud_sticker.get_random_from_pool(db, catalog_id)
         
         if not won_sticker:
-            logger.error(f"CaseService: No available stickers in pool for catalog {catalog_id}")
-            await self._handle_case_stock_change(db, case_obj.id)
-            
-            # # Сразу деактивируем кейс, если выбранный стикер закончился!
-            # case_obj.is_active = False
-            # db.add(case_obj)
-            # await db.commit()
-            
-            # # WS broadcast for case deactivation
-            # await manager.broadcast(WSEventMessage(
-            #     type=WSMessageType.CASE_STATUS_UPDATE,
-            #     data={
-            #         "case_slug": case_slug,
-            #         "is_active": False
-            #     }
-            # ))
-            
-            raise InvalidOperation(f"Case {case_slug} is temporarily unavailable (out of stock)")
+            # Сюда мы попадаем только в случае race condition (кто-то купил стикер между нашей проверкой и попыткой забрать)
+            logger.error(f"CaseService: Race condition! No available stickers in pool for catalog {catalog_id} after check.")
+            raise InvalidOperation(f"Case {case_slug} is temporarily unavailable (item just sold out)")
         
         # Только теперь, когда мы уверены, что стикер есть — списываем деньги!
         try:
@@ -241,15 +249,17 @@ class CaseService:
             # Считаем общее количество доступных стикеров в кейсе
             total_available = 0
             for item in case_obj.items:
-                total_available += await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
+                total_available += await crud_sticker.count_available_in_pool(db, UUID(str(item.sticker_catalog_id)))
 
+            # ЖЕСТКАЯ ПРОВЕРКА:
+            # Если distribution=True -> кейс живет пока есть хоть один стикер
+            # Если distribution=False -> кейс умирает если нет хотя бы одного типа стикера
             if case_obj.is_chance_distribution and total_available > 0:
-                # Если включено распределение и есть хоть что-то — просто пересчитываем шансы
                 logger.info(f"CaseService: Item(s) {empty_item_names} empty in case {case_obj.slug}. Redistributing chances.")
                 await chance_service.recalculate_case_chances(db, case_obj.id)
             else:
-                # Если распределение выключено ИЛИ вообще нет стикеров — отключаем кейс
-                reason = "All items empty" if total_available <= 0 else f"Item(s) {empty_item_names} empty"
+                # Отключаем кейс
+                reason = "All items empty" if total_available <= 0 else f"Item(s) {empty_item_names} empty (Dist: OFF)"
                 logger.warning(f"CaseService: {reason} in case {case_obj.slug}. Deactivating case.")
                 case_obj.is_active = False
                 db.add(case_obj)
@@ -310,7 +320,7 @@ class CaseService:
                         should_activate = len(available_types) > 0
                         condition_msg = "Dist: ON"
                     else:
-                        # Если выключено — нужны ВСЕ типы стикеров
+                        # Если выключено — нужны ВСЕ типы стикеров (жесткая проверка)
                         should_activate = len(missing_types) == 0 and len(case_obj.items) > 0
                         condition_msg = "Dist: OFF"
                     
