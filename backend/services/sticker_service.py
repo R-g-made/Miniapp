@@ -73,6 +73,10 @@ class StickerService:
                         continue
                         
                     catalog_ids = mapping_dict.get((coll_id, char_id)) or []
+                    if not catalog_ids:
+                        logger.warning(f"StickerService: Found sticker in Thermos ({coll_id}:{char_id}) but NO mapping exists in DB!")
+                        continue
+                    
                     for catalog_id in catalog_ids:
                         if catalog_id in catalog_items:
                             thermos_to_sync.append({
@@ -86,17 +90,18 @@ class StickerService:
                     target_catalog_ids = list(set(s["catalog_id"] for s in thermos_to_sync))
                     stmt_existing = select(UserSticker).where(UserSticker.catalog_id.in_(target_catalog_ids))
                     res_existing = await db.execute(stmt_existing)
-                    # Кэшируем существующие в словарь для быстрого поиска: (catalog_id, number) -> sticker
-                    existing_map = {(s.catalog_id, s.number): s for s in res_existing.scalars().all()}
+                    # Кэшируем существующие в словарь для быстрого поиска: (catalog_id_str, number) -> sticker
+                    existing_map = {(str(s.catalog_id), s.number): s for s in res_existing.scalars().all()}
 
                     for item in thermos_to_sync:
                         cat_id = item["catalog_id"]
+                        cat_id_str = str(cat_id)
                         inst = item["instance"]
                         
                         # Помечаем как увиденный
-                        seen_thermos_identifiers.add((str(cat_id), inst))
+                        seen_thermos_identifiers.add((cat_id_str, inst))
                         
-                        existing = existing_map.get((cat_id, inst))
+                        existing = existing_map.get((cat_id_str, inst))
                         
                         if existing:
                             if not existing.is_available:

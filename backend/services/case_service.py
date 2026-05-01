@@ -228,10 +228,14 @@ class CaseService:
         empty_item_names = []
         
         for item in case_obj.items:
-            count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
+            # Принудительно приводим к UUID для надежности сравнения
+            cat_id = UUID(str(item.sticker_catalog_id))
+            count = await crud_sticker.count_available_in_pool(db, cat_id)
             if count <= 0:
                 has_empty_items = True
                 empty_item_names.append(item.sticker_catalog.name)
+            else:
+                logger.debug(f"CaseService: Item '{item.sticker_catalog.name}' has {count} stickers in pool")
 
         if has_empty_items:
             # Считаем общее количество доступных стикеров в кейсе
@@ -291,21 +295,29 @@ class CaseService:
                     missing_types = []
                     
                     for item in case_obj.items:
-                        count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
+                        # Принудительно приводим к UUID для надежности сравнения
+                        cat_id = UUID(str(item.sticker_catalog_id))
+                        count = await crud_sticker.count_available_in_pool(db, cat_id)
                         if count > 0:
                             available_types.append(f"{item.sticker_catalog.name} ({count} шт.)")
                         else:
                             missing_types.append(item.sticker_catalog.name)
+                            logger.debug(f"CaseService: Item '{item.sticker_catalog.name}' ({cat_id}) is MISSING from pool")
                     
                     # Логика активации
                     if case_obj.is_chance_distribution:
+                        # Если распределение включено — достаточно хотя бы одного типа стикера
                         should_activate = len(available_types) > 0
-                        condition_msg = "Distribution ON: At least one item required."
+                        condition_msg = "Dist: ON"
                     else:
+                        # Если выключено — нужны ВСЕ типы стикеров
                         should_activate = len(missing_types) == 0 and len(case_obj.items) > 0
-                        condition_msg = "Distribution OFF: ALL items required."
+                        condition_msg = "Dist: OFF"
                     
-                    logger.info(f"CaseService: Checking '{case_obj.name}' | {condition_msg} | Found: {len(available_types)}, Missing: {len(missing_types)}")
+                    # Более детальный лог с перечислением имен
+                    found_str = ", ".join(available_types) if available_types else "None"
+                    missing_str = ", ".join(missing_types) if missing_types else "None"
+                    logger.info(f"CaseService: '{case_obj.name}' [{condition_msg}] | Found: {len(available_types)} ({found_str}) | Missing: {missing_str}")
 
                     if should_activate:
                         logger.success(f"CaseService: RE-ACTIVATING case '{case_obj.name}' ({case_obj.slug})")

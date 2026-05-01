@@ -73,11 +73,25 @@ class StickerRepository(BaseRepository[UserSticker]):
         """
         Считает количество доступных стикеров в пуле для конкретного каталога.
         """
+        # Принудительно приводим к UUID если пришла строка
+        if isinstance(catalog_id, str):
+            try:
+                catalog_id = UUID(catalog_id)
+            except:
+                pass
+
         # Сначала посчитаем вообще все стикеры этого каталога для отладки
         from loguru import logger
+        
+        # Пробуем найти через UUID объект
         total_stmt = select(func.count(UserSticker.id)).where(UserSticker.catalog_id == catalog_id)
         total_in_db = await db.scalar(total_stmt) or 0
         
+        # Если не нашли, и мы на SQLite, попробуем через строку (на всякий случай)
+        if total_in_db == 0:
+            total_stmt_str = select(func.count(UserSticker.id)).where(UserSticker.catalog_id == str(catalog_id))
+            total_in_db = await db.scalar(total_stmt_str) or 0
+
         query = select(func.count(UserSticker.id)).where(
             UserSticker.catalog_id == catalog_id,
             UserSticker.owner_id == None,
@@ -86,8 +100,24 @@ class StickerRepository(BaseRepository[UserSticker]):
         result = await db.execute(query)
         available = result.scalar() or 0
         
+        # Если по UUID не нашли, пробуем по строке
+        if available == 0:
+            query_str = select(func.count(UserSticker.id)).where(
+                UserSticker.catalog_id == str(catalog_id),
+                UserSticker.owner_id == None,
+                UserSticker.is_available == True
+            )
+            available = await db.scalar(query_str) or 0
+
         if total_in_db > 0 and available == 0:
-            logger.warning(f"StickerCRUD: Catalog {catalog_id} has {total_in_db} total stickers, but 0 are available (archived or owned)!")
+            # Ищем причину: может они все заняты или неактивны?
+            owned_stmt = select(func.count(UserSticker.id)).where(UserSticker.catalog_id == catalog_id, UserSticker.owner_id != None)
+            owned_count = await db.scalar(owned_stmt) or 0
+            
+            archived_stmt = select(func.count(UserSticker.id)).where(UserSticker.catalog_id == catalog_id, UserSticker.is_available == False)
+            archived_count = await db.scalar(archived_stmt) or 0
+            
+            logger.warning(f"StickerCRUD: Catalog {catalog_id} has {total_in_db} stickers, but 0 available! Owned: {owned_count}, Archived: {archived_count}")
             
         return available
 
