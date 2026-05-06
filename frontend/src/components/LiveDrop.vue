@@ -123,6 +123,7 @@ export default {
   gap: 14px;
   padding-right: 20px;
   position: relative;
+  min-height: 84.7px; /* Гарантируем высоту контейнера */
 }
 
 /* Анимации для TransitionGroup */
@@ -157,9 +158,11 @@ export default {
 }
 
 .drop-card {
-  flex-shrink: 0;
+  flex: 0 0 84.7px; /* flex-grow 0, flex-shrink 0, flex-basis 84.7px */
   width: 84.7px;
   height: 84.7px;
+  min-width: 84.7px;
+  min-height: 84.7px;
   background-color: #202020; /* Изменен на 202020 */
   border-radius: 29px; /* Закругление 29 */
   display: flex;

@@ -48,7 +48,7 @@ export default {
 <style scoped>
 .notification-container {
   position: fixed;
-  top: 20px;
+  top: calc(20px + var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 20px))));
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 40px);
