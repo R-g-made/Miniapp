@@ -335,9 +335,8 @@ export default {
         const errorDetail = e.response?.data?.detail || "";
         if (errorDetail.includes("unavailable") || errorDetail.includes("stock") || errorDetail.includes("active")) {
           router.push('/');
-        } else {
-          notificationStore.addNotification(errorDetail || "Ошибка открытия кейса", 'error');
         }
+        // notificationStore.error(), так как axios interceptor уже показал уведомление
       }
     };
 
@@ -411,7 +410,8 @@ export default {
           router.push('/');
         }
       } catch (e) {
-        notificationStore.addNotification(e.response?.data?.detail || "Ошибка продажи", 'error');
+        // Убрали вызов notificationStore.error(), так как axios interceptor уже показал уведомление
+        console.error("Sell sticker failed", e);
       }
     };
 

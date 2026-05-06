@@ -194,9 +194,8 @@ export default {
         const errorDetail = e.response?.data?.detail;
         if (errorDetail && errorDetail.includes("Wallet not connected")) {
           connectWallet();
-        } else if (errorDetail) {
-          notificationStore.error('Withdrawal failed', errorDetail);
         }
+        // Убрали else if с notificationStore.error(), так как axios interceptor уже показал уведомление
         
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
       }
@@ -546,7 +545,7 @@ export default {
   width: 100%;
   background: #232323;
   border-radius: 30px; /* Закругление 30 */
-  padding: 20px;
+  padding: 16px 20px; /* Немного уменьшен вертикальный паддинг */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -554,6 +553,7 @@ export default {
   cursor: pointer;
   transition: transform 0.1s ease; /* Добавляем транзишн для анимации */
   gap: 12px;
+  overflow: hidden;
 }
 
 .link-box:active {
@@ -561,12 +561,12 @@ export default {
 }
 
 .link-text {
-  font-size: 19px;
+  font-size: 16px; /* Уменьшен размер шрифта, чтобы влезала ссылка */
   font-weight: 500;
   color: #FFFFFF;
   white-space: pre-wrap;
-  word-break: break-all;
-  line-height: 1.2;
+  word-break: break-word;
+  line-height: 1.3;
   flex: 1;
   min-width: 0;
 }

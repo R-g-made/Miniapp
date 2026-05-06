@@ -239,7 +239,8 @@ export default {
         // Обновляем баланс в сторе
         authStore.updateBalance(response.data.new_balance, currency);
       } catch (e) {
-        notificationStore.addNotification(e.response?.data?.detail || "Ошибка открытия", 'error');
+        // Убрали вызов notificationStore.error(), так как axios interceptor уже показал уведомление
+        console.error("Open case failed", e);
       } finally {
         isOpening.value = false;
       }
