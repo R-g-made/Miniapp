@@ -61,23 +61,6 @@ class CaseRepository(BaseRepository[Case]):
             selectinload(Case.items).selectinload(CaseItem.sticker_catalog)
         )
         result = await db.execute(query)
-        case_obj = result.scalars().first()
-        
-        if case_obj and case_obj.is_chance_distribution:
-            # Для кейсов с распределением шансов фильтруем айтемы, которых нет в пуле
-            from backend.crud.sticker import sticker as crud_sticker
-            from uuid import UUID
-            
-            filtered_items = []
-            for item in case_obj.items:
-                cat_id = UUID(str(item.sticker_catalog_id))
-                count = await crud_sticker.count_available_in_pool(db, cat_id)
-                if count > 0:
-                    filtered_items.append(item)
-            
-            # Подменяем список айтемов в объекте (SQLAlchemy это позволяет для отдачи)
-            case_obj.items = filtered_items
-            
-        return case_obj
+        return result.scalars().first()
 
 case = CaseRepository(Case)

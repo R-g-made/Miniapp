@@ -48,10 +48,21 @@ async def get_case(slug: str, db = Depends(deps.get_db)):
         logger.warning(f"API: Case not found with slug: {slug}")
         raise EntityNotFound("Case not found")
     
-    return( CaseResponseBuilder()
-    .with_case(case)
-    .build_single()
-    )
+    # Конвертируем ORM объект в Pydantic схему, чтобы безопасно модифицировать данные для фронта
+    from backend.schemas.case import CaseRead
+    case_data = CaseRead.model_validate(case, from_attributes=True)
+    
+    if case.is_chance_distribution:
+        from backend.crud.sticker import sticker as crud_sticker
+        filtered_items = []
+        for item in case_data.items:
+            # item.sticker_catalog_id уже лежит в Pydantic схеме (у нас это sticker_id по алиасу, либо берем из ORM)
+            count = await crud_sticker.count_available_in_pool(db, item.sticker_id)
+            if count > 0:
+                filtered_items.append(item)
+        case_data.items = filtered_items
+    
+    return CaseResponse(data=case_data)
 
 
 @router.post("/{slug}/open", response_model=CaseOpenResponse)
