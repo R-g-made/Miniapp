@@ -102,7 +102,7 @@ body {
 .app-container {
   display: flex;
   flex-direction: column;
-  padding: calc(45px + env(safe-area-inset-top)) 0 100px 0;
+  padding: calc(15px + var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 45px)))) 0 100px 0;
   gap: 10px; /* Гэп 10px */
 }
 

@@ -56,12 +56,14 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../store/auth';
+import { useNotificationStore } from '../store/notification';
 
 export default {
   name: 'ProfileView',
   setup() {
     const router = useRouter();
     const authStore = useAuthStore();
+    const notificationStore = useNotificationStore();
     
     const currentLang = ref('en');
 
@@ -90,7 +92,13 @@ export default {
     });
 
     const toggleLanguage = () => {
-      currentLang.value = currentLang.value === 'en' ? 'ru' : 'en';
+      if (currentLang.value === 'en') {
+        currentLang.value = 'ru';
+        notificationStore.addNotification('Language change will be available later', 'info');
+        setTimeout(() => {
+          currentLang.value = 'en';
+        }, 300);
+      }
     };
 
     const openSupport = () => {

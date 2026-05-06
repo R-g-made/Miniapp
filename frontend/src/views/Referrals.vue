@@ -553,6 +553,7 @@ export default {
   box-sizing: border-box;
   cursor: pointer;
   transition: transform 0.1s ease; /* Добавляем транзишн для анимации */
+  gap: 12px;
 }
 
 .link-box:active {
@@ -563,11 +564,15 @@ export default {
   font-size: 19px;
   font-weight: 500;
   color: #FFFFFF;
-  white-space: pre-line;
+  white-space: pre-wrap;
+  word-break: break-all;
   line-height: 1.2;
+  flex: 1;
+  min-width: 0;
 }
 
 .copy-icon {
+  flex-shrink: 0;
   width: 24.64px;
   height: 27.37px;
   object-fit: contain;

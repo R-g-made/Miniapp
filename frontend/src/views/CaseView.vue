@@ -168,7 +168,7 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import api from '../api/client';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
