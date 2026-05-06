@@ -169,12 +169,12 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { useAppStore } from '../store/app';
-import { useAuthStore } from '../store/auth';
-import { storeToRefs } from 'pinia';
 import api from '../api/client';
+import { useAuthStore } from '../store/auth';
+import { useAppStore } from '../store/app';
+import { useNotificationStore } from '../store/notification';
+import { storeToRefs } from 'pinia';
 import LiveDrop from '../components/LiveDrop.vue';
-import lottie from 'lottie-web';
 
 export default {
   name: 'CaseView',
@@ -183,8 +183,10 @@ export default {
   },
   setup() {
     const route = useRoute();
+    const router = useRouter();
     const appStore = useAppStore();
     const authStore = useAuthStore();
+    const notificationStore = useNotificationStore();
     const { activeCurrency } = storeToRefs(appStore);
     
     const currentCase = ref(null);
@@ -197,6 +199,7 @@ export default {
     const winningItem = ref(null);
     const transitionTime = ref(0);
     const displayItems = ref([]);
+    const isDemoSpinMode = ref(false);
     
     const step = 190; 
     const initialOffset = -95;
@@ -209,7 +212,8 @@ export default {
         const val = item.price_ton || item.floor_price_ton || '0';
         return parseFloat(val).toFixed(2);
       }
-      return item.price_stars || item.floor_price_stars || '0';
+      const val = item.price_stars || item.floor_price_stars || '0';
+      return Math.round(parseFloat(val)).toString();
     };
 
     const formatChance = (chance) => {
@@ -285,6 +289,7 @@ export default {
     const startRealSpin = async () => {
       if (isSpinning.value || isAwaitingResult.value) return;
       
+      isDemoSpinMode.value = false;
       isAwaitingResult.value = true;
       try {
         // 1. Сначала запрос на бэк
@@ -331,7 +336,7 @@ export default {
         if (errorDetail.includes("unavailable") || errorDetail.includes("stock") || errorDetail.includes("active")) {
           router.push('/');
         } else {
-          alert(errorDetail || "Ошибка открытия кейса");
+          notificationStore.addNotification(errorDetail || "Ошибка открытия кейса", 'error');
         }
       }
     };
@@ -386,6 +391,12 @@ export default {
 
     const sellWinningSticker = async () => {
       if (!winningItem.value) return;
+      
+      if (isDemoSpinMode.value) {
+        resetCase();
+        return;
+      }
+      
       try {
         const response = await api.sellSticker(winningItem.value.id, activeCurrency.value.toLowerCase());
         const newBalance = response.data.new_balance;
@@ -400,13 +411,14 @@ export default {
           router.push('/');
         }
       } catch (e) {
-        alert(e.response?.data?.detail || "Ошибка продажи");
+        notificationStore.addNotification(e.response?.data?.detail || "Ошибка продажи", 'error');
       }
     };
 
     const startDemoSpin = () => {
       if (isSpinning.value) return;
       
+      isDemoSpinMode.value = true;
       cancelAnimationFrame(idleAnimationFrame);
       isSpinning.value = true;
       isResultMode.value = false;

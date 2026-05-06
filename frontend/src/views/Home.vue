@@ -108,6 +108,7 @@ import { useRouter } from 'vue-router';
 import api from '../api/client';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
+import { useNotificationStore } from '../store/notification';
 import { storeToRefs } from 'pinia';
 import LiveDrop from '../components/LiveDrop.vue';
 
@@ -119,6 +120,7 @@ export default {
     const router = useRouter();
     const authStore = useAuthStore();
     const appStore = useAppStore();
+    const notificationStore = useNotificationStore();
 
     const activeCurrency = computed(() => appStore.activeCurrency);
 
@@ -159,9 +161,10 @@ export default {
 
     const formatPrice = (item) => {
       if (activeCurrency.value === 'STARS') {
-        return Math.floor(item.price_stars || (item.price_ton * 50)); // Мокаем курс 1 TON = 50 STARS
+        const val = item.price_stars || (item.price_ton * 50);
+        return Math.round(parseFloat(val)).toString();
       }
-      return item.price_ton;
+      return parseFloat(item.price_ton || 0).toFixed(2);
     };
 
     const buildGradient = (styles, key) => {
@@ -236,7 +239,7 @@ export default {
         // Обновляем баланс в сторе
         authStore.updateBalance(response.data.new_balance, currency);
       } catch (e) {
-        alert(e.response?.data?.detail || "Ошибка открытия");
+        notificationStore.addNotification(e.response?.data?.detail || "Ошибка открытия", 'error');
       } finally {
         isOpening.value = false;
       }

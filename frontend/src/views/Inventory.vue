@@ -249,9 +249,11 @@ export default {
     const formatPrice = (sticker) => {
       if (!sticker) return '0';
       if (activeCurrency.value === 'TON') {
-        return sticker.floor_price_ton || '0';
+        const val = sticker.floor_price_ton || 0;
+        return parseFloat(val).toFixed(2);
       }
-      return sticker.floor_price_stars || '0';
+      const val = sticker.floor_price_stars || 0;
+      return Math.round(parseFloat(val)).toString();
     };
 
     const fetchStickers = async () => {
