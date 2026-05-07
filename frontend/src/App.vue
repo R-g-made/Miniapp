@@ -67,6 +67,15 @@ export default {
     if (this.authStore.isLoggedIn) {
       wsService.connect();
     }
+    
+    // Запрашиваем полноэкранный режим
+    if (window.Telegram?.WebApp) {
+      if (window.Telegram.WebApp.requestFullscreen) {
+        window.Telegram.WebApp.requestFullscreen();
+      } else if (window.Telegram.WebApp.expand) {
+        window.Telegram.WebApp.expand();
+      }
+    }
   },
   unmounted() {
     wsService.disconnect();

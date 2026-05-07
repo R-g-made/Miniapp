@@ -136,17 +136,18 @@
                 <img src="@/assets/icons/arrow.svg" alt="Arrow" class="action-arrow">
               </div>
 
-              <!-- Withdraw to Issuer -->
+              <!-- Withdraw -->
               <div class="action-row" @click="transferSticker">
                 <img src="@/assets/icons/sort-icon.svg" alt="Sort" class="action-icon sort-icon">
                 <span class="action-text">Withdraw to</span>
-                <img 
-                  v-if="getIssuerIcon(selectedSticker.issuer_slug)" 
-                  :src="getIssuerIcon(selectedSticker.issuer_slug)" 
-                  alt="Issuer" 
-                  class="action-issuer-icon"
-                >
-                <span class="action-issuer-name">{{ getIssuerName(selectedSticker.issuer_slug) }}</span>
+                <template v-if="selectedSticker.is_onchain">
+                  <img src="@/assets/icons/ton.svg" alt="TON" class="action-issuer-icon">
+                  <span class="action-issuer-name">TON</span>
+                </template>
+                <template v-else>
+                  <img src="https://i.ibb.co/MDjJzGVC/Thermos.jpg" alt="Thermos" class="action-issuer-icon thermos-icon">
+                  <span class="action-issuer-name">Thermos</span>
+                </template>
                 <div class="spacer"></div>
                 <img src="@/assets/icons/arrow.svg" alt="Arrow" class="action-arrow">
               </div>
@@ -594,6 +595,7 @@ export default {
   display: flex;
   width: 100%;
   gap: 6px; /* 6 гэп */
+  margin-top: auto; /* Прижимает к низу карточки */
 }
 
 .price-pill {
@@ -799,8 +801,13 @@ export default {
 .action-issuer-icon {
   width: 24px; /* 24*24 иконка иссусиера */
   height: 24px;
-  border-radius: 50%;
+  object-fit: cover;
+  border-radius: 6px;
   margin-right: 8px;
+}
+
+.action-issuer-icon.thermos-icon {
+  border-radius: 50%; /* Делаем круглую иконку для Thermos */
 }
 
 .action-issuer-name {
