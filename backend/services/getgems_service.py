@@ -341,29 +341,34 @@ class GetGemsService:
             # 6. Отправка мульти-транзакции (1 ТРАНЗАКЦИЯ)
             logger.info(f"GetGemsService: Sending batch transfer with {len(messages)} messages")
             
-            # Согласно списку методов WalletV5R1: используем batch_transfer_message.
-            # Он упаковывает список билдеров в одно внешнее сообщение.
+            # Создаем внешнее сообщение, которое упаковывает все 4 внутренних
             ext_msg = await wallet.batch_transfer_message(messages)
             
             # Отправляем сообщение в блокчейн через клиент
             await client.send_message(ext_msg)
             
-            # Получаем хеш транзакции безопасно
+            # Получаем хеш всей транзакции. 
+            # Поскольку это batch-транзакция, в блокчейн уходит ОДНО внешнее сообщение (ext_msg).
+            # Хэш этого сообщения и есть хеш всей транзакции, внутри которой произойдут 4 действия.
             tx_hash = None
-            if hasattr(ext_msg, "normalized_hash"):
-                tx_hash = ext_msg.normalized_hash
-            elif hasattr(ext_msg, "hash"):
-                tx_hash = ext_msg.hash
-            elif hasattr(ext_msg, "to_boc"):
-                from ton_core import Cell
-                tx_hash = Cell.one_from_boc(ext_msg.to_boc()).hash.hex()
-            elif hasattr(ext_msg, "to_cell"):
-                tx_hash = ext_msg.to_cell().hash.hex()
-            else:
-                tx_hash = str(ext_msg) # Fallback
+            try:
+                # В tonutils Message имеет метод to_boc()
+                if hasattr(ext_msg, "to_boc"):
+                    boc_data = ext_msg.to_boc(False)
+                    from ton_core import Cell
+                    # Получаем хеш ячейки
+                    tx_hash = Cell.one_from_boc(boc_data).hash.hex()
+                elif hasattr(ext_msg, "hash"):
+                    hash_val = ext_msg.hash
+                    tx_hash = hash_val.hex() if isinstance(hash_val, bytes) else str(hash_val)
+                else:
+                    tx_hash = str(ext_msg)
+            except Exception as hash_ex:
+                logger.warning(f"GetGemsService: Failed to parse hash from ext_msg. Error: {hash_ex}")
+                tx_hash = "batch_tx_sent_successfully"
             
             if tx_hash:
-                logger.success(f"GetGemsService: NFT 2.0 Batch Transfer initiated (1 TX). Hash: {tx_hash}")
+                logger.success(f"GetGemsService: NFT 2.0 Batch Transfer initiated. Hash: {tx_hash}")
                 return tx_hash
             else:
                 logger.error("GetGemsService: Failed to get transaction hash from batch message")
