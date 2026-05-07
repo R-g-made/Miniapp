@@ -115,6 +115,13 @@ class Settings(BaseSettings):
     REFUND_LOOKBACK_DAYS: int = 30
     AUTO_BUY_ENABLED: bool = False
     
+    # Disabled Sticker Catalogs for drop (will reroll if selected)
+    DISABLED_STICKER_CATALOG_IDS: list[str] = [
+        "5cb3182f-9c2e-4dbf-8184-022a11750d42",
+        "d3c4b5a6-9f8e-4456-7d6c-5b4a39281706",
+        "8e7f6a5b-4c3d-4890-2e1f-0a9b8c7d6e5f"
+    ]
+    
     # Удаляем старые/дублирующие:
     # AUTO_BUY_INTERVAL_HOURS, FLOOR_CHECK_INTERVAL_HOURS и т.д.
     

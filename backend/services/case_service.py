@@ -85,7 +85,22 @@ class CaseService:
             await self._handle_case_stock_change(db, case_obj.id)
             raise InvalidOperation(f"Case {case_slug} is temporarily unavailable (out of stock)")
 
-        selected_catalog_item: CaseItem = random.choices(items, weights=weights, k=1)[0]
+        # Временная функция: перевыбор, если выпал отключенный стикерпак
+        max_rerolls = 10
+        selected_catalog_item = None
+        for _ in range(max_rerolls):
+            selected = random.choices(items, weights=weights, k=1)[0]
+            if str(selected.sticker_catalog_id) in settings.DISABLED_STICKER_CATALOG_IDS:
+                logger.info(f"CaseService: Selected disabled catalog {selected.sticker_catalog_id}, rerolling...")
+                continue
+            selected_catalog_item = selected
+            break
+            
+        # Если после 10 попыток всё равно ничего не выбрали (например, в кейсе остались ТОЛЬКО отключенные)
+        if not selected_catalog_item:
+            logger.error(f"CaseService: Only disabled stickers are dropping for case {case_slug}")
+            raise InvalidOperation("Case is temporarily unavailable (all available items are disabled)")
+
         catalog_id = UUID(str(selected_catalog_item.sticker_catalog_id))
         logger.info(f"CaseService: Selected catalog item: {catalog_id}")
         
@@ -282,6 +297,47 @@ class CaseService:
                 admin_msg = f"⚠️ <b>Кейс отключен!</b>\nКейс: <code>{case_obj.name}</code> ({case_obj.slug})\nПричина: {reason}"
                 await notification_service.notify_admins(admin_msg)
 
+    async def _try_reactivate_cases(self, db: AsyncSession, cases: List[Case]) -> None:
+        """Попытка воскресить переданные выключенные кейсы"""
+        for case_obj in cases:
+            try:
+                available_types = []
+                missing_types = []
+                
+                for item in case_obj.items:
+                    cat_id = UUID(str(item.sticker_catalog_id))
+                    count = await crud_sticker.count_available_in_pool(db, cat_id)
+                    if count > 0:
+                        available_types.append(f"{item.sticker_catalog.name} ({count} шт.)")
+                    else:
+                        missing_types.append(item.sticker_catalog.name)
+                
+                # Логика активации
+                if case_obj.is_chance_distribution:
+                    should_activate = len(available_types) > 0
+                    condition_msg = "Dist: ON"
+                else:
+                    should_activate = len(missing_types) == 0 and len(case_obj.items) > 0
+                    condition_msg = "Dist: OFF"
+
+                if should_activate:
+                    logger.success(f"CaseService: RE-ACTIVATING case '{case_obj.name}' ({case_obj.slug})")
+                    case_obj.is_active = True
+                    
+                    if case_obj.is_chance_distribution:
+                        from backend.services.chance_service import chance_service
+                        await chance_service.recalculate_case_chances(db, case_obj.id)
+                    
+                    db.add(case_obj)
+                    
+                    await notification_service.notify_admins(f"✅ <b>Кейс восстановлен!</b>\nКейс: <code>{case_obj.name}</code> снова доступен.")
+                    await manager.broadcast(WSEventMessage(
+                        type=WSMessageType.CASE_STATUS_UPDATE,
+                        data={"case_slug": case_obj.slug, "is_active": True}
+                    ))
+            except Exception as e:
+                logger.error(f"CaseService: Error processing case {case_obj.slug}: {e}")
+
     async def check_inactive_cases(self, db: AsyncSession):
         """
         Периодическая проверка неактивных кейсов. 
@@ -301,52 +357,7 @@ class CaseService:
             if not inactive_cases:
                 return
 
-            for case_obj in inactive_cases:
-                try:
-                    available_types = []
-                    missing_types = []
-                    
-                    for item in case_obj.items:
-                        # Принудительно приводим к UUID для надежности сравнения
-                        cat_id = UUID(str(item.sticker_catalog_id))
-                        count = await crud_sticker.count_available_in_pool(db, cat_id)
-                        if count > 0:
-                            available_types.append(f"{item.sticker_catalog.name} ({count} шт.)")
-                        else:
-                            missing_types.append(item.sticker_catalog.name)
-                            logger.debug(f"CaseService: Item '{item.sticker_catalog.name}' ({cat_id}) is MISSING from pool")
-                    
-                    # Логика активации
-                    if case_obj.is_chance_distribution:
-                        # Если распределение включено — достаточно хотя бы одного типа стикера
-                        should_activate = len(available_types) > 0
-                        condition_msg = "Dist: ON"
-                    else:
-                        # Если выключено — нужны ВСЕ типы стикеров (жесткая проверка)
-                        should_activate = len(missing_types) == 0 and len(case_obj.items) > 0
-                        condition_msg = "Dist: OFF"
-                    
-                    # Более детальный лог с перечислением имен
-                    found_str = ", ".join(available_types) if available_types else "None"
-                    missing_str = ", ".join(missing_types) if missing_types else "None"
-                    logger.info(f"CaseService: '{case_obj.name}' [{condition_msg}] | Found: {len(available_types)} ({found_str}) | Missing: {missing_str}")
-
-                    if should_activate:
-                        logger.success(f"CaseService: RE-ACTIVATING case '{case_obj.name}' ({case_obj.slug})")
-                        case_obj.is_active = True
-                        
-                        if case_obj.is_chance_distribution:
-                            await chance_service.recalculate_case_chances(db, case_obj.id)
-                        
-                        db.add(case_obj)
-                        
-                        await notification_service.notify_admins(f"✅ <b>Кейс восстановлен!</b>\nКейс: <code>{case_obj.name}</code> снова доступен.")
-                        await manager.broadcast(WSEventMessage(
-                            type=WSMessageType.CASE_STATUS_UPDATE,
-                            data={"case_slug": case_obj.slug, "is_active": True}
-                        ))
-                except Exception as e:
-                    logger.error(f"CaseService: Error processing case {case_obj.slug}: {e}")
+            await self._try_reactivate_cases(db, inactive_cases)
             
             await db.commit()
         except Exception as e:

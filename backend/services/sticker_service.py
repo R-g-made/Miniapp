@@ -662,6 +662,43 @@ class StickerService:
         # 8. Фиксация изменений
         await db.commit()
         
+        # 9. Синхронизация кейсов после продажи стикера
+        try:
+            from backend.services.case_service import case_service
+            from backend.services.chance_service import chance_service
+            from backend.models.case import Case, CaseItem
+            from sqlalchemy import select
+            
+            # Получаем ВСЕ кейсы (и активные, и неактивные), в которых есть этот проданный стикер
+            stmt = select(Case).options(
+                selectinload(Case.items).selectinload(CaseItem.sticker_catalog)
+            ).join(CaseItem).where(
+                CaseItem.sticker_catalog_id == sticker.catalog_id
+            ).distinct()
+            
+            res = await db.execute(stmt)
+            affected_cases = res.scalars().all()
+            
+            inactive_cases = []
+            
+            for c in affected_cases:
+                # 1. Если кейс выключен - собираем в список для точечного воскрешения
+                if not c.is_active:
+                    inactive_cases.append(c)
+                
+                # 2. Если кейс активен и в нем включено распределение шансов - пересчитываем их
+                elif c.is_active and c.is_chance_distribution:
+                    await chance_service.recalculate_case_chances(db, c.id)
+            
+            # Воскрешаем ТОЛЬКО те кейсы, которые связаны с этим проданным стикером
+            if inactive_cases:
+                await case_service._try_reactivate_cases(db, inactive_cases)
+                await db.commit() # Сохраняем воскрешения
+                
+            logger.info(f"StickerService: Successfully synced cases after selling sticker {sticker.catalog_id}")
+        except Exception as e:
+            logger.error(f"StickerService: Failed to sync cases after sale: {e}")
+        
         # WS notification for balance update
         from backend.core.websocket_manager import manager
         from backend.schemas.websocket import WSEventMessage, WSMessageType

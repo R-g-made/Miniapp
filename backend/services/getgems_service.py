@@ -268,7 +268,7 @@ class GetGemsService:
             
             if our_addr_obj.to_str(is_user_friendly=False) != owner_addr_obj.to_str(is_user_friendly=False):
                 logger.error(f"GetGemsService: Transfer failed. Server wallet does not own NFT {nft_address}. Owner: {owner_addr_obj.to_str()}")
-                return None
+                raise Exception("NFT is already transferred or not owned by server")
 
             # 3. Получаем адрес роялти автора из коллекции (опционально)
             royalty_author_address = None
@@ -341,34 +341,39 @@ class GetGemsService:
             # 6. Отправка мульти-транзакции (1 ТРАНЗАКЦИЯ)
             logger.info(f"GetGemsService: Sending batch transfer with {len(messages)} messages")
             
-            # Создаем внешнее сообщение, которое упаковывает все 4 внутренних
+            # Согласно списку методов WalletV5R1: используем batch_transfer_message.
+            # Он упаковывает список билдеров в одно внешнее сообщение.
             ext_msg = await wallet.batch_transfer_message(messages)
             
             # Отправляем сообщение в блокчейн через клиент
             await client.send_message(ext_msg)
             
-            # Получаем хеш всей транзакции. 
-            # Поскольку это batch-транзакция, в блокчейн уходит ОДНО внешнее сообщение (ext_msg).
-            # Хэш этого сообщения и есть хеш всей транзакции, внутри которой произойдут 4 действия.
+            # Получаем хеш транзакции безопасно
             tx_hash = None
             try:
-                # В tonutils Message имеет метод to_boc()
-                if hasattr(ext_msg, "to_boc"):
-                    boc_data = ext_msg.to_boc(False)
-                    from ton_core import Cell
-                    # Получаем хеш ячейки
-                    tx_hash = Cell.one_from_boc(boc_data).hash.hex()
-                elif hasattr(ext_msg, "hash"):
-                    hash_val = ext_msg.hash
-                    tx_hash = hash_val.hex() if isinstance(hash_val, bytes) else str(hash_val)
+                from ton_core import Cell
+                boc_data = ext_msg.to_boc()
+                
+                # Защита от разных типов возвращаемых данных to_boc()
+                if isinstance(boc_data, str):
+                    import base64
+                    try:
+                        boc_bytes = bytes.fromhex(boc_data)
+                    except ValueError:
+                        boc_bytes = base64.b64decode(boc_data)
                 else:
-                    tx_hash = str(ext_msg)
-            except Exception as hash_ex:
-                logger.warning(f"GetGemsService: Failed to parse hash from ext_msg. Error: {hash_ex}")
-                tx_hash = "batch_tx_sent_successfully"
+                    boc_bytes = boc_data
+                    
+                tx_hash_obj = Cell.one_from_boc(boc_bytes).hash.hex()
+                tx_hash = str(tx_hash_obj)
+            except Exception as e:
+                logger.warning(f"GetGemsService: Failed to parse hash: {e}")
+                # Если транзакция ушла, но хеш не смогли получить, мы не должны падать.
+                # Вернем фиктивный хеш, чтобы фронт показал успех (ведь стикер ушел).
+                tx_hash = "success_but_hash_hidden"
             
             if tx_hash:
-                logger.success(f"GetGemsService: NFT 2.0 Batch Transfer initiated. Hash: {tx_hash}")
+                logger.success(f"GetGemsService: NFT 2.0 Batch Transfer initiated (1 TX). Hash: {tx_hash}")
                 return tx_hash
             else:
                 logger.error("GetGemsService: Failed to get transaction hash from batch message")
