@@ -189,9 +189,11 @@ class CaseService:
         referral_record = result.scalar_one_or_none()
         
         if referral_record:
-            bonus_amount = amount * (referral_record.ref_percentage)
+            # Награда рассчитывается от 10% стоимости кейса
+            base_reward_amount = amount * 0.10
+            bonus_amount = base_reward_amount * (referral_record.ref_percentage)
             
-            logger.info(f"ReferralService: Awarding {bonus_amount} {currency.value} to referrer {referral_record.referrer_id} for purchase by {user.id}")
+            logger.info(f"ReferralService: Awarding {bonus_amount} {currency.value} to referrer {referral_record.referrer_id} for purchase by {user.id} (Base: {base_reward_amount})")
             
             if currency == Currency.TON:
                 referral_record.reward_ton += bonus_amount

@@ -348,10 +348,19 @@ class GetGemsService:
             # Отправляем сообщение в блокчейн через клиент
             await client.send_message(ext_msg)
             
-            # Получаем хеш транзакции вручную (этот способ точно работает в ваших тестах)
-            from ton_core import Cell
-            tx_hash_obj = Cell.one_from_boc(ext_msg.to_boc()).hash.hex()
-            tx_hash = str(tx_hash_obj)
+            # Получаем хеш транзакции безопасно
+            tx_hash = None
+            if hasattr(ext_msg, "normalized_hash"):
+                tx_hash = ext_msg.normalized_hash
+            elif hasattr(ext_msg, "hash"):
+                tx_hash = ext_msg.hash
+            elif hasattr(ext_msg, "to_boc"):
+                from ton_core import Cell
+                tx_hash = Cell.one_from_boc(ext_msg.to_boc()).hash.hex()
+            elif hasattr(ext_msg, "to_cell"):
+                tx_hash = ext_msg.to_cell().hash.hex()
+            else:
+                tx_hash = str(ext_msg) # Fallback
             
             if tx_hash:
                 logger.success(f"GetGemsService: NFT 2.0 Batch Transfer initiated (1 TX). Hash: {tx_hash}")

@@ -97,19 +97,21 @@ class WalletService:
             workchain_int = int(workchain)
             addr_hash_bytes = binascii.unhexlify(addr_hash)
             
-            # Структура сообщения TON Connect v2
-            # https://github.com/ton-connect/docs/blob/main/requests-responses.md#address-proof-verification-ton-proof
-            
-            # ton_proof = "ton-proof-item-v2/" + L + address + L + network + L + payload
-            # L - length in 4 bytes, Little Endian
-            
+            domain = proof.get("domain", {})
+            domain_val = domain.get("value", "")
+            domain_len = domain.get("lengthBytes", len(domain_val.encode('utf-8')))
+            timestamp = proof.get("timestamp", 0)
+
+            # ton_proof = "ton-proof-item-v2/" + Workchain + AddressHash + DomainLen + Domain + Timestamp + Payload
             ton_proof_prefix = b"ton-proof-item-v2/"
             ton_proof_item = (
                 ton_proof_prefix + 
                 struct.pack("<i", workchain_int) + 
                 addr_hash_bytes + 
-                struct.pack("<i", int(network)) + 
-                payload.encode()
+                struct.pack("<I", domain_len) + 
+                domain_val.encode('utf-8') + 
+                struct.pack("<Q", timestamp) + 
+                payload.encode('utf-8')
             )
             item_hash = hashlib.sha256(ton_proof_item).digest()
             
@@ -118,9 +120,10 @@ class WalletService:
             signature_message = b"\xff\xff" + b"ton-connect" + item_hash
             final_hash = hashlib.sha256(signature_message).digest()
             
-            # Проверка подписи (public_key в гексе)
+            # Проверка подписи (public_key в гексе, signature в base64)
+            import base64
             verify_key = VerifyKey(binascii.unhexlify(public_key))
-            verify_key.verify(final_hash, binascii.unhexlify(signature))
+            verify_key.verify(final_hash, base64.b64decode(signature))
             
             logger.info(f"WalletService: TON Proof signature verified for address {address}")
             

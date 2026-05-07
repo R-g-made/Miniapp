@@ -61,6 +61,9 @@ async def get_case(slug: str, db = Depends(deps.get_db)):
             if count > 0:
                 filtered_items.append(item)
         case_data.items = filtered_items
+        
+    # Сортируем стикеры внутри кейса по цене от большего к меньшему
+    case_data.items.sort(key=lambda x: x.price_ton or 0, reverse=True)
     
     return CaseResponse(data=case_data)
 
