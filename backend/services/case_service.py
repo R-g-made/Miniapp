@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 import random
 from datetime import datetime, timedelta, timezone
 from loguru import logger
