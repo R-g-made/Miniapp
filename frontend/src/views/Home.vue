@@ -289,24 +289,25 @@ export default {
 .home-view {
   display: flex;
   flex-direction: column;
-  gap: 30px; /* Вертикальный гэп между LiveDrop и контентом */
+  gap: 20px; /* Уменьшен гэп с 30 до 20 */
 }
 
 .home-content {
   display: flex;
   flex-direction: column;
-  gap: 30px; /* Вертикальный гэп между заголовком и контентом */
+  gap: 20px; /* Уменьшен гэп с 30 до 20 */
 }
 
 .filters-sort-container {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* Отступ между фильтрами и кнопкой сортировки 20px */
+  gap: 15px; /* Уменьшен гэп с 20 до 15 */
 }
 
 .live-drop-wrapper {
   margin-left: -20px;
   margin-right: -20px;
+  margin-bottom: -10px; /* Подтягиваем контент ниже ближе к лайв-дропу */
 }
 
 .issuers-wrapper {

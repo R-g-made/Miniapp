@@ -60,13 +60,13 @@ export default {
   align-items: center; /* Центрируем по вертикали */
   gap: 14px;
   width: 100%;
-  padding: 20px 0; /* Запас +- 20px сверху и снизу */
+  padding: 10px 0;
   overflow-x: auto;
   overflow-y: hidden; /* Запрещаем вертикальный скролл */
   scrollbar-width: none;
   box-sizing: border-box;
   background-color: transparent; /* Цвет убран */
-  height: 125px; /* Фиксированная высота с большим запасом */
+  height: 110px; /* Оптимальная высота: карточка 84.7 + паддинги + запас для бордера */
 }
 
 .live-drop-container::-webkit-scrollbar {
