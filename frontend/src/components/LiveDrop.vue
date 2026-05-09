@@ -60,13 +60,13 @@ export default {
   align-items: center; /* Центрируем по вертикали */
   gap: 14px;
   width: 100%;
-  padding: 10px 0;
+  padding: 20px 0; /* Запас +- 20px сверху и снизу */
   overflow-x: auto;
   overflow-y: hidden; /* Запрещаем вертикальный скролл */
   scrollbar-width: none;
   box-sizing: border-box;
   background-color: transparent; /* Цвет убран */
-  height: 104.7px; /* Фиксированная высота (84.7px + 10px + 10px padding) */
+  height: 125px; /* Фиксированная высота с большим запасом */
 }
 
 .live-drop-container::-webkit-scrollbar {
@@ -123,7 +123,7 @@ export default {
   gap: 14px;
   padding-right: 20px;
   position: relative;
-  height: 84.7px; /* Жестко фиксируем высоту */
+  height: 90px; /* С небольшим запасом для бордера */
 }
 
 /* Анимации для TransitionGroup */
