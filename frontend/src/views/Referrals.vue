@@ -100,7 +100,7 @@ import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
 import { useNotificationStore } from '../store/notification';
 import { connectWallet } from '../api/tonConnect';
-import tonDogsLottie from '@/assets/icons/ton_dogs.json';
+import tonDogsLottie from '@/assets/icons/ton-dogs.json';
 import starsDogsLottie from '@/assets/icons/stars_dogs.json';
 
 export default {
