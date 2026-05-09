@@ -124,4 +124,9 @@ body {
   display: flex;
   justify-content: flex-end;
 }
+
+/* Увеличиваем иконку звезды (STARS) глобально во всем приложении */
+img[src*="star"] {
+  transform: scale(1.3);
+}
 </style>

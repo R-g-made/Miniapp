@@ -67,9 +67,8 @@
             <img v-else src="@/assets/icons/star.svg" alt="STARS" class="withdraw-curr-icon">
             <span class="withdraw-number">{{ activeRefCurrency === 'TON' ? (stats.available_ton || 0) : (stats.available_stars || 0) }}</span>
           </div>
-          <div v-if="activeRefCurrency === 'STARS'" class="ton-pill">
-            <img src="@/assets/icons/ton.svg" alt="TON" class="ton-pill-icon">
-            <span class="ton-pill-text">{{ stats.available_in_ton || 0 }}</span>
+          <div v-if="activeRefCurrency === 'STARS'" class="ton-pill-simple">
+            ~ <img src="@/assets/icons/ton.svg" alt="TON" class="ton-pill-icon-simple"> {{ stats.available_in_ton || 0 }}
           </div>
         </div>
         <img src="@/assets/icons/withdraw.svg" alt="Withdraw" class="withdraw-icon">
@@ -390,7 +389,7 @@ export default {
 /* Статистика */
 .stats-row {
   display: flex;
-  gap: 12px;
+  gap: 0px; /* Уменьшено расстояние между блоками статистики до 0 */
   width: 100%;
   margin-bottom: 12px;
 }
@@ -500,24 +499,19 @@ export default {
   color: #FFFFFF;
 }
 
-.ton-pill {
+.ton-pill-simple {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 1000px;
-  padding: 8px 12px;
+  gap: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5); /* 50% прозрачности */
 }
 
-.ton-pill-icon {
+.ton-pill-icon-simple {
   width: 14px;
   height: 14px;
-}
-
-.ton-pill-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: #FFFFFF;
+  opacity: 0.5; /* Иконка тоже полупрозрачная */
 }
 
 .withdraw-icon {
