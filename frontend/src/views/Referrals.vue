@@ -38,7 +38,7 @@
           <div class="stat-value-row">
             <img v-if="activeRefCurrency === 'TON'" src="@/assets/icons/ton.svg" alt="TON" class="stat-curr-icon">
             <img v-else src="@/assets/icons/star.svg" alt="STARS" class="stat-curr-icon">
-            <span class="stat-number">{{ activeRefCurrency === 'TON' ? (stats.available_ton || 0) : (stats.available_stars || 0) }}</span>
+            <span class="stat-number">{{ activeRefCurrency === 'TON' ? formatNumber(stats.total_ton) : formatNumber(stats.total_stars) }}</span>
           </div>
           <div class="stat-label">Totaly earned</div>
         </div>
@@ -55,7 +55,7 @@
         </div>
         <div class="locked-right">
           <img src="@/assets/icons/star.svg" alt="STARS" class="locked-curr-icon">
-          <span class="locked-number">{{ stats.locked_stars || 0 }}</span>
+          <span class="locked-number">{{ formatNumber(stats.locked_stars) }}</span>
         </div>
       </div>
 
@@ -65,10 +65,10 @@
           <div class="withdraw-left">
             <img v-if="activeRefCurrency === 'TON'" src="@/assets/icons/ton.svg" alt="TON" class="withdraw-curr-icon">
             <img v-else src="@/assets/icons/star.svg" alt="STARS" class="withdraw-curr-icon">
-            <span class="withdraw-number">{{ activeRefCurrency === 'TON' ? (stats.available_ton || 0) : (stats.available_stars || 0) }}</span>
+            <span class="withdraw-number">{{ activeRefCurrency === 'TON' ? formatNumber(stats.available_ton) : formatNumber(stats.available_stars) }}</span>
           </div>
           <div v-if="activeRefCurrency === 'STARS'" class="ton-pill-simple">
-            ~ <img src="@/assets/icons/ton.svg" alt="TON" class="ton-pill-icon-simple"> {{ stats.available_in_ton || 0 }}
+            ~ <img src="@/assets/icons/ton.svg" alt="TON" class="ton-pill-icon-simple"> {{ formatNumber(stats.available_in_ton) }}
           </div>
         </div>
         <img src="@/assets/icons/withdraw.svg" alt="Withdraw" class="withdraw-icon">
@@ -123,14 +123,26 @@ export default {
 
     const inviteLinkDisplay = computed(() => {
       if (!stats.value.invite_link) return 't.me/bot_name/app?\nStartparam= refUUID';
-      // Можно форматировать для отображения в две строки как на макете
+      
       const url = stats.value.invite_link;
       if (url.includes('?')) {
         const [base, params] = url.split('?');
+        // Берем параметр (например startapp=xxxxx) и обрезаем его значение до 2 символов
+        const paramParts = params.split('=');
+        if (paramParts.length > 1) {
+          const value = paramParts[1];
+          const shortValue = value.length > 2 ? value.substring(0, 2) + '...' : value;
+          return `${base}?\n${paramParts[0]}=${shortValue}`;
+        }
         return `${base}?\n${params}`;
       }
       return url;
     });
+
+    const formatNumber = (num) => {
+      if (num === undefined || num === null) return 0;
+      return Number(num).toFixed(2);
+    };
 
     const fetchStats = async () => {
       try {
@@ -251,7 +263,8 @@ export default {
       toggleCurrency,
       copyLink,
       shareLink,
-      handleWithdraw
+      handleWithdraw,
+      formatNumber
     };
   }
 }
