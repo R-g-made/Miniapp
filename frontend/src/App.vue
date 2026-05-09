@@ -39,7 +39,8 @@ export default {
       const backButton = tg.BackButton;
 
       watch(() => route.path, (newPath) => {
-        if (newPath === '/' || newPath === '/home') {
+        // Скрываем кнопку назад на страницах, где есть нижняя навигация
+        if (newPath === '/' || newPath === '/home' || newPath === '/inventory' || newPath === '/profile') {
           backButton.hide();
         } else {
           backButton.show();
@@ -47,7 +48,14 @@ export default {
       });
 
       backButton.onClick(() => {
-        router.back();
+        // Возврат на ближайшую страницу с навбаром
+        if (route.path.startsWith('/case/')) {
+          router.push('/');
+        } else if (route.path === '/referrals') {
+          router.push('/profile');
+        } else {
+          router.back();
+        }
       });
     };
 

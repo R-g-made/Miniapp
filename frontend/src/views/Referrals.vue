@@ -220,13 +220,15 @@ export default {
     const copyLink = () => {
       if (stats.value.invite_link) {
         navigator.clipboard.writeText(stats.value.invite_link);
-        // Можно добавить тост или HapticFeedback
+        const notificationStore = useNotificationStore();
+        notificationStore.info('Copied', 'Link successfully copied');
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
       }
     };
 
     const shareLink = () => {
-      const url = `https://t.me/share/url?url=${encodeURIComponent(stats.value.invite_link)}&text=${encodeURIComponent('Join me on Sticker Market!')}`;
+      const text = "Join via my referral link, let's play for NFT stickers";
+      const url = `https://t.me/share/url?url=${encodeURIComponent(stats.value.invite_link)}&text=${encodeURIComponent(text)}`;
       window.Telegram?.WebApp?.openTelegramLink(url);
     };
 
@@ -279,7 +281,7 @@ export default {
 }
 
 .ref-promo-card.is-stars {
-  background: var(--Test, linear-gradient(66.50deg, rgba(32, 30, 41, 1),rgba(40, 37, 59, 1)));
+  background: linear-gradient(66.50deg, #29271E, #3B3825);
 }
 
 .ref-header {
@@ -389,7 +391,7 @@ export default {
 /* Статистика */
 .stats-row {
   display: flex;
-  gap: 0px; /* Уменьшено расстояние между блоками статистики до 0 */
+  gap: 8px; /* Вернули нормальный отступ */
   width: 100%;
   margin-bottom: 12px;
 }
