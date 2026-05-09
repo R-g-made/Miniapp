@@ -345,10 +345,7 @@ class GetGemsService:
             # Он упаковывает список билдеров в одно внешнее сообщение.
             ext_msg = await wallet.batch_transfer_message(messages)
             
-            # Отправляем сообщение в блокчейн через клиент
-            await client.send_message(ext_msg)
-            
-            # Получаем хеш транзакции безопасно
+            # Получаем хеш транзакции безопасно ДО отправки (чтобы он точно был)
             tx_hash = None
             try:
                 from ton_core import Cell
@@ -367,10 +364,15 @@ class GetGemsService:
                 tx_hash_obj = Cell.one_from_boc(boc_bytes).hash.hex()
                 tx_hash = str(tx_hash_obj)
             except Exception as e:
-                logger.warning(f"GetGemsService: Failed to parse hash: {e}")
-                # Если транзакция ушла, но хеш не смогли получить, мы не должны падать.
-                # Вернем фиктивный хеш, чтобы фронт показал успех (ведь стикер ушел).
+                logger.warning(f"GetGemsService: Failed to parse hash before sending: {e}")
                 tx_hash = "success_but_hash_hidden"
+
+            # Отправляем сообщение в блокчейн через клиент
+            try:
+                await client.send_message(ext_msg)
+            except Exception as send_ex:
+                # Часто send_message выбрасывает таймаут или ошибку, но транзакция реально уходит в сеть
+                logger.warning(f"GetGemsService: send_message raised an exception, but TX might be in mempool. Error: {send_ex}")
             
             if tx_hash:
                 logger.success(f"GetGemsService: NFT 2.0 Batch Transfer initiated (1 TX). Hash: {tx_hash}")

@@ -63,26 +63,26 @@ class WebSocketService {
                 break;
             case 'balance_update':
                 authStore.updateBalance(message.data.new_balance, message.data.currency);
-                notificationStore.success('Balance Updated', `New balance: ${message.data.new_balance} ${message.data.currency}`);
+                notificationStore.success('Success', `Balance Updated`);
                 break;
             case 'sticker_received':
-                notificationStore.success('New Sticker!', `You received: ${message.data.name}`);
+                notificationStore.success('Success', `You received: ${message.data.name}`);
                 // Можно добавить обновление инвентаря если есть такой метод
                 break;
             case 'transaction_completed':
-                notificationStore.success('Transaction Completed', `Hash: ${message.data.hash.slice(0, 10)}...`);
+                notificationStore.success('Success', `Transaction completed`);
                 break;
             case 'transaction_failed':
-                notificationStore.error('Transaction Failed', message.data.error || 'Unknown error');
+                notificationStore.error('Failed', message.data.error || 'Unknown error');
                 break;
             case 'user_event':
                 if (message.event_type === 'balance_update') {
                     authStore.updateBalance(message.data.new_balance, message.data.currency);
-                    notificationStore.success('Balance Updated', `New balance: ${message.data.new_balance} ${message.data.currency}`);
+                    notificationStore.success('Success', `Balance Updated`);
                 }
                 break;
             case 'error':
-                notificationStore.error('System Error', message.data.message || 'Something went wrong');
+                notificationStore.error('Failed', message.data.message || 'Something went wrong');
                 break;
             case 'case_status_update':
                 appStore.updateCaseStatus(

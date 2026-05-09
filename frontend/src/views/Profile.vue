@@ -94,7 +94,7 @@ export default {
     const toggleLanguage = () => {
       if (currentLang.value === 'en') {
         currentLang.value = 'ru';
-        notificationStore.info('Notice', 'Language change will be available later');
+        notificationStore.info('Soon', 'Language change will be available soon');
         setTimeout(() => {
           currentLang.value = 'en';
         }, 300);

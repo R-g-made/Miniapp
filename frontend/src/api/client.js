@@ -23,13 +23,12 @@ apiClient.interceptors.response.use(
         if (error.response) {
             const data = error.response.data;
             const message = data.message || error.message;
-            const code = data.code || `Error ${error.response.status}`;
             
-            notificationStore.error(code, message);
+            notificationStore.error('Failed', message);
         } else if (error.request) {
-            notificationStore.error('Network Error', 'No response from server');
+            notificationStore.error('Failed', 'No response from server');
         } else {
-            notificationStore.error('Error', error.message);
+            notificationStore.error('Failed', error.message);
         }
         
         return Promise.reject(error);

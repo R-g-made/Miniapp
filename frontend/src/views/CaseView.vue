@@ -44,26 +44,28 @@
         <!-- Основная белая кнопка (всегда на месте, меняется только контент) -->
         <button 
           :class="['btn-open-main', { 'btn-sell': isResultMode }]" 
-          :disabled="isSpinning || isAwaitingResult || (!isResultMode && currentCase.is_active === false)" 
+          :disabled="isSpinning || isAwaitingResult || isSelling || (!isResultMode && currentCase.is_active === false)" 
           @click="isResultMode ? sellWinningSticker() : startRealSpin()"
         >
           <template v-if="isSpinning || isAwaitingResult">
             <span class="btn-text">{{ isAwaitingResult ? 'Opening...' : 'Spinning' }}</span>
           </template>
           <template v-else-if="isResultMode">
-            <span class="btn-text">Sell for {{ formatPrice(winningItem) }}</span>
-            <img 
-              v-if="activeCurrency === 'TON'"
-              src="@/assets/icons/ton.svg" 
-              alt="TON" 
-              class="btn-ton-icon"
-            >
-            <img 
-              v-else
-              src="@/assets/icons/star.svg" 
-              alt="STARS" 
-              class="btn-ton-icon stars"
-            >
+            <span class="btn-text">{{ isSelling ? 'Selling...' : 'Sell for ' + formatPrice(winningItem) }}</span>
+            <template v-if="!isSelling">
+              <img 
+                v-if="activeCurrency === 'TON'"
+                src="@/assets/icons/ton.svg" 
+                alt="TON" 
+                class="btn-ton-icon"
+              >
+              <img 
+                v-else
+                src="@/assets/icons/star.svg" 
+                alt="STARS" 
+                class="btn-ton-icon stars"
+              >
+            </template>
           </template>
           <template v-else>
             <span class="btn-text">Open for {{ formatPrice(currentCase) }}</span>
@@ -388,14 +390,17 @@ export default {
       requestAnimationFrame(animateSpin);
     };
 
+    const isSelling = ref(false);
+
     const sellWinningSticker = async () => {
-      if (!winningItem.value) return;
+      if (!winningItem.value || isSelling.value) return;
       
       if (isDemoSpinMode.value) {
         resetCase();
         return;
       }
       
+      isSelling.value = true;
       try {
         const response = await api.sellSticker(winningItem.value.id, activeCurrency.value.toLowerCase());
         const newBalance = response.data.new_balance;
@@ -410,8 +415,9 @@ export default {
           router.push('/');
         }
       } catch (e) {
-        // Убрали вызов notificationStore.error(), так как axios interceptor уже показал уведомление
         console.error("Sell sticker failed", e);
+      } finally {
+        isSelling.value = false;
       }
     };
 
@@ -623,6 +629,7 @@ export default {
       catalogItems,
       isSpinning,
       isResultMode,
+      isSelling,
       winningItem,
       startRealSpin,
       sellWinningSticker,

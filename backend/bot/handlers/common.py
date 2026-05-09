@@ -23,7 +23,7 @@ async def cmd_start(message: types.Message):
     if settings.MINI_APP_URL and settings.MINI_APP_URL.startswith("https://"):
         builder.row(types.InlineKeyboardButton(
             text="Open Stickerloot", 
-            web_app=types.WebAppInfo(url=settings.MINI_APP_URL)
+            url=settings.MINI_APP_URL
         ))
     
     if settings.BOT_COMMUNITY_URL and settings.BOT_COMMUNITY_URL.startswith("https://"):

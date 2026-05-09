@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     
     # Bot
     BOT_TOKEN: str = ""
-    BOT_START_IMAGE_URL: str = "https://i.ibb.co/jZvZw6r6/Stickerloot.jpg"
-    BOT_COMMUNITY_URL: str = "https://t.me/stickerloot_community"
+    BOT_START_IMAGE_URL: str = "https://i.ibb.co/4w5bdGfW/Sticker-Loot-Icon.png"
+    BOT_COMMUNITY_URL: str = "https://t.me/stickerloots"
     MINI_APP_URL: str = "https://t.me/stickerloot_bot/app"
     ADMIN_IDS: list[int] = [] # Список Telegram ID админов для уведомлений
     

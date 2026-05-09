@@ -173,7 +173,7 @@ export default {
         const minAmount = activeRefCurrency.value === 'TON' ? 0.1 : 10;
         
         if (!amountToWithdraw || parseFloat(amountToWithdraw) < minAmount) {
-          notificationStore.error('Withdrawal error', `Minimum amount to withdraw is ${minAmount} ${activeRefCurrency.value}`);
+          notificationStore.error('Failed', `Minimum amount to withdraw is ${minAmount} ${activeRefCurrency.value}`);
           window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
           return;
         }

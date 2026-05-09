@@ -137,9 +137,9 @@
               </div>
 
               <!-- Withdraw -->
-              <div class="action-row" @click="transferSticker">
+              <div class="action-row" @click="transferSticker" :style="{ opacity: isTransferring ? 0.5 : 1, pointerEvents: isTransferring ? 'none' : 'auto' }">
                 <img src="@/assets/icons/sort-icon.svg" alt="Sort" class="action-icon sort-icon">
-                <span class="action-text">Withdraw to</span>
+                <span class="action-text">{{ isTransferring ? 'Withdrawing...' : 'Withdraw to' }}</span>
                 <template v-if="selectedSticker.is_onchain">
                   <img src="@/assets/icons/ton.svg" alt="TON" class="action-issuer-icon">
                   <span class="action-issuer-name">TON</span>
@@ -177,6 +177,7 @@ export default {
     const stickers = ref([]);
     const selectedSticker = ref(null);
     const isSelling = ref(false);
+    const isTransferring = ref(false);
     const searchQuery = ref('');
     const selectedIssuer = ref(null);
     const lottieContainer = ref(null);
@@ -298,6 +299,8 @@ export default {
     };
 
     const transferSticker = async () => {
+      if (isTransferring.value) return;
+      isTransferring.value = true;
       try {
         // Вызываем бэкенд для трансфера. 
         // Бэкенд сам возьмет активный адрес из БД. 
@@ -312,6 +315,8 @@ export default {
           const { connectWallet } = await import('../api/tonConnect');
           connectWallet();
         }
+      } finally {
+        isTransferring.value = false;
       }
     };
 
@@ -367,6 +372,7 @@ export default {
       stickers,
       selectedSticker,
       isSelling,
+      isTransferring,
       searchQuery,
       selectedIssuer,
       issuers,

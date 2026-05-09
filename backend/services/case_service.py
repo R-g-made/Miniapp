@@ -253,8 +253,13 @@ class CaseService:
         empty_item_names = []
         
         for item in case_obj.items:
+            cat_id_str = str(item.sticker_catalog_id)
+            # Игнорируем стикеры из списка отключенных (они не влияют на "пустоту" кейса)
+            if cat_id_str in settings.DISABLED_STICKER_CATALOG_IDS:
+                continue
+                
             # Принудительно приводим к UUID для надежности сравнения
-            cat_id = UUID(str(item.sticker_catalog_id))
+            cat_id = UUID(cat_id_str)
             count = await crud_sticker.count_available_in_pool(db, cat_id)
             if count <= 0:
                 has_empty_items = True
@@ -263,10 +268,11 @@ class CaseService:
                 logger.debug(f"CaseService: Item '{item.sticker_catalog.name}' has {count} stickers in pool")
 
         if has_empty_items:
-            # Считаем общее количество доступных стикеров в кейсе
+            # Считаем общее количество доступных стикеров в кейсе (кроме отключенных)
             total_available = 0
             for item in case_obj.items:
-                total_available += await crud_sticker.count_available_in_pool(db, UUID(str(item.sticker_catalog_id)))
+                if str(item.sticker_catalog_id) not in settings.DISABLED_STICKER_CATALOG_IDS:
+                    total_available += await crud_sticker.count_available_in_pool(db, UUID(str(item.sticker_catalog_id)))
 
             # ЖЕСТКАЯ ПРОВЕРКА:
             # Если distribution=True -> кейс живет пока есть хоть один стикер
@@ -305,7 +311,12 @@ class CaseService:
                 missing_types = []
                 
                 for item in case_obj.items:
-                    cat_id = UUID(str(item.sticker_catalog_id))
+                    cat_id_str = str(item.sticker_catalog_id)
+                    # Игнорируем отключенные стикеры при проверке воскрешения
+                    if cat_id_str in settings.DISABLED_STICKER_CATALOG_IDS:
+                        continue
+                        
+                    cat_id = UUID(cat_id_str)
                     count = await crud_sticker.count_available_in_pool(db, cat_id)
                     if count > 0:
                         available_types.append(f"{item.sticker_catalog.name} ({count} шт.)")
@@ -313,11 +324,14 @@ class CaseService:
                         missing_types.append(item.sticker_catalog.name)
                 
                 # Логика активации
+                # Считаем количество активных элементов в кейсе (исключая отключенные)
+                active_items_count = len([i for i in case_obj.items if str(i.sticker_catalog_id) not in settings.DISABLED_STICKER_CATALOG_IDS])
+                
                 if case_obj.is_chance_distribution:
                     should_activate = len(available_types) > 0
                     condition_msg = "Dist: ON"
                 else:
-                    should_activate = len(missing_types) == 0 and len(case_obj.items) > 0
+                    should_activate = len(missing_types) == 0 and active_items_count > 0
                     condition_msg = "Dist: OFF"
 
                 if should_activate:

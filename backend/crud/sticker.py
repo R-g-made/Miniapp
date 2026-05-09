@@ -46,11 +46,12 @@ class StickerRepository(BaseRepository[UserSticker]):
     async def get_with_details(self, db: AsyncSession, sticker_id: UUID) -> Optional[UserSticker]:
         """
         Получает стикер с подгруженными связями (каталог, владелец).
+        Использует FOR UPDATE для предотвращения гонки данных (двойной продажи).
         """
         stmt = select(UserSticker).options(
             selectinload(UserSticker.catalog),
             selectinload(UserSticker.owner)
-        ).where(UserSticker.id == sticker_id)
+        ).where(UserSticker.id == sticker_id).with_for_update()
         
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
