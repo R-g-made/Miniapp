@@ -25,6 +25,34 @@ class StickerService:
         Добавляет новые стикеры, если они появились во внешних источниках.
         """
         logger.info("StickerService: Starting pool synchronization...")
+        
+        # --- УДАЛЕНИЕ СУЩЕСТВУЮЩИХ ДУБЛИКАТОВ ИЗ БД ---
+        try:
+            stmt = select(UserSticker)
+            res = await db.execute(stmt)
+            all_stickers = res.scalars().all()
+            
+            from collections import defaultdict
+            grouped = defaultdict(list)
+            for s in all_stickers:
+                grouped[(str(s.catalog_id), s.number)].append(s)
+                
+            deleted_dups = 0
+            for key, group in grouped.items():
+                if len(group) > 1:
+                    # Сортируем: сначала те, у которых есть владелец, затем доступные
+                    group.sort(key=lambda x: (0 if x.owner_id is not None else 1, 0 if x.is_available else 1))
+                    # Оставляем первый (самый приоритетный), остальные удаляем
+                    for s in group[1:]:
+                        await db.delete(s)
+                        deleted_dups += 1
+            if deleted_dups > 0:
+                await db.commit()
+                logger.info(f"StickerService: Deleted {deleted_dups} duplicate stickers from DB.")
+        except Exception as e:
+            logger.error(f"StickerService: Duplicate cleanup failed: {e}")
+        # --- КОНЕЦ УДАЛЕНИЯ ДУБЛИКАТОВ ---
+
         results = {"thermos_added": 0, "onchain_added": 0, "archived": 0, "errors": []}
         
         # Флаги успешности запросов к внешним API
@@ -98,6 +126,10 @@ class StickerService:
                         cat_id_str = str(cat_id)
                         inst = item["instance"]
                         
+                        # Защита от создания дубликатов в одном цикле
+                        if (cat_id_str, inst) in seen_thermos_identifiers:
+                            continue
+                            
                         # Помечаем как увиденный
                         seen_thermos_identifiers.add((cat_id_str, inst))
                         
@@ -199,6 +231,10 @@ class StickerService:
 
                         if not catalog: continue
 
+                        # Защита от создания дубликатов в одном цикле
+                        if nft_addr in seen_onchain_addresses:
+                            continue
+
                         seen_onchain_addresses.add(nft_addr)
                         stmt_exists = (
                             select(UserSticker)
@@ -236,6 +272,10 @@ class StickerService:
             pool_items = (await db.execute(stmt_pool)).scalars().all()
             from ton_core import Address
             
+            # Трекинг для очистки уже существующих дубликатов в БД
+            processed_onchain_in_pool = set()
+            processed_thermos_in_pool = set()
+            
             for item in pool_items:
                 should_archive = False
                 
@@ -248,6 +288,12 @@ class StickerService:
                             if norm_addr not in seen_onchain_addresses:
                                 should_archive = True
                                 logger.warning(f"StickerService: Archiving onchain sticker {item.nft_address} - not found on wallet")
+                            elif norm_addr in processed_onchain_in_pool:
+                                # Это дубликат в пуле! Архивируем его
+                                should_archive = True
+                                logger.warning(f"StickerService: Archiving duplicate onchain sticker {item.nft_address}")
+                            else:
+                                processed_onchain_in_pool.add(norm_addr)
                         except Exception as e:
                             logger.error(f"StickerService: Error normalizing address {item.nft_address}: {e}")
                     else:
@@ -258,9 +304,16 @@ class StickerService:
                     # Архивация ТОЛЬКО если для этого каталога существует маппинг в Thermos
                     # Если маппинга нет, мы не можем доверять результатам синхронизации Thermos для этого стикера
                     if str(item.catalog_id) in all_mapped_catalog_ids:
-                        if (str(item.catalog_id), item.number) not in seen_thermos_identifiers:
+                        key = (str(item.catalog_id), item.number)
+                        if key not in seen_thermos_identifiers:
                             should_archive = True
                             logger.warning(f"StickerService: Archiving missing thermos sticker {item.catalog_id} #{item.number} - not found in API")
+                        elif key in processed_thermos_in_pool:
+                            # Это дубликат в пуле! Архивируем его
+                            should_archive = True
+                            logger.warning(f"StickerService: Archiving duplicate thermos sticker {item.catalog_id} #{item.number}")
+                        else:
+                            processed_thermos_in_pool.add(key)
                 
                 if should_archive:
                     item.is_available = False
