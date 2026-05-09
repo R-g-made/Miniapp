@@ -42,15 +42,19 @@ class StickerService:
                 if len(group) > 1:
                     # Сортируем: сначала те, у которых есть владелец, затем доступные
                     group.sort(key=lambda x: (0 if x.owner_id is not None else 1, 0 if x.is_available else 1))
-                    # Оставляем первый (самый приоритетный), остальные удаляем
+                    # Оставляем первый (самый приоритетный), остальные удаляем полностью
                     for s in group[1:]:
+                        # Сначала удаляем связанные действия (историю)
+                        from backend.models.sticker_action import StickerAction
+                        await db.execute(StickerAction.__table__.delete().where(StickerAction.sticker_pool_id == s.id))
+                        # Затем удаляем сам стикер
                         await db.delete(s)
                         deleted_dups += 1
             if deleted_dups > 0:
                 await db.commit()
-                logger.info(f"StickerService: Deleted {deleted_dups} duplicate stickers from DB.")
+                logger.info(f"StickerService: Hard deleted {deleted_dups} duplicate stickers from DB.")
         except Exception as e:
-            logger.error(f"StickerService: Duplicate cleanup failed: {e}")
+            logger.error(f"StickerService: Duplicate hard cleanup failed: {e}")
         # --- КОНЕЦ УДАЛЕНИЯ ДУБЛИКАТОВ ---
 
         results = {"thermos_added": 0, "onchain_added": 0, "archived": 0, "errors": []}
