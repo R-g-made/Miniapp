@@ -66,7 +66,7 @@ export default {
   scrollbar-width: none;
   box-sizing: border-box;
   background-color: transparent;
-  min-height: 130px; /* Используем min-height вместо жесткой height */
+  min-height: 110px; /* Используем min-height вместо жесткой height */
 }
 
 .live-drop-container::-webkit-scrollbar {

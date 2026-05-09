@@ -308,6 +308,7 @@ export default {
   margin-left: -20px;
   margin-right: -20px;
   overflow: visible;
+  background-color: #171717; /* Цвет фона как у всего приложения */
 }
 
 .issuers-wrapper {
