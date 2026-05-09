@@ -307,7 +307,10 @@ export default {
 .live-drop-wrapper {
   margin-left: -20px;
   margin-right: -20px;
-  margin-bottom: -10px; /* Подтягиваем контент ниже ближе к лайв-дропу */
+  padding: 5px 0; /* Добавляем внутренний отступ, чтобы бордеры не обрезались */
+  overflow: visible;
+  position: relative;
+  z-index: 1; /* Чтобы лайв-дроп был выше основного контента при скролле */
 }
 
 .issuers-wrapper {
