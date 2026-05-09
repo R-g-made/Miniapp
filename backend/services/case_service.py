@@ -65,13 +65,18 @@ class CaseService:
         has_missing_items = False
         
         for item in items:
-            cat_id = UUID(str(item.sticker_catalog_id))
+            cat_id_str = str(item.sticker_catalog_id)
+            cat_id = UUID(cat_id_str)
             count = await crud_sticker.count_available_in_pool(db, cat_id)
+            
             if count > 0:
                 weights.append(item.chance)
             else:
-                has_missing_items = True
-                # Если стикера нет в пуле — шанс 0 для этого открытия (только если distribution включено)
+                # Если стикер отключен, мы игнорируем его отсутствие (он не ломает кейс)
+                if cat_id_str not in settings.DISABLED_STICKER_CATALOG_IDS:
+                    has_missing_items = True
+                
+                # Шанс 0 для отсутствующего стикера
                 weights.append(0.0)
         
         # ЖЕСТКАЯ ПРОВЕРКА: Если распределение выключено и чего-то не хватает — кейс не работает

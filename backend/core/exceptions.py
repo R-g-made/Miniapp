@@ -31,7 +31,7 @@ class InvalidOperation(AppError):
     def __init__(self, message: str = "Invalid operation"):
         super().__init__(
             message=message,
-            code="INVALID_OPERATION",
+            code="FAILED",
             status_code=status.HTTP_400_BAD_REQUEST
         )
 

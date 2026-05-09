@@ -103,7 +103,7 @@ export default {
 
     const openSupport = () => {
       // Логика открытия поддержки (например ссылка на бота)
-      window.Telegram?.WebApp?.openTelegramLink('https://t.me/support_bot');
+      window.Telegram?.WebApp?.openTelegramLink('https://t.me/stickerloot_support');
     };
 
     const openReferrals = () => {
