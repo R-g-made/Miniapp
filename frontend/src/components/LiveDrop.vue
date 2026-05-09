@@ -62,11 +62,11 @@ export default {
   width: 100%;
   padding: 10px 0;
   overflow-x: auto;
+  overflow-y: hidden; /* Запрещаем вертикальный скролл */
   scrollbar-width: none;
   box-sizing: border-box;
   background-color: transparent; /* Цвет убран */
-  height: auto; /* Контейнер подстраивается под содержимое */
-  min-height: min-content; /* Гарантирует минимальную высоту по контенту */
+  height: 104.7px; /* Фиксированная высота (84.7px + 10px + 10px padding) */
 }
 
 .live-drop-container::-webkit-scrollbar {
@@ -123,7 +123,7 @@ export default {
   gap: 14px;
   padding-right: 20px;
   position: relative;
-  min-height: 84.7px; /* Гарантируем высоту контейнера */
+  height: 84.7px; /* Жестко фиксируем высоту */
 }
 
 /* Анимации для TransitionGroup */
@@ -150,6 +150,7 @@ export default {
 .drop-list-leave-active {
   transition: all 0.3s ease;
   position: absolute; /* Чтобы не мешать сдвигу других */
+  right: 20px; /* Чтобы карточка не улетала за пределы контейнера некрасиво */
 }
 
 .drop-list-leave-to {
