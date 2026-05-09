@@ -413,7 +413,7 @@ export default {
 .search-wrapper {
   background-color: #202020;
   border-radius: 1000px;
-  padding: 22px 20px;
+  padding: 16px 20px; /* Уменьшен вертикальный паддинг с 22px до 16px */
   display: flex;
   align-items: center;
   gap: 12px;
