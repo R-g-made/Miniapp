@@ -57,16 +57,16 @@ export default {
 <style scoped>
 .live-drop-container {
   display: flex;
-  align-items: center; /* Центрируем по вертикали */
+  align-items: center;
   gap: 14px;
   width: 100%;
-  padding: 10px 0;
+  padding: 10px 0 20px 0; /* Увеличенный нижний паддинг для бордеров */
   overflow-x: auto;
-  overflow-y: hidden; /* Запрещаем вертикальный скролл */
+  overflow-y: hidden;
   scrollbar-width: none;
   box-sizing: border-box;
-  background-color: transparent; /* Цвет убран */
-  height: 110px; /* Оптимальная высота: карточка 84.7 + паддинги + запас для бордера */
+  background-color: transparent;
+  min-height: 130px; /* Используем min-height вместо жесткой height */
 }
 
 .live-drop-container::-webkit-scrollbar {
