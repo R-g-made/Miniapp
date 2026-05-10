@@ -284,7 +284,18 @@ class WalletService:
         """
         logger.info(f"WalletService: Verifying TON deposit for user {user.telegram_id}, hash: {tx_hash}")
         
-        # 1. Проверяем, не обрабатывалась ли уже эта транзакция
+        # 1. Получаем привязанные кошельки пользователя для проверки отправителя
+        stmt = select(Wallet).where(Wallet.owner_id == user.id)
+        user_wallets = (await self.db.execute(stmt)).scalars().all()
+        from ton_core import Address
+        user_wallet_addresses = []
+        for w in user_wallets:
+            try:
+                user_wallet_addresses.append(Address(w.address).to_str(is_user_friendly=False))
+            except:
+                pass
+
+        # 2. Проверяем, не обрабатывалась ли уже эта транзакция
         stmt = select(Transaction).where(Transaction.hash == tx_hash)
         result = await self.db.execute(stmt)
         if result.scalar_one_or_none():
@@ -345,12 +356,21 @@ class WalletService:
                     recipient = transfer.get("recipient", {})
                     recipient_addr = recipient.get("address") if isinstance(recipient, dict) else recipient
                     
-                    if not recipient_addr:
+                    sender = transfer.get("sender", {})
+                    sender_addr = sender.get("address") if isinstance(sender, dict) else sender
+                    
+                    if not recipient_addr or not sender_addr:
                         continue
                         
-                    # Нормализуем адрес получателя
+                    # Нормализуем адрес получателя и отправителя
                     try:
                         norm_recipient = Address(recipient_addr).to_str(is_user_friendly=False)
+                        norm_sender = Address(sender_addr).to_str(is_user_friendly=False)
+                        
+                        if norm_sender not in user_wallet_addresses:
+                            logger.warning(f"WalletService: Sender {norm_sender} is not linked to user {user.telegram_id}")
+                            continue
+
                         if norm_recipient == merchant_addr_hex:
                             actual_value_nano = int(transfer.get("amount", 0))
                             # Проверяем сумму (2% допуск)
@@ -367,7 +387,11 @@ class WalletService:
                 logger.warning(f"WalletService: No matching TonTransfer to merchant {merchant_addr_hex} found in event")
                 return False
 
-            # 4. Зачисляем баланс
+            # 4. Зачисляем баланс (используем блокировку для предотвращения гонки балансов)
+            user = await user_service.get_locked(self.db, user.id)
+            if not user:
+                return False
+                
             actual_ton = from_nano(actual_value_nano)
             user.balance_ton = float(user.balance_ton) + actual_ton
             
@@ -384,7 +408,14 @@ class WalletService:
             
             self.db.add(transaction)
             self.db.add(user)
-            await self.db.commit()
+            
+            try:
+                await self.db.commit()
+            except Exception as e:
+                # Если кто-то успел записать транзакцию (гонка), откатываем
+                await self.db.rollback()
+                logger.warning(f"WalletService: Transaction {tx_hash} was already processed by another worker: {e}")
+                return False
             
             # WS notification for balance update
             from backend.core.websocket_manager import manager

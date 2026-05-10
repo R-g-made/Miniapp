@@ -279,9 +279,10 @@ export default {
       try {
         const response = await api.sellSticker(selectedSticker.value.id, currency.toLowerCase());
         const newBalance = response.data.new_balance;
+        const actualCurrency = response.data.currency || currency;
         
         // Обновляем баланс в сторе
-        authStore.updateBalance(newBalance, currency);
+        authStore.updateBalance(newBalance, actualCurrency);
  
         closeStickerModal();
         await fetchStickers(); // Обновляем список

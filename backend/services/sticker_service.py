@@ -750,7 +750,8 @@ class StickerService:
             # Воскрешаем ТОЛЬКО те кейсы, которые связаны с этим проданным стикером
             if inactive_cases:
                 await case_service._try_reactivate_cases(db, inactive_cases)
-                await db.commit() # Сохраняем воскрешения
+                # Изменения case_service сохранены в db.add(), но не закоммичены. Сделаем коммит.
+                await db.commit()
                 
             logger.info(f"StickerService: Successfully synced cases after selling sticker {sticker.catalog_id}")
         except Exception as e:

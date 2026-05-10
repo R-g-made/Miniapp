@@ -177,6 +177,7 @@ import { useAppStore } from '../store/app';
 import { useNotificationStore } from '../store/notification';
 import { storeToRefs } from 'pinia';
 import LiveDrop from '../components/LiveDrop.vue';
+import lottie from 'lottie-web';
 
 export default {
   name: 'CaseView',
@@ -404,9 +405,10 @@ export default {
       try {
         const response = await api.sellSticker(winningItem.value.id, activeCurrency.value.toLowerCase());
         const newBalance = response.data.new_balance;
+        const actualCurrency = response.data.currency || activeCurrency.value;
         
         // Обновляем баланс в сторе
-        authStore.updateBalance(newBalance, activeCurrency.value);
+        authStore.updateBalance(newBalance, actualCurrency);
 
         resetCase();
         
@@ -600,6 +602,10 @@ export default {
                 // Иначе ставим флаг, чтобы уйти после завершения действий
                 pendingInactivityRedirect.value = true;
               }
+            } else {
+              // Если кейс снова стал АКТИВНЫМ (например, мы продали стикер обратно системе)
+              // Сбрасываем флаг, чтобы нас не выкинуло на главную!
+              pendingInactivityRedirect.value = false;
             }
           }
           if (event.detail.price_ton !== undefined) {
