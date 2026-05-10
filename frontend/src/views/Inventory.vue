@@ -141,8 +141,8 @@
                 <img src="@/assets/icons/sort-icon.svg" alt="Sort" class="action-icon sort-icon">
                 <span class="action-text">{{ isTransferring ? 'Withdrawing...' : 'Withdraw to' }}</span>
                 <template v-if="selectedSticker.is_onchain">
-                  <img src="@/assets/icons/ton.svg" alt="TON" class="action-issuer-icon">
-                  <span class="action-issuer-name">TON</span>
+                  <img src="https://i.ibb.co/RTngwZvv/Wallet-1.jpg" alt="Wallet" class="action-issuer-icon">
+                  <span class="action-issuer-name">wallet</span>
                 </template>
                 <template v-else>
                   <img src="https://i.ibb.co/MDjJzGVC/Thermos.jpg" alt="Thermos" class="action-issuer-icon thermos-icon">
