@@ -121,6 +121,11 @@ class Settings(BaseSettings):
         "d3c4b5a6-9f8e-4456-7d6c-5b4a39281706",
         "8e7f6a5b-4c3d-4890-2e1f-0a9b8c7d6e5f"
     ]
+
+    # Disabled Case IDs (will never be active)
+    DISABLED_CASE_IDS: list[str] = [
+        "0882abc3-e087-443b-a633-0208ee1e93b8"
+    ]
     
     # Удаляем старые/дублирующие:
     # AUTO_BUY_INTERVAL_HOURS, FLOOR_CHECK_INTERVAL_HOURS и т.д.

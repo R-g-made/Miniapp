@@ -312,6 +312,11 @@ class CaseService:
         """Попытка воскресить переданные выключенные кейсы"""
         for case_obj in cases:
             try:
+                # Если кейс в списке навсегда отключенных, даже не пытаемся его включить
+                if str(case_obj.id) in settings.DISABLED_CASE_IDS:
+                    logger.debug(f"CaseService: Case '{case_obj.name}' is in DISABLED_CASE_IDS list. Skipping reactivation.")
+                    continue
+
                 available_types = []
                 missing_types = []
                 
