@@ -120,7 +120,7 @@ class Settings(BaseSettings):
         "5cb3182f-9c2e-4dbf-8184-022a11750d42",
         "d3c4b5a6-9f8e-4456-7d6c-5b4a39281706",
         "8e7f6a5b-4c3d-4890-2e1f-0a9b8c7d6e5f",
-        "f4140c2c-0c75-4b21-add9-d0f24ccd9517"
+        "21b20628-0b5d-45f1-9bad-67b26147b767"
     ]
 
     # Disabled Case IDs (will never be active)
