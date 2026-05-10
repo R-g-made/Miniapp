@@ -120,6 +120,7 @@ class Settings(BaseSettings):
         "5cb3182f-9c2e-4dbf-8184-022a11750d42",
         "d3c4b5a6-9f8e-4456-7d6c-5b4a39281706",
         "8e7f6a5b-4c3d-4890-2e1f-0a9b8c7d6e5f",
+        "1e2f3a4b-5c6d-4123-7e8f-9a0b1c2d3e4f",
         "21b20628-0b5d-45f1-9bad-67b26147b767"
     ]
 
