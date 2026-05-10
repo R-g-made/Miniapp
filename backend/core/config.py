@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     ADMIN_IDS: list[int] = [] # Список Telegram ID админов для уведомлений
     
     # TON Blockchain
-    TON_API_KEY: str = "" # Получи на https://tonconsole.com
+    TON_API_KEY: str = "" 
     IS_TESTNET: bool = True
     
     # Thermos API
@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     REFERRAL_PERCENTAGE: float = 0.05
     MARKET_FEE_PERCENTAGE: float = 0.05 # Комиссия системы (5%)
     STARS_TO_TON_RATE: float = 0.013
-    LIVE_DROP_INTERVAL: int = 5 # Интервал генерации дропов в секундах (имитация активности)
+    LIVE_DROP_INTERVAL: int = 20 # Интервал генерации дропов в секундах (имитация активности)
     MIN_DEPOSIT: float = 0.1#TODO
     WALLET_ADDRESS: str = "UQDSokuUeDuRCbIKeeCgaiCa001aV0Q3wc6ZX-pdPcnbpNFt"
     
@@ -119,7 +119,8 @@ class Settings(BaseSettings):
     DISABLED_STICKER_CATALOG_IDS: list[str] = [
         "5cb3182f-9c2e-4dbf-8184-022a11750d42",
         "d3c4b5a6-9f8e-4456-7d6c-5b4a39281706",
-        "8e7f6a5b-4c3d-4890-2e1f-0a9b8c7d6e5f"
+        "8e7f6a5b-4c3d-4890-2e1f-0a9b8c7d6e5f",
+        "f4140c2c-0c75-4b21-add9-d0f24ccd9517"
     ]
 
     # Disabled Case IDs (will never be active)

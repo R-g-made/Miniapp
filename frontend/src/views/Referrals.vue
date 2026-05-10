@@ -93,7 +93,7 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import lottie from 'lottie-web';
+import lottie from 'lottie-web/build/player/lottie_light';
 import api from '../api/client';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
