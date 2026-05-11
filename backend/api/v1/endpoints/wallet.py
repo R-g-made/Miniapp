@@ -208,10 +208,12 @@ async def verify_deposit(
     if not tx_hash and obj_in.boc:
         # Если пришел BOC, пытаемся рассчитать хеш из него
         try:
+            import base64
             from ton_core import Cell
             # Рассчитываем хеш внешнего сообщения из BOC
-            # BOC содержит External Message
-            cell = Cell.one_from_boc(obj_in.boc)
+            # BOC содержит External Message, который передается в base64
+            boc_bytes = base64.b64decode(obj_in.boc)
+            cell = Cell.one_from_boc(boc_bytes)
             tx_hash = cell.hash.hex()
             logger.info(f"API: Calculated message hash from BOC: {tx_hash}")
         except Exception as e:

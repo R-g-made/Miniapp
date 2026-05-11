@@ -320,7 +320,8 @@ class WalletService:
             event_data = None
             async with httpx.AsyncClient(timeout=10.0) as http_client:
                 # Пытаемся несколько раз, так как индексация может занимать время
-                for attempt in range(3):
+                # Увеличено до 8 попыток по 2 секунды = 16 секунд ожидания
+                for attempt in range(8):
                     logger.debug(f"WalletService: Attempt {attempt + 1} to find event for hash {tx_hash}")
                     
                     url = f"{base_url}/events/{tx_hash}"
@@ -328,8 +329,14 @@ class WalletService:
                         resp = await http_client.get(url, headers=headers)
                         if resp.status_code == 200:
                             event_data = resp.json()
-                            logger.debug(f"WalletService: Found event data")
-                            break
+                            
+                            # Проверяем, не находится ли транзакция всё ещё в статусе in_progress
+                            if event_data.get("in_progress", False):
+                                logger.debug(f"WalletService: Event found but still in_progress")
+                                event_data = None # Сбрасываем, чтобы попробовать еще раз
+                            else:
+                                logger.debug(f"WalletService: Found completed event data")
+                                break
                         elif resp.status_code == 404:
                             logger.debug(f"WalletService: Event not found yet (404)")
                         else:
@@ -337,8 +344,8 @@ class WalletService:
                     except Exception as e:
                         logger.debug(f"WalletService: Request error: {e}")
                     
-                    if attempt < 2:
-                        await asyncio.sleep(1) # Ждем 1 секунду
+                    if attempt < 7:
+                        await asyncio.sleep(2) # Ждем 2 секунды
 
             if not event_data:
                 logger.warning(f"WalletService: Event {tx_hash} not found on-chain after all attempts")
