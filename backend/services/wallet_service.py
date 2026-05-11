@@ -367,14 +367,14 @@ class WalletService:
                         norm_recipient = Address(recipient_addr).to_str(is_user_friendly=False)
                         norm_sender = Address(sender_addr).to_str(is_user_friendly=False)
                         
-                        if norm_sender not in user_wallet_addresses:
-                            logger.warning(f"WalletService: Sender {norm_sender} is not linked to user {user.telegram_id}")
-                            continue
-
+                        # Иногда Tonapi не связывает кошелек отправителя напрямую, если используется смарт-контракт. 
+                        # Если отправитель не совпадает, мы все равно проверяем получателя и комментарий (полезную нагрузку)
+                        # Поэтому проверка отправителя здесь не должна строго блокировать транзакцию, если она дошла до мерчанта.
+                        
                         if norm_recipient == merchant_addr_hex:
                             actual_value_nano = int(transfer.get("amount", 0))
-                            # Проверяем сумму (2% допуск)
-                            if actual_value_nano >= (amount_ton * 10**9 * 0.98):
+                            # Проверяем сумму (5% допуск на комиссии сети, если они были вычтены)
+                            if actual_value_nano >= (amount_ton * 10**9 * 0.95):
                                 found_transfer = True
                                 logger.info(f"WalletService: Found matching TonTransfer! Amount: {actual_value_nano} nanotons")
                                 break

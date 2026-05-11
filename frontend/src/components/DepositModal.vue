@@ -186,11 +186,8 @@ export default {
             ]
           };
 
-          console.log('Sending transaction:', transaction);
-          
           try {
             const result = await tc.sendTransaction(transaction);
-            console.log('Transaction result:', result);
             
             if (result && result.boc) {
               // Показываем уведомление пользователю
@@ -244,22 +241,16 @@ export default {
       }
 
       tc.onStatusChange(async (wallet) => {
-        console.log('Wallet status changed:', wallet);
-        
         if (wallet) {
           isConnected.value = true;
           walletAddress.value = wallet.account.address;
-          console.log('Wallet connected. Address:', wallet.account.address);
           
           // Вызываем проверку/привязку, чтобы бэкенд узнал о кошельке (как в Profile.vue)
           isVerifying.value = true;
           try {
             const success = await checkWalletProof(wallet);
             if (!success) {
-              console.error('Wallet linking FAILED on backend');
               await disconnectWallet();
-            } else {
-              console.log('Wallet successfully LINKED in DB');
             }
           } catch (e) {
             console.error('Exception during wallet linking:', e);
@@ -267,7 +258,6 @@ export default {
             isVerifying.value = false;
           }
         } else {
-          console.log('Wallet disconnected');
           isConnected.value = false;
           walletAddress.value = '';
           isVerifying.value = false;
