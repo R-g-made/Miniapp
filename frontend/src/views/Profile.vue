@@ -321,6 +321,7 @@ export default {
 .wallet-icon {
   width: 16px;
   height: 16px;
+  filter: invert(31%) sepia(94%) border-left(100%) saturate(2542%) hue-rotate(201deg) brightness(101%) contrast(105%);
 }
 
 .wallet-text {
