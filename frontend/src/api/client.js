@@ -69,6 +69,7 @@ export default {
     getTonProofPayload: () => apiClient.get('/wallet/ton-proof/payload'),
     checkTonProof: (proofData) => apiClient.post('/wallet/ton-proof/check', proofData),
     linkWallet: (data) => apiClient.post('/wallet/link', data),
+    disconnectWallet: () => apiClient.delete('/wallet/disconnect'),
     replenishWallet: (data) => apiClient.post('/wallet/replenish', data),
     verifyDeposit: (data) => apiClient.post('/wallet/verify-deposit', data),
     withdrawWallet: (data) => apiClient.post('/wallet/withdraw', data),

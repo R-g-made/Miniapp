@@ -9,6 +9,37 @@
         </div>
       </div>
       <h1 class="user-name">{{ fullName }}</h1>
+
+      <!-- Wallet Section -->
+      <div class="wallet-section" v-click-outside="closeMenu">
+        <div class="wallet-btn" @click="handleWalletClick">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="wallet-icon">
+             <path d="M19 7H5C3.89543 7 3 7.89543 3 9V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7Z" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+             <path d="M21 13H17C15.8954 13 15 12.1046 15 11C15 9.89543 15.8954 9 17 9H21" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+             <circle cx="18" cy="11" r="1" fill="#007AFF"/>
+          </svg>
+          <span v-if="!isConnected" class="wallet-text">Connect Wallet</span>
+          <span v-else class="wallet-text">{{ shortAddress }}</span>
+        </div>
+        
+        <!-- Dropdown Menu -->
+        <Transition name="fade">
+          <div v-if="isMenuOpen" class="wallet-menu" @click.stop>
+            <div class="menu-item" @click="openTopUp">
+              <span class="menu-text">Top Up</span>
+              <img src="@/assets/icons/plus.svg" class="menu-icon" />
+            </div>
+            <div class="menu-item disconnect" @click="disconnect">
+              <span class="menu-text disconnect-text">Disconnect</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="menu-icon">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="8" y1="16" x2="16" y2="8" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </Transition>
+      </div>
     </div>
 
     <!-- Основной блок настроек -->
@@ -53,33 +84,125 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../store/auth';
+import { useAppStore } from '../store/app';
 import { useNotificationStore } from '../store/notification';
+
+// Simple click-outside directive
+const vClickOutside = {
+  mounted(el, binding) {
+    el.clickOutsideEvent = function(event) {
+      if (!(el === event.target || el.contains(event.target))) {
+        binding.value(event);
+      }
+    };
+    document.body.addEventListener('click', el.clickOutsideEvent);
+  },
+  unmounted(el) {
+    document.body.removeEventListener('click', el.clickOutsideEvent);
+  }
+};
 
 export default {
   name: 'ProfileView',
+  directives: {
+    clickOutside: vClickOutside
+  },
   setup() {
     const router = useRouter();
     const authStore = useAuthStore();
+    const appStore = useAppStore();
     const notificationStore = useNotificationStore();
     
     const currentLang = ref('en');
+    const isConnected = ref(false);
+    const walletAddress = ref('');
+    const isMenuOpen = ref(false);
+    let unsubscribe = null;
+
+    onMounted(async () => {
+      try {
+        const { getTonConnect } = await import('../api/tonConnect');
+        const tc = await getTonConnect();
+        
+        if (tc.connected && tc.account) {
+          isConnected.value = true;
+          walletAddress.value = tc.account.address;
+        }
+        
+        unsubscribe = tc.onStatusChange((wallet) => {
+          if (wallet) {
+            isConnected.value = true;
+            walletAddress.value = wallet.account.address;
+          } else {
+            isConnected.value = false;
+            walletAddress.value = '';
+            isMenuOpen.value = false;
+          }
+        });
+      } catch (e) {
+        console.error('Failed to init ton connect in profile', e);
+      }
+    });
+
+    onUnmounted(() => {
+      if (unsubscribe) unsubscribe();
+    });
 
     const user = computed(() => {
-        // Пробуем взять из стора или напрямую из Telegram WebApp
         return authStore.user || window.Telegram?.WebApp?.initDataUnsafe?.user || {
-            first_name: 'Real',
-            last_name: 'glory'
+            first_name: 'User'
         };
     });
 
     const fullName = computed(() => {
+      if (authStore.user?.full_name) return authStore.user.full_name;
       const first = user.value?.first_name || '';
       const last = user.value?.last_name || '';
-      return `${first} ${last}`.trim();
+      return `${first} ${last}`.trim() || 'User';
     });
+
+    const shortAddress = computed(() => {
+      if (!walletAddress.value) return '';
+      let addr = walletAddress.value;
+      // Convert raw 0:... address to friendly UQ... format if needed
+      // (Basic fallback display, TON Connect UI handles full parsing inside, but we'll show a nice slice)
+      return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+    });
+
+    const handleWalletClick = async () => {
+      if (isConnected.value) {
+        isMenuOpen.value = !isMenuOpen.value;
+      } else {
+        const { connectWallet } = await import('../api/tonConnect');
+        connectWallet();
+      }
+    };
+
+    const openTopUp = () => {
+      isMenuOpen.value = false;
+      appStore.setDepositOpen(true);
+    };
+
+    const disconnect = async () => {
+      isMenuOpen.value = false;
+      try {
+        const { disconnectWallet } = await import('../api/tonConnect');
+        await disconnectWallet();
+        
+        // Also call backend disconnect API if available
+        const api = (await import('../api/client')).default;
+        await api.disconnectWallet();
+      } catch (e) {
+        console.error('Disconnect error', e);
+      }
+    };
+
+    const closeMenu = () => {
+      isMenuOpen.value = false;
+    };
 
     const userInitials = computed(() => {
       const first = user.value?.first_name?.charAt(0) || '';
@@ -118,7 +241,15 @@ export default {
       currentLang,
       toggleLanguage,
       openSupport,
-      openReferrals
+      openReferrals,
+      isConnected,
+      walletAddress,
+      shortAddress,
+      isMenuOpen,
+      handleWalletClick,
+      openTopUp,
+      disconnect,
+      closeMenu
     };
   }
 }
@@ -170,6 +301,90 @@ export default {
   color: #FFFFFF;
   margin: 0;
   text-align: center;
+}
+
+.wallet-section {
+  position: relative;
+  margin-top: 8px;
+}
+
+.wallet-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: opacity 0.2s;
+}
+
+.wallet-btn:active {
+  opacity: 0.7;
+}
+
+.wallet-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.wallet-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #007AFF;
+}
+
+.wallet-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  background: #202020;
+  border-radius: 14px;
+  padding: 8px;
+  width: 160px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.menu-item:active {
+  background: rgba(255,255,255,0.1);
+}
+
+.menu-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #FFFFFF;
+}
+
+.disconnect-text {
+  color: #FF3B30;
+}
+
+.menu-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -10px);
 }
 
 .settings-card {
