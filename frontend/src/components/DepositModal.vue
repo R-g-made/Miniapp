@@ -73,6 +73,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useAppStore } from '../store/app';
+import { useNotificationStore } from '../store/notification';
 import { storeToRefs } from 'pinia';
 import api from '../api/client';
 import { initTonConnect, connectWallet, disconnectWallet, checkWalletProof } from '../api/tonConnect';
@@ -81,6 +82,7 @@ export default {
   name: 'DepositModal',
   setup() {
     const appStore = useAppStore();
+    const notificationStore = useNotificationStore();
     const isDepositOpen = storeToRefs(appStore).isDepositOpen;
     
     const activeRefCurrency = ref('STARS');
@@ -154,6 +156,12 @@ export default {
             console.log('Transaction result:', result);
             
             if (result && result.boc) {
+              // Показываем уведомление пользователю
+              notificationStore.info(
+                'Transaction sent', 
+                'TON will appear on your balance within 1 minute'
+              );
+
               // Отправляем сигнал на бэкенд о том, что транзакция отправлена.
               setTimeout(async () => {
                 try {
