@@ -87,7 +87,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
@@ -125,6 +125,23 @@ export default {
     // Инициализируем из стора, чтобы не было "прыжка" при загрузке
     const isConnected = ref(!!authStore.user?.wallet_address);
     const walletAddress = ref(authStore.user?.wallet_address || '');
+
+    // Следим за изменениями в authStore, чтобы подхватывать кошелек из БД
+    watch(() => authStore.user?.wallet_address, (newAddr) => {
+      if (newAddr) {
+        isConnected.value = true;
+        walletAddress.value = newAddr;
+      } else if (!authStore.isLoading) {
+        // Если в БД пусто, проверяем TonConnect, прежде чем сбрасывать
+        import('../api/tonConnect').then(async ({ getTonConnect }) => {
+          const tc = await getTonConnect();
+          if (!tc.connected) {
+            isConnected.value = false;
+            walletAddress.value = '';
+          }
+        });
+      }
+    });
     
     const isMenuOpen = ref(false);
     let unsubscribe = null;
@@ -217,6 +234,14 @@ export default {
         // Also call backend disconnect API if available
         const api = (await import('../api/client')).default;
         await api.disconnectWallet();
+
+        // Обновляем стор
+        if (authStore.user) {
+          authStore.user.wallet_address = null;
+        }
+        
+        isConnected.value = false;
+        walletAddress.value = '';
       } catch (e) {
         console.error('Disconnect error', e);
       }

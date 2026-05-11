@@ -71,8 +71,9 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useAppStore } from '../store/app';
+import { useAuthStore } from '../store/auth';
 import { useNotificationStore } from '../store/notification';
 import { storeToRefs } from 'pinia';
 import api from '../api/client';
@@ -82,14 +83,31 @@ export default {
   name: 'DepositModal',
   setup() {
     const appStore = useAppStore();
+    const authStore = useAuthStore();
     const notificationStore = useNotificationStore();
     const isDepositOpen = storeToRefs(appStore).isDepositOpen;
     
     const activeRefCurrency = ref('STARS');
     const amount = ref('');
-    const isConnected = ref(false);
-    const walletAddress = ref('');
+    const isConnected = ref(!!authStore.user?.wallet_address);
+    const walletAddress = ref(authStore.user?.wallet_address || '');
     const isVerifying = ref(false);
+
+    // Следим за изменениями в authStore, чтобы подхватывать кошелек из БД
+    watch(() => authStore.user?.wallet_address, (newAddr) => {
+      if (newAddr && !isConnected.value) {
+        isConnected.value = true;
+        walletAddress.value = newAddr;
+      } else if (!newAddr && isConnected.value && !authStore.isLoading) {
+        // Если в БД пусто, а мы думали что подключены - проверяем TonConnect
+        initTonConnect().then(tc => {
+          if (!tc.connected) {
+            isConnected.value = false;
+            walletAddress.value = '';
+          }
+        });
+      }
+    });
 
     const isOpen = computed(() => isDepositOpen.value);
     
@@ -196,6 +214,16 @@ export default {
     onMounted(async () => {
       const tc = await initTonConnect();
       
+      // Если уже есть соединение в библиотеке - приоритет ей
+      if (tc.connected && tc.account) {
+        isConnected.value = true;
+        walletAddress.value = tc.account.address;
+      } else if (authStore.user?.wallet_address) {
+        // Если библиотека еще не восстановила сессию, но в БД есть адрес
+        isConnected.value = true;
+        walletAddress.value = authStore.user.wallet_address;
+      }
+
       tc.onStatusChange(async (wallet) => {
         console.log('Wallet status changed:', wallet);
         

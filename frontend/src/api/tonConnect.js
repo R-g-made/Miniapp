@@ -89,6 +89,13 @@ export const checkWalletProof = async (wallet) => {
             };
             console.log('[TonConnect] Sending proof to backend:', proofData);
             await apiClient.checkTonProof(proofData);
+            
+            // Обновляем стор
+            const authStore = useAuthStore();
+            if (authStore.user) {
+                authStore.user.wallet_address = address;
+            }
+            
             return true;
         } catch (e) {
             console.error('[TonConnect] Backend proof verification failed, falling back to direct link...', e);
@@ -100,6 +107,13 @@ export const checkWalletProof = async (wallet) => {
         console.log('[TonConnect] No proof or proof failed. Linking address directly:', address);
         await apiClient.linkWallet({ address: address });
         console.log('[TonConnect] Direct link successful');
+        
+        // Обновляем стор
+        const authStore = useAuthStore();
+        if (authStore.user) {
+            authStore.user.wallet_address = address;
+        }
+        
         return true;
     } catch (e) {
         console.error('[TonConnect] Direct link failed:', e);
