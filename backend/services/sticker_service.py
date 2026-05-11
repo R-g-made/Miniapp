@@ -35,7 +35,11 @@ class StickerService:
             from collections import defaultdict
             grouped = defaultdict(list)
             for s in all_stickers:
-                grouped[(str(s.catalog_id), s.number)].append(s)
+                if s.is_onchain:
+                    if s.nft_address:
+                        grouped[("onchain", s.nft_address)].append(s)
+                else:
+                    grouped[("thermos", str(s.catalog_id), s.number)].append(s)
                 
             deleted_dups = 0
             for key, group in grouped.items():
@@ -140,14 +144,14 @@ class StickerService:
                         existing = existing_map.get((cat_id_str, inst))
                         
                         if existing:
-                            if not existing.is_available:
+                            if existing.owner_id is not None:
+                                logger.warning(f"StickerService: Sticker {cat_id} #{inst} is in Thermos pool but owned by {existing.owner_id}")
+                            elif not existing.is_available:
                                 logger.info(f"StickerService: Reactivating archived thermos sticker {cat_id} #{inst}")
                                 existing.is_available = True
                                 existing.owner_id = None
                                 existing.unlock_date = None
                                 results["thermos_added"] += 1
-                            elif existing.owner_id is not None:
-                                logger.warning(f"StickerService: Sticker {cat_id} #{inst} is in Thermos pool but owned by {existing.owner_id}")
                             continue
 
                         # Если не нашли — создаем
@@ -248,7 +252,9 @@ class StickerService:
                         existing = (await db.execute(stmt_exists)).scalars().first()
                         
                         if existing:
-                            if not existing.is_available:
+                            if existing.owner_id is not None:
+                                logger.warning(f"StickerService: Sticker {nft_addr} is on merchant wallet but owned by {existing.owner_id} in DB")
+                            elif not existing.is_available:
                                 logger.info(f"StickerService: Reactivating archived onchain sticker {nft_addr}")
                                 existing.is_available = True
                                 existing.owner_id = None
