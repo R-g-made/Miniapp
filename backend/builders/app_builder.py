@@ -75,7 +75,7 @@ class FastAPIBuilder:
 
         self._app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
+            allow_origins=["https://t.me", "https://stickerloot.live"], 
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],

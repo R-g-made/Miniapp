@@ -4,7 +4,7 @@ from typing import Optional
 class Settings(BaseSettings):
     PROJECT_NAME: str = "MiniApp"
     API_V1_STR: str = "/api/v1"
-    DEBUG: bool = True
+    DEBUG: bool = False
     
     # Database
     POSTGRES_SERVER: str = "localhost"
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     STICKERS_TOOLS_API_URL: str = "https://stickers.tools/api/stats-new"
     
     # Security
-    SECRET_KEY: str = "test-secret-key-for-development-only-change-in-production"
+    SECRET_KEY: str = "" # MUST BE SET IN .env
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
