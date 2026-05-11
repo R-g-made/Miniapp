@@ -145,6 +145,12 @@ export default {
     const handleDeposit = async () => {
       if (!amount.value || parseFloat(amount.value) <= 0) return;
 
+      if (activeRefCurrency.value === 'TON' && !isConnected.value) {
+        // Если кошелек не подключен, сначала просим подключить. Не создаем транзакцию в БД.
+        await connectWallet();
+        return;
+      }
+
       try {
         const response = await api.replenishWallet({
           currency: activeRefCurrency.value,
@@ -156,13 +162,6 @@ export default {
         if (activeRefCurrency.value === 'TON' && data.ton_transaction) {
           const tc = await initTonConnect();
           
-          if (!isConnected.value) {
-            // Если кошелек не подключен, сначала просим подключить
-            await connectWallet();
-            // Прерываем выполнение, так как пользователю нужно время на подключение в модалке
-            return;
-          }
-
           const transaction = {
             validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
             messages: [

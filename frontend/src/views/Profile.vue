@@ -162,10 +162,18 @@ export default {
           walletAddress.value = authStore.user.wallet_address;
         }
         
-        unsubscribe = tc.onStatusChange((wallet) => {
+        unsubscribe = tc.onStatusChange(async (wallet) => {
           if (wallet) {
             isConnected.value = true;
             walletAddress.value = wallet.account.address;
+            
+            // Вызываем проверку/привязку, чтобы бэкенд узнал о кошельке
+            try {
+              const { checkWalletProof } = await import('../api/tonConnect');
+              await checkWalletProof(wallet);
+            } catch (err) {
+              console.error('Wallet proof failed in profile', err);
+            }
           } else {
             // Если библиотека говорит, что кошелек отключен — очищаем всё
             isConnected.value = false;

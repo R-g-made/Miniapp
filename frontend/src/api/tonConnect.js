@@ -1,4 +1,4 @@
-import { TonConnectUI } from '@tonconnect/ui';
+import { TonConnectUI, toUserFriendlyAddress } from '@tonconnect/ui';
 import apiClient from './client';
 import { useAuthStore } from '../store/auth';
 
@@ -75,8 +75,37 @@ export const disconnectWallet = async () => {
 };
 
 export const checkWalletProof = async (wallet) => {
-    console.log('[TonConnect] checkWalletProof called for:', wallet.account.address);
+    const authStore = useAuthStore();
+    
+    // Ожидаем окончания инициализации авторизации (до 2 секунд)
+    let retries = 40;
+    while (!authStore.initialized && retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        retries--;
+    }
+
+    if (!authStore.isLoggedIn) {
+        console.error('[TonConnect] Cannot link wallet: User is not logged in');
+        return false;
+    }
+
     const address = wallet.account.address;
+    console.log('[TonConnect] checkWalletProof called for:', address);
+
+    // Сравниваем адреса с учетом обоих форматов (Raw и User-Friendly)
+    const storedAddress = authStore.user?.wallet_address;
+    if (storedAddress) {
+        try {
+            const friendlyAddress = toUserFriendlyAddress(address);
+            const storedFriendly = toUserFriendlyAddress(storedAddress);
+            if (friendlyAddress === storedFriendly || storedAddress === address) {
+                console.log('[TonConnect] Wallet is already linked in DB, skipping request.');
+                return true;
+            }
+        } catch (e) {
+            if (storedAddress === address) return true;
+        }
+    }
 
     // 1. Пытаемся через TonProof (безопасный путь)
     if (wallet.connectItems?.tonProof && !wallet.connectItems.tonProof.error) {
