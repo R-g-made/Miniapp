@@ -13,11 +13,7 @@
       <!-- Wallet Section -->
       <div class="wallet-section" v-click-outside="closeMenu">
         <div class="wallet-btn" @click="handleWalletClick">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="wallet-icon">
-             <path d="M19 7H5C3.89543 7 3 7.89543 3 9V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7Z" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-             <path d="M21 13H17C15.8954 13 15 12.1046 15 11C15 9.89543 15.8954 9 17 9H21" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-             <circle cx="18" cy="11" r="1" fill="#007AFF"/>
-          </svg>
+          <img src="@/assets/icons/wallet.svg" alt="Wallet" class="wallet-icon">
           <span v-if="!isConnected" class="wallet-text">Connect Wallet</span>
           <span v-else class="wallet-text">{{ shortAddress }}</span>
         </div>
@@ -27,7 +23,7 @@
           <div v-if="isMenuOpen" class="wallet-menu" @click.stop>
             <div class="menu-item" @click="openTopUp">
               <span class="menu-text">Top Up</span>
-              <img src="@/assets/icons/plus.svg" class="menu-icon" />
+              <img src="@/assets/icons/plus.svg" class="menu-icon plus-icon" />
             </div>
             <div class="menu-item disconnect" @click="disconnect">
               <span class="menu-text disconnect-text">Disconnect</span>
@@ -339,11 +335,12 @@ export default {
   left: 50%;
   transform: translateX(-50%);
   margin-top: 8px;
-  background: #202020;
-  border-radius: 14px;
+  background: rgba(32, 32, 32, 0.1);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border-radius: 20px;
   padding: 8px;
   width: 160px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -377,6 +374,10 @@ export default {
 .menu-icon {
   width: 18px;
   height: 18px;
+}
+
+.plus-icon {
+  transform: scale(0.9);
 }
 
 .fade-enter-active, .fade-leave-active {
