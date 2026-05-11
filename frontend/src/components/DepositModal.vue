@@ -78,6 +78,7 @@ import { useNotificationStore } from '../store/notification';
 import { storeToRefs } from 'pinia';
 import api from '../api/client';
 import { initTonConnect, connectWallet, disconnectWallet, checkWalletProof } from '../api/tonConnect';
+import { toUserFriendlyAddress } from '@tonconnect/ui';
 
 export default {
   name: 'DepositModal',
@@ -122,7 +123,13 @@ export default {
     const walletButtonText = computed(() => {
       if (isVerifying.value) return 'Verifying...';
       if (isConnected.value) {
-        return walletAddress.value ? `${walletAddress.value.slice(0, 4)}...${walletAddress.value.slice(-4)}` : 'Connected';
+        if (!walletAddress.value) return 'Connected';
+        try {
+          const friendlyAddr = toUserFriendlyAddress(walletAddress.value);
+          return `${friendlyAddr.slice(0, 4)}...${friendlyAddr.slice(-4)}`;
+        } catch (e) {
+          return `${walletAddress.value.slice(0, 4)}...${walletAddress.value.slice(-4)}`;
+        }
       }
       return 'Connect wallet';
     });
@@ -254,6 +261,11 @@ export default {
           isConnected.value = false;
           walletAddress.value = '';
           isVerifying.value = false;
+          
+          // Принудительно очищаем в сторе, если там еще что-то есть
+          if (authStore.user?.wallet_address) {
+            authStore.user.wallet_address = null;
+          }
         }
       });
     });

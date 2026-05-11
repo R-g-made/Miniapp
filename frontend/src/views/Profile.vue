@@ -167,12 +167,14 @@ export default {
             isConnected.value = true;
             walletAddress.value = wallet.account.address;
           } else {
-            // Если в БД всё еще есть адрес, не сбрасываем отображение сразу, 
-            // чтобы не дергать интерфейс при мимолетных дисконнектах
-            if (!authStore.user?.wallet_address) {
-              isConnected.value = false;
-              walletAddress.value = '';
-              isMenuOpen.value = false;
+            // Если библиотека говорит, что кошелек отключен — очищаем всё
+            isConnected.value = false;
+            walletAddress.value = '';
+            isMenuOpen.value = false;
+            
+            // Также очищаем в сторе, чтобы изменения отразились везде
+            if (authStore.user?.wallet_address) {
+              authStore.user.wallet_address = null;
             }
           }
         });
