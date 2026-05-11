@@ -127,40 +127,43 @@ class WalletService:
             
             logger.info(f"WalletService: TON Proof signature verified for address {address}")
             
-            # 1. Получаем ВСЕ кошельки пользователя (и активные, и нет)
-            stmt = select(Wallet).where(Wallet.owner_id == user.id)
+            # 1. Проверяем, не существует ли уже этот кошелек в БД
+            stmt = select(Wallet).where(Wallet.address == address)
             result = await self.db.execute(stmt)
-            user_wallets = result.scalars().all()
+            existing_wallet = result.scalars().first()
             
-            # 2. Проверяем, привязан ли уже этот адрес к КОМУ-ТО другому (активный)
-            other_wallet = await wallet_repository.get_by_address(self.db, address=address)
-            if other_wallet and other_wallet.owner_id != user.id:
-                raise InvalidOperation("Wallet already linked to another account")
-
-            # 3. Деактивируем все текущие кошельки пользователя, кроме того, который мы сейчас привязываем
-            for w in user_wallets:
-                if w.address != address and w.is_active:
-                    w.is_active = False
-                    self.db.add(w)
-
-            # 4. Ищем, есть ли этот адрес уже в списке кошельков пользователя
-            target_wallet = next((w for w in user_wallets if w.address == address), None)
-
-            if target_wallet:
-                # Если нашли - просто активируем (если был деактивирован)
-                if not target_wallet.is_active:
-                    target_wallet.is_active = True
-                    self.db.add(target_wallet)
-                    logger.info(f"WalletService: Reactivated wallet {address} for user {user.id}")
+            if existing_wallet:
+                if existing_wallet.owner_id != user.id:
+                    if existing_wallet.is_active:
+                        raise InvalidOperation("Wallet already linked to another active account")
+                    else:
+                        # Перепривязываем кошелек к новому пользователю
+                        existing_wallet.owner_id = user.id
+                        existing_wallet.is_active = True
+                        self.db.add(existing_wallet)
+                        logger.info(f"WalletService: Reassigned inactive wallet {address} to user {user.id}")
                 else:
-                    logger.info(f"WalletService: Wallet {address} is already active for user {user.id}")
+                    if not existing_wallet.is_active:
+                        existing_wallet.is_active = True
+                        self.db.add(existing_wallet)
+                        logger.info(f"WalletService: Reactivated wallet {address} for user {user.id}")
+                    else:
+                        logger.info(f"WalletService: Wallet {address} is already active for user {user.id}")
             else:
-                # Если такого адреса у пользователя еще нет - создаем новый
+                # Создаем новый
                 await wallet_repository.create(
                     self.db,
                     obj_in=WalletCreate(owner_id=user.id, address=address, is_active=True)
                 )
                 logger.info(f"WalletService: Linked new wallet {address} for user {user.id}")
+
+            # 2. Деактивируем остальные кошельки этого пользователя
+            stmt_user_wallets = select(Wallet).where(Wallet.owner_id == user.id)
+            result_user_wallets = await self.db.execute(stmt_user_wallets)
+            for w in result_user_wallets.scalars().all():
+                if w.address != address and w.is_active:
+                    w.is_active = False
+                    self.db.add(w)
 
             await self.db.commit()
             await self.db.refresh(user)
@@ -175,34 +178,36 @@ class WalletService:
         Прямая привязка адреса кошелька для авторизованного пользователя.
         """
         try:
-            # 1. Получаем ВСЕ кошельки пользователя
-            stmt = select(Wallet).where(Wallet.owner_id == user.id)
+            # 1. Проверяем, не существует ли уже этот кошелек в БД
+            stmt = select(Wallet).where(Wallet.address == address)
             result = await self.db.execute(stmt)
-            user_wallets = result.scalars().all()
+            existing_wallet = result.scalars().first()
             
-            # 2. Проверяем, не занят ли адрес другим АКТИВНЫМ пользователем
-            other_wallet = await wallet_repository.get_by_address(self.db, address=address)
-            if other_wallet and other_wallet.owner_id != user.id:
-                raise InvalidOperation("Wallet already linked to another account")
-
-            # 3. Деактивируем все текущие кошельки пользователя, кроме того, который мы сейчас привязываем
-            for w in user_wallets:
-                if w.address != address and w.is_active:
-                    w.is_active = False
-                    self.db.add(w)
-
-            # 4. Ищем, есть ли этот адрес уже в списке кошельков пользователя
-            target_wallet = next((w for w in user_wallets if w.address == address), None)
-
-            if target_wallet:
-                if not target_wallet.is_active:
-                    target_wallet.is_active = True
-                    self.db.add(target_wallet)
+            if existing_wallet:
+                if existing_wallet.owner_id != user.id:
+                    if existing_wallet.is_active:
+                        raise InvalidOperation("Wallet already linked to another active account")
+                    else:
+                        existing_wallet.owner_id = user.id
+                        existing_wallet.is_active = True
+                        self.db.add(existing_wallet)
+                else:
+                    if not existing_wallet.is_active:
+                        existing_wallet.is_active = True
+                        self.db.add(existing_wallet)
             else:
                 await wallet_repository.create(
                     self.db,
                     obj_in=WalletCreate(owner_id=user.id, address=address, is_active=True)
                 )
+
+            # 2. Деактивируем остальные кошельки пользователя
+            stmt_user_wallets = select(Wallet).where(Wallet.owner_id == user.id)
+            result_user_wallets = await self.db.execute(stmt_user_wallets)
+            for w in result_user_wallets.scalars().all():
+                if w.address != address and w.is_active:
+                    w.is_active = False
+                    self.db.add(w)
 
             await self.db.commit()
             await self.db.refresh(user)
