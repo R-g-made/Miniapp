@@ -68,11 +68,12 @@ export default {
     return { authStore, appStore, openDeposit };
   },
   async mounted() {
+    // 1. Сначала СТРОГО авторизация
     await this.authStore.initialize();
-    await this.appStore.fetchBootstrap();
     
-    // Подключаемся к WebSocket после авторизации
+    // 2. Только после успешного логина тянем всё остальное
     if (this.authStore.isLoggedIn) {
+      await this.appStore.fetchBootstrap();
       wsService.connect();
     }
     

@@ -92,6 +92,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../store/auth';
 import { useAppStore } from '../store/app';
 import { useNotificationStore } from '../store/notification';
+import { toUserFriendlyAddress } from '@tonconnect/ui';
 
 // Simple click-outside directive
 const vClickOutside = {
@@ -120,12 +121,16 @@ export default {
     const notificationStore = useNotificationStore();
     
     const currentLang = ref('en');
-    const isConnected = ref(false);
-    const walletAddress = ref('');
+    
+    // Инициализируем из стора, чтобы не было "прыжка" при загрузке
+    const isConnected = ref(!!authStore.user?.wallet_address);
+    const walletAddress = ref(authStore.user?.wallet_address || '');
+    
     const isMenuOpen = ref(false);
     let unsubscribe = null;
 
     onMounted(async () => {
+      // 1. Сначала проверяем статус через библиотеку
       try {
         const { getTonConnect } = await import('../api/tonConnect');
         const tc = await getTonConnect();
@@ -133,6 +138,11 @@ export default {
         if (tc.connected && tc.account) {
           isConnected.value = true;
           walletAddress.value = tc.account.address;
+        } else if (authStore.user?.wallet_address) {
+          // Если библиотека говорит "не подключен", но в БД есть адрес - 
+          // доверяем БД для отображения, пока юзер не нажмет Disconnect
+          isConnected.value = true;
+          walletAddress.value = authStore.user.wallet_address;
         }
         
         unsubscribe = tc.onStatusChange((wallet) => {
@@ -140,9 +150,13 @@ export default {
             isConnected.value = true;
             walletAddress.value = wallet.account.address;
           } else {
-            isConnected.value = false;
-            walletAddress.value = '';
-            isMenuOpen.value = false;
+            // Если в БД всё еще есть адрес, не сбрасываем отображение сразу, 
+            // чтобы не дергать интерфейс при мимолетных дисконнектах
+            if (!authStore.user?.wallet_address) {
+              isConnected.value = false;
+              walletAddress.value = '';
+              isMenuOpen.value = false;
+            }
           }
         });
       } catch (e) {
@@ -169,10 +183,15 @@ export default {
 
     const shortAddress = computed(() => {
       if (!walletAddress.value) return '';
-      let addr = walletAddress.value;
-      // Convert raw 0:... address to friendly UQ... format if needed
-      // (Basic fallback display, TON Connect UI handles full parsing inside, but we'll show a nice slice)
-      return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+      try {
+        // Преобразуем сырой адрес (0:...) в читаемый (UQ...)
+        const friendlyAddr = toUserFriendlyAddress(walletAddress.value);
+        return `${friendlyAddr.slice(0, 4)}...${friendlyAddr.slice(-4)}`;
+      } catch (e) {
+        // Если это уже дружественный адрес или произошла ошибка
+        const addr = walletAddress.value;
+        return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+      }
     });
 
     const handleWalletClick = async () => {
