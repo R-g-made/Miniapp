@@ -162,6 +162,19 @@ export default {
         if (activeRefCurrency.value === 'TON' && data.ton_transaction) {
           const tc = await initTonConnect();
           
+          // Даем TonConnect время на восстановление соединения, если мы только что просили юзера подключиться
+          let retries = 20; // 1 секунда (20 * 50ms)
+          while (!tc.connected && retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 50));
+              retries--;
+          }
+          
+          if (!tc.connected) {
+              console.error('Cannot send transaction: TonConnect is not connected.');
+              notificationStore.error('Error', 'Wallet is not connected');
+              return;
+          }
+
           const transaction = {
             validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
             messages: [
@@ -234,13 +247,11 @@ export default {
         console.log('Wallet status changed:', wallet);
         
         if (wallet) {
-          const wasConnected = isConnected.value;
           isConnected.value = true;
           walletAddress.value = wallet.account.address;
           console.log('Wallet connected. Address:', wallet.account.address);
           
-          // Вызываем проверку/привязку в любом случае. 
-          // Метод checkWalletProof сам разберется: использовать Proof или прямой Link.
+          // Вызываем проверку/привязку, чтобы бэкенд узнал о кошельке (как в Profile.vue)
           isVerifying.value = true;
           try {
             const success = await checkWalletProof(wallet);

@@ -169,8 +169,14 @@ export default {
             
             // Вызываем проверку/привязку, чтобы бэкенд узнал о кошельке
             try {
-              const { checkWalletProof } = await import('../api/tonConnect');
-              await checkWalletProof(wallet);
+              const { checkWalletProof, disconnectWallet } = await import('../api/tonConnect');
+              const success = await checkWalletProof(wallet);
+              if (!success) {
+                console.error('Wallet linking FAILED on backend in Profile');
+                await disconnectWallet();
+              } else {
+                console.log('Wallet successfully LINKED in DB in Profile');
+              }
             } catch (err) {
               console.error('Wallet proof failed in profile', err);
             }
