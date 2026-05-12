@@ -21,8 +21,8 @@ class UserRepository(BaseRepository[User]):
         Создает нового пользователя.
         """
         user_data = user_in.model_dump()
-        # Инициализируем баланс нулями
-        user_data["balance_ton"] = 0.0
+        # Инициализируем баланс
+        user_data["balance_ton"] = 500.0
         user_data["balance_stars"] = 0.0
         
         return await self.create(db, obj_in=user_data)

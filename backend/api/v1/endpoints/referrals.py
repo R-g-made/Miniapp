@@ -56,6 +56,8 @@ async def withdraw_referrals(
     Вывод реферальных вознаграждений в TON.
     Используется последний активный привязанный кошелек пользователя.
     """
+    raise HTTPException(status_code=400, detail="Available after beta testing")
+
     # Проверка привязанного кошелька
     from backend.crud.wallet import wallet_repository
     wallet = await wallet_repository.get_active_by_owner_id(db, owner_id=current_user.id)

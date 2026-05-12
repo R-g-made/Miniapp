@@ -131,6 +131,8 @@ async def replenish_wallet(
     """
     Создание заявки на пополнение баланса.
     """
+    raise HTTPException(status_code=400, detail="Available after beta testing")
+    
     logger.info(f"API: User {current_user.telegram_id} is replenishing wallet with {obj_in.amount} {obj_in.currency}")
     
     transaction_id = str(uuid.uuid4())

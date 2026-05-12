@@ -80,6 +80,8 @@ async def transfer_sticker(
     """
     Вывод стикера из приложения в кошелек пользователя и Thermos.
     """
+    raise HTTPException(status_code=400, detail="Available after beta testing")
+    
     logger.info(f"API: User {current_user.telegram_id} is transferring sticker {uuid}")
     
     success = await sticker_service.transfer(
