@@ -46,7 +46,7 @@
 
       <!-- Сетка кейсов -->
       <Transition name="grid-fade" mode="out-in">
-        <div class="cases-grid" :key="(selectedIssuer || 'all') + currentSort">
+        <div v-if="cases.length > 0" class="cases-grid" :key="(selectedIssuer || 'all') + currentSort">
           <TransitionGroup name="case-list" appear>
             <div 
               v-for="item in cases" 
@@ -76,6 +76,16 @@
               </div>
             </div>
           </TransitionGroup>
+        </div>
+        
+        <div v-else class="empty-state">
+          <div 
+            class="empty-lottie"
+            ref="emptyLottieContainer"
+          ></div>
+          <p class="empty-text">No packs found</p>
+          <p class="empty-subtext">They will appear a little later</p>
+          <button @click="fetchCases" class="btn-primary-new reload-btn">Reload</button>
         </div>
       </Transition>
     </div>
@@ -111,6 +121,8 @@ import { useAppStore } from '../store/app';
 import { useNotificationStore } from '../store/notification';
 import { storeToRefs } from 'pinia';
 import LiveDrop from '../components/LiveDrop.vue';
+import lottie from 'lottie-web';
+import noPackLottie from '@/assets/icons/no_pack.json';
 
 export default {
   components: {
@@ -130,6 +142,9 @@ export default {
     const selectedCase = ref(null);
     const isOpening = ref(false);
     const dropResult = ref(null);
+    
+    const emptyLottieContainer = ref(null);
+    let emptyLottieInstance = null;
     
     const cases = computed(() => {
       return storeCases.value.filter(c => c.is_active !== false);
@@ -251,6 +266,28 @@ export default {
       liveDrops.value.unshift(event.detail);
       if (liveDrops.value.length > 10) liveDrops.value.pop();
     };
+    
+    const initEmptyLottie = () => {
+      if (emptyLottieContainer.value && !emptyLottieInstance) {
+        emptyLottieInstance = lottie.loadAnimation({
+          container: emptyLottieContainer.value,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          animationData: noPackLottie
+        });
+      }
+    };
+
+    watch(cases, (newVal) => {
+      if (newVal.length === 0) {
+        // Даем DOM обновиться перед инициализацией Lottie
+        setTimeout(initEmptyLottie, 50);
+      } else if (emptyLottieInstance) {
+        emptyLottieInstance.destroy();
+        emptyLottieInstance = null;
+      }
+    }, { immediate: true });
 
     onMounted(() => {
       fetchCases();
@@ -260,6 +297,9 @@ export default {
     onUnmounted(() => {
       window.removeEventListener('ws:live_drop', handleLiveDrop);
       appStore.setNavBarHidden(false); // Сбрасываем при уходе со страницы
+      if (emptyLottieInstance) {
+        emptyLottieInstance.destroy();
+      }
     });
 
     return {
@@ -270,6 +310,7 @@ export default {
       dropResult,
       selectCase,
       openCase,
+      fetchCases,
       issuers,
       selectedIssuer,
       toggleSort,
@@ -279,7 +320,8 @@ export default {
       selectSort,
       formatPrice,
       activeCurrency,
-      getCardStyle
+      getCardStyle,
+      emptyLottieContainer
     };
   }
 }
@@ -627,5 +669,57 @@ export default {
   height: 44px;
   width: 44px;
   object-fit: cover;
+}
+
+/* Пустое состояние (Empty State) */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-lottie {
+  width: 160px;
+  height: 160px;
+  margin-bottom: 20px;
+}
+
+.empty-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin: 0 0 8px 0;
+}
+
+.empty-subtext {
+  font-size: 15px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 30px 0;
+}
+
+.btn-primary-new {
+  background-color: #FFFFFF;
+  color: #000000;
+  border: none;
+  border-radius: 1000px;
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: transform 0.1s;
+}
+
+.btn-primary-new:active {
+  transform: scale(0.95);
+}
+
+.reload-btn {
+  min-width: 140px;
 }
 </style>

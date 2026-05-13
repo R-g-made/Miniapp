@@ -67,16 +67,7 @@ export default {
 
     return { authStore, appStore, openDeposit };
   },
-  async mounted() {
-    // 1. Сначала СТРОГО авторизация
-    await this.authStore.initialize();
-    
-    // 2. Только после успешного логина тянем всё остальное
-    if (this.authStore.isLoggedIn) {
-      await this.appStore.fetchBootstrap();
-      wsService.connect();
-    }
-    
+  mounted() {
     // Запрашиваем полноэкранный режим
     if (window.Telegram?.WebApp) {
       if (window.Telegram.WebApp.requestFullscreen) {
@@ -87,7 +78,9 @@ export default {
     }
   },
   unmounted() {
-    wsService.disconnect();
+    import('./api/websocket').then(({ wsService }) => {
+      wsService.disconnect();
+    });
   }
 }
 </script>

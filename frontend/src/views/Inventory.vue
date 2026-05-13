@@ -78,6 +78,11 @@
             </div>
           </div>
         </TransitionGroup>
+        
+        <!-- Элемент-триггер для загрузки следующих элементов -->
+        <div ref="scrollTarget" class="scroll-target">
+          <div v-if="isLoadingMore" class="loading-spinner"></div>
+        </div>
       </div>
       <div v-else class="empty-state">
         <div 
@@ -160,7 +165,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useAppStore } from '../store/app';
 import { useAuthStore } from '../store/auth';
 import { storeToRefs } from 'pinia';
@@ -185,6 +190,14 @@ export default {
     const lottieEnabled = ref(false);
     let lottieInstance = null;
     let emptyLottieInstance = null;
+
+    // Пагинация
+    const offset = ref(0);
+    const limit = 20;
+    const isLoadingMore = ref(false);
+    const hasMore = ref(true);
+    const scrollObserver = ref(null);
+    const scrollTarget = ref(null);
 
     const filteredStickers = computed(() => {
       return stickers.value.filter(s => {
@@ -258,15 +271,61 @@ export default {
       return Math.round(parseFloat(val)).toString();
     };
 
-    const fetchStickers = async () => {
+    const fetchStickers = async (loadMore = false) => {
+      if (loadMore) {
+        if (isLoadingMore.value || !hasMore.value) return;
+        isLoadingMore.value = true;
+      } else {
+        offset.value = 0;
+        hasMore.value = true;
+      }
+
       try {
         const response = await api.getMyStickers({
-          issuer_slug: selectedIssuer.value
+          issuer_slug: selectedIssuer.value,
+          offset: offset.value,
+          limit: limit
         });
-        // Благодаря перехватчику в api/client.js, response.data — это уже объект StickerListData { items, total }
-        stickers.value = response.data.items;
+        
+        const newItems = response.data.items || [];
+        
+        if (loadMore) {
+          stickers.value = [...stickers.value, ...newItems];
+        } else {
+          stickers.value = newItems;
+        }
+
+        hasMore.value = newItems.length === limit;
+        if (hasMore.value) {
+          offset.value += limit;
+        }
       } catch (e) {
         console.error("Fetch stickers failed", e);
+      } finally {
+        if (loadMore) {
+          isLoadingMore.value = false;
+        }
+      }
+    };
+
+    // Сброс и перезагрузка при смене фильтра
+    watch(selectedIssuer, () => {
+      fetchStickers(false);
+    });
+
+    const setupObserver = () => {
+      if (scrollObserver.value) {
+        scrollObserver.value.disconnect();
+      }
+      
+      scrollObserver.value = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore.value && !isLoadingMore.value) {
+          fetchStickers(true);
+        }
+      }, { rootMargin: '100px' });
+
+      if (scrollTarget.value) {
+        scrollObserver.value.observe(scrollTarget.value);
       }
     };
 
@@ -374,6 +433,16 @@ export default {
       if (filteredStickers.value.length === 0) {
         initEmptyLottie();
       }
+      // Небольшая задержка, чтобы DOM успел отрендерить элементы
+      setTimeout(() => {
+        setupObserver();
+      }, 500);
+    });
+
+    onUnmounted(() => {
+      if (scrollObserver.value) {
+        scrollObserver.value.disconnect();
+      }
     });
 
     return {
@@ -400,7 +469,9 @@ export default {
       getIssuerName,
       replayLottie,
       formatPrice,
-      activeCurrency
+      activeCurrency,
+      scrollTarget,
+      isLoadingMore
     };
   }
 }
@@ -690,6 +761,29 @@ export default {
   font-weight: 600;
   text-decoration: none;
   display: inline-block;
+}
+
+.scroll-target {
+  width: 100%;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+  grid-column: 1 / -1; /* Занимает всю ширину сетки */
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-left-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Modal */

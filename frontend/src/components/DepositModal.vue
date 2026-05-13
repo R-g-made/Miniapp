@@ -88,7 +88,8 @@ export default {
     const notificationStore = useNotificationStore();
     const isDepositOpen = storeToRefs(appStore).isDepositOpen;
     
-    const activeRefCurrency = ref('STARS');
+    // Инициализируем валюту модалки из глобального стейта приложения
+    const activeRefCurrency = ref(appStore.activeCurrency || 'STARS');
     const amount = ref('');
     const isConnected = ref(!!authStore.user?.wallet_address);
     const walletAddress = ref(authStore.user?.wallet_address || '');
@@ -112,6 +113,14 @@ export default {
 
     const isOpen = computed(() => isDepositOpen.value);
     
+    // При открытии модалки обновляем ее валюту на текущую активную в приложении
+    watch(isOpen, (newVal) => {
+      if (newVal) {
+        activeRefCurrency.value = appStore.activeCurrency || 'STARS';
+        amount.value = ''; // Сбрасываем введенную сумму при открытии
+      }
+    });
+
     const closeModal = () => {
       appStore.setDepositOpen(false);
     };

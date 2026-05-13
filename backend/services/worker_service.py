@@ -71,7 +71,19 @@ class WorkerService:
                     if settings.USE_REDIS: continue
 
                 async with async_session_factory() as db:
-                    query = select(StickerCatalog).order_by(func.random()).limit(1)
+                    from backend.models.case import Case
+                    from backend.models.associations import CaseItem
+                    
+                    # Ищем стикеры только из АКТИВНЫХ кейсов
+                    query = (
+                        select(StickerCatalog)
+                        .join(CaseItem, CaseItem.sticker_catalog_id == StickerCatalog.id)
+                        .join(Case, Case.id == CaseItem.case_id)
+                        .where(Case.is_active == True)
+                        .order_by(func.random())
+                        .limit(1)
+                    )
+                    
                     result = await db.execute(query)
                     catalog = result.scalar_one_or_none()
                     if catalog:

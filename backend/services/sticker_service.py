@@ -729,7 +729,8 @@ class StickerService:
         try:
             from backend.services.case_service import case_service
             from backend.services.chance_service import chance_service
-            from backend.models.case import Case, CaseItem
+            from backend.models.case import Case
+            from backend.models.associations import CaseItem
             from sqlalchemy import select
             
             # Получаем ВСЕ кейсы (и активные, и неактивные), в которых есть этот проданный стикер

@@ -192,10 +192,19 @@ class CaseService:
         result = await db.execute(stmt)
         won_sticker = result.scalar_one()
 
-        await live_drop_service.add_drop(
+        # Отложенная отправка в Live Drop, чтобы не было спойлеров (5 секунд)
+        import asyncio
+        async def delayed_add_drop(image_url: str, price: float):
+            await asyncio.sleep(5)
+            await live_drop_service.add_drop(
+                image_url=image_url,
+                floor_price_ton=price
+            )
+            
+        asyncio.create_task(delayed_add_drop(
             image_url=won_sticker.catalog.image_url,
-            floor_price_ton=won_sticker.catalog.floor_price_ton or 0.0
-        )
+            price=won_sticker.catalog.floor_price_ton or 0.0
+        ))
         
         return won_sticker, price, new_balance
 

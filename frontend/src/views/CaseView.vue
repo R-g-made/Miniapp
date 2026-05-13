@@ -468,6 +468,9 @@ export default {
 
       // Если за это время пришел сигнал о неактивности кейса — уходим на главную
       if (pendingInactivityRedirect.value) {
+        const { useNotificationStore } = require('../store/notification');
+        const notificationStore = useNotificationStore();
+        notificationStore.info('Out of stock', 'The case will return soon');
         router.push('/');
       }
     };
@@ -597,6 +600,9 @@ export default {
             if (!event.detail.is_active) {
               // Если мы НЕ крутим и НЕ смотрим результат — уходим сразу
               if (!isSpinning.value && !isResultMode.value && !isAwaitingResult.value) {
+                const { useNotificationStore } = require('../store/notification');
+                const notificationStore = useNotificationStore();
+                notificationStore.info('Out of stock', 'The case will return soon');
                 router.push('/');
               } else {
                 // Иначе ставим флаг, чтобы уйти после завершения действий
