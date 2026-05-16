@@ -207,27 +207,6 @@ export default {
     const step = 190; 
     const initialOffset = -95;
     const offset = ref(initialOffset);
-    const baseOffset = ref(0);
-
-    const setupInfiniteTrack = (forcedBaseIndex = null) => {
-      const copies = 30;
-      const items = [];
-      for (let i = 0; i < copies; i++) {
-        items.push(...catalogItems.value);
-      }
-      displayItems.value = items;
-      
-      const middleCopy = Math.floor(copies / 2);
-      const middleIndex = middleCopy * catalogItems.value.length;
-      baseOffset.value = -(middleIndex * step + 95);
-      
-      if (forcedBaseIndex !== null) {
-        offset.value = -( (middleIndex + forcedBaseIndex) * step + 95 );
-      } else {
-        const randomShift = Math.floor(Math.random() * catalogItems.value.length);
-        offset.value = baseOffset.value - (randomShift * step);
-      }
-    };
 
     // Вспомогательные функции
     const formatPrice = (item) => {
@@ -293,7 +272,12 @@ export default {
           price_stars: item.price_stars
         }));
 
-        setupInfiniteTrack();
+        // Инициализируем displayItems для idle-анимации
+        displayItems.value = [...catalogItems.value, ...catalogItems.value, ...catalogItems.value, ...catalogItems.value, ...catalogItems.value, ...catalogItems.value];
+        
+        // Рандомный начальный оффсет
+        offset.value = initialOffset - (Math.floor(Math.random() * catalogItems.value.length) * step);
+        
         startIdleAnimation();
       } catch (e) {
         console.error("Failed to fetch case:", e);
@@ -474,7 +458,12 @@ export default {
       // Находим индекс в оригинальном каталоге по sticker_id (так как в выигрыше может быть uuid)
       const baseIndex = catalogItems.value.findIndex(item => item.sticker_id === winner.sticker_id);
       
-      setupInfiniteTrack(baseIndex !== -1 ? baseIndex : 0);
+      const newDisplayItems = [...catalogItems.value, ...catalogItems.value, ...catalogItems.value, ...catalogItems.value, ...catalogItems.value, ...catalogItems.value];
+      const targetIndexInNewList = catalogItems.value.length * 2 + baseIndex;
+      
+      displayItems.value = newDisplayItems;
+      offset.value = -(targetIndexInNewList * step + 95);
+      
       startIdleAnimation();
 
       // Если за это время пришел сигнал о неактивности кейса — уходим на главную
@@ -592,7 +581,7 @@ export default {
       if (isSpinning.value || isResultMode.value || !catalogItems.value.length) return;
       offset.value -= 1; 
       const cycleLength = catalogItems.value.length * step;
-      if (offset.value <= baseOffset.value - cycleLength) {
+      if (Math.abs(offset.value - initialOffset) >= cycleLength) {
         offset.value += cycleLength;
       }
       idleAnimationFrame = requestAnimationFrame(startIdleAnimation);
