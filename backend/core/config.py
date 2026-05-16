@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     
     # Bot
     BOT_TOKEN: str = ""
-    BOT_START_IMAGE_URL: str = "https://i.ibb.co/4w5bdGfW/Sticker-Loot-Icon.png"
+    BOT_START_IMAGE_URL: str = "https://i.ibb.co/jvRfMZGD/Stickerloot-new.jpg"
     BOT_COMMUNITY_URL: str = "https://t.me/stickerloots"
     MINI_APP_URL: str = "https://t.me/stickerloot_bot/app"
     ADMIN_IDS: list[int] = [] # Список Telegram ID админов для уведомлений
@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = "" # MUST BE SET IN .env
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 6  # 6 hours
     
     # Business Logic
     REFERRAL_PERCENTAGE: float = 0.05

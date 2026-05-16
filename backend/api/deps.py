@@ -41,14 +41,14 @@ async def get_current_user(
     if not user:
         raise EntityNotFound("User not found")
         
-    # Rate Limit: 1 запрос в секунду на пользователя
+    # Rate Limit: 5 запросов в секунду на пользователя
     if settings.USE_REDIS:
         redis_client = await redis_service.connect()
         key = f"rate_limit:{user.id}"
         current = await redis_client.incr(key)
         if current == 1:
             await redis_client.expire(key, 1)
-        elif current > 1:
+        elif current > 5:
             raise HTTPException(status_code=429, detail="Too Many Requests")
             
     return user
