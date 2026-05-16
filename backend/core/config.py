@@ -77,6 +77,8 @@ class Settings(BaseSettings):
     MIN_DEPOSIT: float = 0.1#TODO
     WALLET_ADDRESS: str = "UQDSokuUeDuRCbIKeeCgaiCa001aV0Q3wc6ZX-pdPcnbpNFt"
     MAX_WITHDRAWALS_PER_DAY: int = 3 # Лимит выводов стикеров в 24 часа
+    MIN_REFERRAL_WITHDRAWAL_TON: float = 5.0 # Минимальный вывод реферальных наград
+    MAX_REFERRAL_WITHDRAWAL_TON: float = 15.0 # Максимальный вывод реферальных наград
     
     @property
     def MERCHANT_TON_ADDRESS(self) -> str:

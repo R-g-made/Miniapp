@@ -181,10 +181,17 @@ export default {
       try {
         // Определяем сумму вывода: для TON — доступный баланс, для STARS — только доступная
         const amountToWithdraw = activeRefCurrency.value === 'TON' ? stats.value.available_ton : stats.value.available_stars;
-        const minAmount = activeRefCurrency.value === 'TON' ? 0.1 : 10;
+        const minAmount = activeRefCurrency.value === 'TON' ? 5 : 385; // 5 TON or ~385 STARS
+        const maxAmount = activeRefCurrency.value === 'TON' ? 15 : 1153; // 15 TON or ~1153 STARS
         
         if (!amountToWithdraw || parseFloat(amountToWithdraw) < minAmount) {
           notificationStore.error('Failed', `Minimum amount to withdraw is ${minAmount} ${activeRefCurrency.value}`);
+          window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
+          return;
+        }
+
+        if (parseFloat(amountToWithdraw) > maxAmount) {
+          notificationStore.error('Failed', `Maximum amount to withdraw is ${maxAmount} ${activeRefCurrency.value}`);
           window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
           return;
         }
