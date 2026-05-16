@@ -177,10 +177,6 @@ export default {
     const handleWithdraw = async () => {
       const authStore = useAuthStore();
       const notificationStore = useNotificationStore();
-      
-      notificationStore.info('Soon', 'Available after beta testing');
-      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning');
-      return;
 
       try {
         // Определяем сумму вывода: для TON — доступный баланс, для STARS — только доступная

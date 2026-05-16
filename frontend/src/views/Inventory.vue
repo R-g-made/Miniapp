@@ -360,12 +360,6 @@ export default {
 
     const transferSticker = async () => {
       if (isTransferring.value) return;
-      
-      const { useNotificationStore } = await import('../store/notification');
-      const notificationStore = useNotificationStore();
-      notificationStore.info('Soon', 'Available after beta testing');
-      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning');
-      return;
 
       isTransferring.value = true;
       try {

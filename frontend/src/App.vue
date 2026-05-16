@@ -71,16 +71,26 @@ export default {
     const checkFullscreen = () => {
       if (!window.Telegram?.WebApp) return;
       
-      if (window.innerWidth > 1000) {
+      const platform = window.Telegram.WebApp.platform;
+      const desktopPlatforms = ['macos', 'tdesktop', 'web', 'weba', 'desktop'];
+      
+      if (desktopPlatforms.includes(platform) || window.innerWidth > 1000) {
+        // На десктопе не запрашиваем Fullscreen. Если есть метод выхода - вызываем.
         if (window.Telegram.WebApp.exitFullscreen) {
-          window.Telegram.WebApp.exitFullscreen();
+          try {
+            window.Telegram.WebApp.exitFullscreen();
+          } catch (e) {}
         }
       } else {
-        // Запрашиваем полноэкранный режим для мобильных
+        // Запрашиваем полноэкранный режим только для мобильных
         if (window.Telegram.WebApp.requestFullscreen) {
-          window.Telegram.WebApp.requestFullscreen();
+          try {
+            window.Telegram.WebApp.requestFullscreen();
+          } catch (e) {}
         } else if (window.Telegram.WebApp.expand) {
-          window.Telegram.WebApp.expand();
+          try {
+            window.Telegram.WebApp.expand();
+          } catch (e) {}
         }
       }
     };

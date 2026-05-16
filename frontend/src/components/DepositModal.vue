@@ -154,11 +154,6 @@ export default {
     const handleDeposit = async () => {
       if (!amount.value || parseFloat(amount.value) <= 0) return;
 
-      notificationStore.info('Soon', 'Available after beta testing');
-      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning');
-      closeModal();
-      return;
-
       if (activeRefCurrency.value === 'TON' && !isConnected.value) {
         // Если кошелек не подключен, сначала просим подключить. Не создаем транзакцию в БД.
         await connectWallet();
