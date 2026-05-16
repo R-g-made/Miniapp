@@ -18,10 +18,17 @@ export const useAppStore = defineStore('app', {
         initialized: false,
         isNavBarHidden: false,
         isDepositOpen: false,
-        cases: [] // Список кейсов с их статусом
+        cases: [], // Список кейсов с их статусом
+        homeFilters: {
+            selectedIssuer: null,
+            currentSort: 'newer'
+        }
     }),
     
     actions: {
+        setHomeFilters(filters) {
+            this.homeFilters = { ...this.homeFilters, ...filters };
+        },
         setDepositOpen(open) {
             this.isDepositOpen = open;
             this.isNavBarHidden = open; // Скрываем навбар при открытом модальном окне

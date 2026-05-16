@@ -417,6 +417,21 @@ class StickerService:
         if is_locked:
             raise InvalidOperation(f"Sticker is locked until {sticker.unlock_date}")
 
+        # 3.5 Проверяем лимит выводов (максимум MAX_WITHDRAWALS_PER_DAY за 24 часа)
+        from datetime import timedelta
+        from sqlalchemy import func
+        yesterday_naive = (now - timedelta(days=1)).replace(tzinfo=None)
+        
+        count_stmt = select(func.count(StickerAction.id)).where(
+            StickerAction.user_id == user_id,
+            StickerAction.action_type == StickerActionType.WITHDRAW,
+            StickerAction.created_at >= yesterday_naive
+        )
+        res = await db.execute(count_stmt)
+        withdrawals_count = res.scalar() or 0
+        if withdrawals_count >= settings.MAX_WITHDRAWALS_PER_DAY:
+            raise InvalidOperation(f"Daily withdrawal limit reached ({settings.MAX_WITHDRAWALS_PER_DAY}/24h). Please try again later.")
+
         # 4. Обработка трансфера
         try:
             if sticker.is_onchain:

@@ -76,6 +76,7 @@ class Settings(BaseSettings):
     LIVE_DROP_INTERVAL: int = 20 # Интервал генерации дропов в секундах (имитация активности)
     MIN_DEPOSIT: float = 0.1#TODO
     WALLET_ADDRESS: str = "UQDSokuUeDuRCbIKeeCgaiCa001aV0Q3wc6ZX-pdPcnbpNFt"
+    MAX_WITHDRAWALS_PER_DAY: int = 3 # Лимит выводов стикеров в 24 часа
     
     @property
     def MERCHANT_TON_ADDRESS(self) -> str:

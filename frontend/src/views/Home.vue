@@ -137,7 +137,7 @@ export default {
     const activeCurrency = computed(() => appStore.activeCurrency);
 
     const { cases: storeCases, issuers, sortingOptions } = storeToRefs(appStore);
-    const selectedIssuer = ref(null);
+    const selectedIssuer = ref(appStore.homeFilters.selectedIssuer);
     const liveDrops = ref([]);
     const selectedCase = ref(null);
     const isOpening = ref(false);
@@ -158,8 +158,7 @@ export default {
       appStore.setNavBarHidden(val);
     });
 
-    const currentSort = ref('newer');
-    currentSort.value = 'newer';
+    const currentSort = ref(appStore.homeFilters.currentSort || 'newer');
 
     const toggleSort = () => {
       isSortOpen.value = !isSortOpen.value;
@@ -167,6 +166,7 @@ export default {
 
     const selectSort = (id) => {
       currentSort.value = id;
+      appStore.setHomeFilters({ currentSort: id });
       // Сохраняем результат и закрываем окошко сразу после нажатия
       setTimeout(() => {
         isSortOpen.value = false;
@@ -231,7 +231,8 @@ export default {
     };
 
     // Следим за фильтрами
-    watch(selectedIssuer, () => {
+    watch(selectedIssuer, (newVal) => {
+      appStore.setHomeFilters({ selectedIssuer: newVal });
       fetchCases();
     });
 

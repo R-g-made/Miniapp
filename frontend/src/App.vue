@@ -68,16 +68,31 @@ export default {
     return { authStore, appStore, openDeposit };
   },
   mounted() {
-    // Запрашиваем полноэкранный режим
-    if (window.Telegram?.WebApp) {
-      if (window.Telegram.WebApp.requestFullscreen) {
-        window.Telegram.WebApp.requestFullscreen();
-      } else if (window.Telegram.WebApp.expand) {
-        window.Telegram.WebApp.expand();
+    const checkFullscreen = () => {
+      if (!window.Telegram?.WebApp) return;
+      
+      if (window.innerWidth > 1000) {
+        if (window.Telegram.WebApp.exitFullscreen) {
+          window.Telegram.WebApp.exitFullscreen();
+        }
+      } else {
+        // Запрашиваем полноэкранный режим для мобильных
+        if (window.Telegram.WebApp.requestFullscreen) {
+          window.Telegram.WebApp.requestFullscreen();
+        } else if (window.Telegram.WebApp.expand) {
+          window.Telegram.WebApp.expand();
+        }
       }
-    }
+    };
+
+    checkFullscreen();
+    window.addEventListener('resize', checkFullscreen);
+    this._checkFullscreen = checkFullscreen;
   },
   unmounted() {
+    if (this._checkFullscreen) {
+      window.removeEventListener('resize', this._checkFullscreen);
+    }
     import('./api/websocket').then(({ wsService }) => {
       wsService.disconnect();
     });
