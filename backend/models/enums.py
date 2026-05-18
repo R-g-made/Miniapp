@@ -8,6 +8,7 @@ class Currency(str, Enum):
     TON = "TON"
     STARS = "STARS"
     NFT = "NFT" #На будующее
+    ALL = "ALL"
 
     @classmethod
     def _missing_(cls, value):

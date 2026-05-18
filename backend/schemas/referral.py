@@ -15,6 +15,8 @@ class StarsStats(BaseSchema):
     locked_balance: float = 0.0
     available_balance: float = 0.0
     available_in_ton: float = 0.0
+    total_earned_in_ton: float = 0.0
+    locked_balance_in_ton: float = 0.0
 
 class ReferralStats(BaseSchema):
     referral_code: str

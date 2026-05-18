@@ -1,7 +1,7 @@
 <template>
   <div class="referrals-view">
     <!-- Верхний блок Refferal program -->
-    <div class="ref-promo-card" :class="{ 'is-stars': activeRefCurrency === 'STARS' }">
+    <div class="ref-promo-card">
       <div class="ref-header">
         <img src="@/assets/icons/share.svg" alt="Share" class="ref-header-icon">
         <span class="ref-header-title">Refferal program</span>
@@ -19,26 +19,12 @@
       <!-- Lottie Dog -->
       <div class="lottie-container" ref="lottieContainer"></div>
 
-      <!-- Переключатель валют (внутри синего блока) -->
-      <div class="ref-currency-selector" @click="toggleCurrency">
-        <div class="ref-selector-bg">
-          <div class="ref-selector-thumb" :class="{ 'is-stars': activeRefCurrency === 'STARS' }"></div>
-          <div class="ref-lang-option" :class="{ active: activeRefCurrency === 'TON' }">
-            <img src="@/assets/icons/ton.svg" alt="TON" class="ref-curr-icon">
-          </div>
-          <div class="ref-lang-option" :class="{ active: activeRefCurrency === 'STARS' }">
-            <img src="@/assets/icons/star.svg" alt="STARS" class="ref-curr-icon">
-          </div>
-        </div>
-      </div>
-
       <!-- Блоки статистики -->
       <div class="stats-row">
         <div class="stat-box">
           <div class="stat-value-row">
-            <img v-if="activeRefCurrency === 'TON'" src="@/assets/icons/ton.svg" alt="TON" class="stat-curr-icon">
-            <img v-else src="@/assets/icons/star.svg" alt="STARS" class="stat-curr-icon">
-            <span class="stat-number">{{ activeRefCurrency === 'TON' ? formatNumber(stats.total_ton) : formatNumber(stats.total_stars) }}</span>
+            <img src="@/assets/icons/ton.svg" alt="TON" class="stat-curr-icon">
+            <span class="stat-number">{{ formatNumber(totalEarnedCombined) }}</span>
           </div>
           <div class="stat-label">Totaly earned</div>
         </div>
@@ -48,14 +34,14 @@
         </div>
       </div>
 
-      <!-- 21d locked (только для Stars) -->
-      <div class="locked-stars-row" v-if="activeRefCurrency === 'STARS'">
+      <!-- 21d locked -->
+      <div class="locked-stars-row">
         <div class="locked-left">
           <span class="locked-label">21d locked</span>
         </div>
         <div class="locked-right">
-          <img src="@/assets/icons/star.svg" alt="STARS" class="locked-curr-icon">
-          <span class="locked-number">{{ formatNumber(stats.locked_stars) }}</span>
+          <img src="@/assets/icons/ton.svg" alt="TON" class="locked-curr-icon">
+          <span class="locked-number">{{ formatNumber(lockedCombined) }}</span>
         </div>
       </div>
 
@@ -63,12 +49,8 @@
       <div class="withdraw-box clickable" @click="handleWithdraw">
         <div class="withdraw-main">
           <div class="withdraw-left">
-            <img v-if="activeRefCurrency === 'TON'" src="@/assets/icons/ton.svg" alt="TON" class="withdraw-curr-icon">
-            <img v-else src="@/assets/icons/star.svg" alt="STARS" class="withdraw-curr-icon">
-            <span class="withdraw-number">{{ activeRefCurrency === 'TON' ? formatNumber(stats.available_ton) : formatNumber(stats.available_stars) }}</span>
-          </div>
-          <div v-if="activeRefCurrency === 'STARS'" class="ton-pill-simple">
-            ~ <img src="@/assets/icons/ton.svg" alt="TON" class="ton-pill-icon-simple"> {{ formatNumber(stats.available_in_ton) }}
+            <img src="@/assets/icons/ton.svg" alt="TON" class="withdraw-curr-icon">
+            <span class="withdraw-number">{{ formatNumber(availableCombined) }}</span>
           </div>
         </div>
         <img src="@/assets/icons/withdraw.svg" alt="Withdraw" class="withdraw-icon">
@@ -114,11 +96,25 @@ export default {
       count: 0,
       total_ton: 0,
       total_stars: 0,
+      total_stars_in_ton: 0,
       locked_stars: 0,
+      locked_stars_in_ton: 0,
       available_stars: 0,
       available_in_ton: 0,
       ref_percentage: 5,
       invite_link: ''
+    });
+
+    const totalEarnedCombined = computed(() => {
+      return stats.value.total_ton + (stats.value.total_stars_in_ton || 0);
+    });
+
+    const lockedCombined = computed(() => {
+      return stats.value.locked_stars_in_ton || 0;
+    });
+
+    const availableCombined = computed(() => {
+      return stats.value.available_ton + (stats.value.available_in_ton || 0);
     });
 
     const inviteLinkDisplay = computed(() => {
@@ -158,7 +154,9 @@ export default {
           total_ton: data.ton.total_earned,
           available_ton: data.ton.available_balance,
           total_stars: data.stars.total_earned,
+          total_stars_in_ton: data.stars.total_earned_in_ton,
           locked_stars: data.stars.locked_balance,
+          locked_stars_in_ton: data.stars.locked_balance_in_ton,
           available_stars: data.stars.available_balance,
           available_in_ton: data.stars.available_in_ton,
           ref_percentage: refRate * 100, // Конвертируем 0.05 в 5
@@ -170,28 +168,23 @@ export default {
       }
     };
 
-    const toggleCurrency = () => {
-      activeRefCurrency.value = activeRefCurrency.value === 'TON' ? 'STARS' : 'TON';
-    };
-
     const handleWithdraw = async () => {
       const authStore = useAuthStore();
       const notificationStore = useNotificationStore();
 
       try {
-        // Определяем сумму вывода: для TON — доступный баланс, для STARS — только доступная
-        const amountToWithdraw = activeRefCurrency.value === 'TON' ? stats.value.available_ton : stats.value.available_stars;
-        const minAmount = activeRefCurrency.value === 'TON' ? 5 : 385; // 5 TON or ~385 STARS
-        const maxAmount = activeRefCurrency.value === 'TON' ? 15 : 1153; // 15 TON or ~1153 STARS
+        const amountToWithdraw = availableCombined.value;
+        const minAmount = 5; // 5 TON minimum
+        const maxAmount = 15; // 15 TON max per transaction
         
         if (!amountToWithdraw || parseFloat(amountToWithdraw) < minAmount) {
-          notificationStore.error('Failed', `Minimum amount to withdraw is ${minAmount} ${activeRefCurrency.value}`);
+          notificationStore.error('Failed', `Minimum amount to withdraw is ${minAmount} TON`);
           window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
           return;
         }
 
         if (parseFloat(amountToWithdraw) > maxAmount) {
-          notificationStore.error('Failed', `Maximum amount to withdraw is ${maxAmount} ${activeRefCurrency.value}`);
+          notificationStore.error('Failed', `Maximum amount to withdraw is ${maxAmount} TON`);
           window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
           return;
         }
@@ -199,11 +192,11 @@ export default {
         // Отправляем запрос на бэкенд
         await api.withdrawReferrals({
           amount: parseFloat(amountToWithdraw),
-          currency: activeRefCurrency.value
+          currency: 'ALL'
         });
         
         // Показываем уведомление и обновляем стату
-        notificationStore.success('Success', `Withdrawal of ${amountToWithdraw} ${activeRefCurrency.value} initiated!`);
+        notificationStore.success('Success', `Withdrawal of ${formatNumber(amountToWithdraw)} TON initiated!`);
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
         fetchStats();
       } catch (e) {
@@ -219,7 +212,7 @@ export default {
       }
     };
 
-    const updateLottie = (type) => {
+    const updateLottie = () => {
       if (lottieInstance) {
         lottieInstance.destroy();
       }
@@ -228,13 +221,9 @@ export default {
         renderer: 'svg',
         loop: true,
         autoplay: true,
-        animationData: type === 'TON' ? tonDogsLottie : starsDogsLottie
+        animationData: tonDogsLottie
       });
     };
-
-    watch(activeRefCurrency, (newVal) => {
-      updateLottie(newVal);
-    });
 
     const copyLink = () => {
       if (stats.value.invite_link) {
@@ -253,7 +242,7 @@ export default {
 
     onMounted(() => {
       fetchStats();
-      updateLottie(activeRefCurrency.value);
+      updateLottie();
     });
 
     onUnmounted(() => {
@@ -264,10 +253,11 @@ export default {
 
     return {
       lottieContainer,
-      activeRefCurrency,
       stats,
+      totalEarnedCombined,
+      lockedCombined,
+      availableCombined,
       inviteLinkDisplay,
-      toggleCurrency,
       copyLink,
       shareLink,
       handleWithdraw,
@@ -298,10 +288,6 @@ export default {
   align-items: center;
   box-sizing: border-box;
   transition: background 0.3s ease;
-}
-
-.ref-promo-card.is-stars {
-  background: linear-gradient(66.50deg, #29271E, #3B3825);
 }
 
 .ref-header {
@@ -353,59 +339,6 @@ export default {
   width: 158px;
   height: 158px;
   margin-bottom: 0px;
-}
-
-/* Слайдер валют */
-.ref-currency-selector {
-  align-self: flex-start;
-  margin-bottom: 15px;
-  cursor: pointer;
-}
-
-.ref-selector-bg {
-  width: 80px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 1000px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 2px;
-  box-sizing: border-box;
-}
-
-.ref-selector-thumb {
-  position: absolute;
-  width: 38px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 1000px;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1;
-}
-
-.ref-selector-thumb.is-stars {
-  transform: translateX(38px);
-}
-
-.ref-lang-option {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  opacity: 0.5;
-  transition: opacity 0.3s;
-}
-
-.ref-lang-option.active {
-  opacity: 1;
-}
-
-.ref-curr-icon {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
 }
 
 /* Статистика */
@@ -519,21 +452,6 @@ export default {
   font-size: 20px;
   font-weight: 600;
   color: #FFFFFF;
-}
-
-.ton-pill-simple {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 16px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.5); /* 50% прозрачности */
-}
-
-.ton-pill-icon-simple {
-  width: 14px;
-  height: 14px;
-  opacity: 0.5; /* Иконка тоже полупрозрачная */
 }
 
 .withdraw-icon {

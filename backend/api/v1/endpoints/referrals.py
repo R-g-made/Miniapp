@@ -67,13 +67,19 @@ async def withdraw_referrals(
 
     logger.info(f"API: User {current_user.telegram_id} is requesting referral withdrawal of {obj_in.amount} {obj_in.currency} to linked wallet {wallet.address}")
 
-    if obj_in.currency == Currency.TON:
+    referral_service = ReferralService(db)
+
+    if obj_in.currency == Currency.ALL:
+        result = await referral_service.withdraw_all(
+            user_id=current_user.id,
+            address=wallet.address
+        )
+    elif obj_in.currency == Currency.TON:
         if obj_in.amount < settings.MIN_REFERRAL_WITHDRAWAL_TON:
             raise InvalidOperation(f"Minimum withdrawal amount is {settings.MIN_REFERRAL_WITHDRAWAL_TON} TON")
         if obj_in.amount > settings.MAX_REFERRAL_WITHDRAWAL_TON:
             raise InvalidOperation(f"Maximum withdrawal amount is {settings.MAX_REFERRAL_WITHDRAWAL_TON} TON")
             
-        referral_service = ReferralService(db)
         result = await referral_service.withdraw_ton(
             user_id=current_user.id,
             amount=obj_in.amount,
@@ -89,9 +95,6 @@ async def withdraw_referrals(
             max_stars = int(settings.MAX_REFERRAL_WITHDRAWAL_TON / settings.STARS_TO_TON_RATE)
             raise InvalidOperation(f"Maximum withdrawal amount is {max_stars} STARS")
             
-        referral_service = ReferralService(db)
-        # Конвертируем звезды в TON для реальной выплаты
-        
         result = await referral_service.withdraw_ton(
              user_id=current_user.id,
              amount=amount_ton,

@@ -35,7 +35,9 @@ class ReferralStatsBuilder:
             total_earned=total_earned,
             available_balance=available_balance,
             locked_balance=locked_balance,
-            available_in_ton=available_balance * self._stars_to_ton_rate
+            available_in_ton=available_balance * self._stars_to_ton_rate,
+            total_earned_in_ton=total_earned * self._stars_to_ton_rate,
+            locked_balance_in_ton=locked_balance * self._stars_to_ton_rate
         )
         return self
 

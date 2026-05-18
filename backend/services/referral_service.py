@@ -273,4 +273,125 @@ class ReferralService:
             await self.db.rollback()
             raise InvalidOperation(f"Blockchain transfer failed: {str(e)}")
 
+    async def withdraw_all(
+        self,
+        user_id: uuid.UUID,
+        address: str
+    ) -> dict:
+        """
+        Вывод всех доступных реферальных вознаграждений (TON + STARS конвертированные в TON) одним переводом.
+        """
+        logger.info(f"ReferralService: Withdraw ALL request from user {user_id} to {address}")
+        
+        try:
+            user = await user_service.get_locked(self.db, user_id)
+            if not user:
+                raise EntityNotFound("User not found")
+                
+            from backend.crud.referral import referral_repository
+            from backend.models.referral import Referral
+            
+            ton_available = await referral_repository.get_available_balance(self.db, user_id=user.id, currency="TON")
+            stars_available = await referral_repository.get_available_balance(self.db, user_id=user.id, currency="STARS")
+            
+            stars_in_ton = stars_available * settings.STARS_TO_TON_RATE
+            total_ton = ton_available + stars_in_ton
+            
+            if total_ton < settings.MIN_REFERRAL_WITHDRAWAL_TON:
+                raise InvalidOperation(f"Minimum withdrawal amount is {settings.MIN_REFERRAL_WITHDRAWAL_TON} TON (Total available: {total_ton:.2f} TON)")
+            
+            if total_ton > settings.MAX_REFERRAL_WITHDRAWAL_TON:
+                raise InvalidOperation(f"Maximum withdrawal amount is {settings.MAX_REFERRAL_WITHDRAWAL_TON} TON")
+                
+            # Списываем TON
+            if ton_available > 0:
+                remaining_ton = ton_available
+                stmt_ton = select(Referral).where(Referral.referrer_id == user.id, Referral.reward_ton > 0).with_for_update()
+                res_ton = await self.db.execute(stmt_ton)
+                for rec in res_ton.scalars().all():
+                    if remaining_ton <= 0: break
+                    rec_amount = rec.reward_ton
+                    if rec_amount >= remaining_ton:
+                        rec.reward_ton -= remaining_ton
+                        remaining_ton = 0
+                    else:
+                        remaining_ton -= rec_amount
+                        rec.reward_ton = 0.0
+                    self.db.add(rec)
+                    
+            # Списываем STARS
+            if stars_available > 0:
+                remaining_stars = stars_available
+                stmt_stars = select(Referral).where(Referral.referrer_id == user.id, Referral.reward_stars_available > 0).with_for_update()
+                res_stars = await self.db.execute(stmt_stars)
+                for rec in res_stars.scalars().all():
+                    if remaining_stars <= 0: break
+                    rec_amount = rec.reward_stars_available
+                    if rec_amount >= remaining_stars:
+                        rec.reward_stars_available -= remaining_stars
+                        remaining_stars = 0
+                    else:
+                        remaining_stars -= rec_amount
+                        rec.reward_stars_available = 0.0
+                    self.db.add(rec)
+            
+            # Блокчейн-перевод
+            from ton_core import to_nano
+            from tonutils.clients import TonapiClient
+            from tonutils.contracts.wallet import WalletV5R1
+            
+            network_id = -3 if settings.IS_TESTNET else -239
+            base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
+
+            client = TonapiClient(api_key=settings.TON_API_KEY, network=network_id, base_url=base_url)
+            await client.connect()
+            
+            mnemonic_list = settings.NFT_SENDER_MNEMONIC.split()
+            wallet, _, _, _ = WalletV5R1.from_mnemonic(client, mnemonic_list)
+            
+            amount_nano = to_nano(total_ton, 9)
+            ext_msg = await wallet.transfer(
+                destination=address,
+                amount=amount_nano,
+                body=f"Referral reward (ALL) for user {user.telegram_id}"
+            )
+            
+            if hasattr(ext_msg, "normalized_hash"): tx_hash = ext_msg.normalized_hash
+            elif hasattr(ext_msg, "hash"): tx_hash = ext_msg.hash
+            else: tx_hash = ext_msg.to_cell().hash.hex()
+            
+            transaction = Transaction(
+                user_id=user.id,
+                amount=total_ton,
+                currency=Currency.TON,
+                type=TransactionType.WITHDRAW,
+                status=TransactionStatus.COMPLETED,
+                hash=tx_hash,
+                details={
+                    "target_address": address,
+                    "memo": "Referral reward withdrawal (ALL)",
+                    "sender_address": wallet.address.to_str(),
+                    "ton_withdrawn": ton_available,
+                    "stars_withdrawn": stars_available
+                }
+            )
+            
+            self.db.add(transaction)
+            await self.db.commit()
+            
+            return {
+                "status": "success",
+                "transaction_id": str(transaction.id),
+                "hash": tx_hash,
+                "amount": total_ton,
+                "address": address
+            }
+            
+        except Exception as e:
+            logger.error(f"ReferralService: Withdraw ALL failed for {user.telegram_id}: {str(e)}")
+            await self.db.rollback()
+            if isinstance(e, InvalidOperation):
+                raise e
+            raise InvalidOperation(f"Blockchain transfer failed: {str(e)}")
+
 referral_service = ReferralService
