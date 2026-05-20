@@ -5,7 +5,7 @@ import sys
 # Добавляем путь к корню проекта, чтобы импорты работали корректно
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from backend.db.session import async_session_maker
+from backend.db.session import async_session_factory
 from backend.models.associations import CaseItem
 from backend.models.case import Case
 from backend.models.sticker import UserSticker, StickerCatalog
@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 
 async def main():
     print("Подключение к базе данных...")
-    async with async_session_maker() as db:
+    async with async_session_factory() as db:
         print("Получение данных о кейсах...")
         # Получаем все CaseItem с подгруженными кейсами
         stmt = select(CaseItem).options(
