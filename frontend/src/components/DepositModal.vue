@@ -205,17 +205,13 @@ export default {
                 'TON will appear on your balance within 1 minute'
               );
 
-              // Отправляем сигнал на бэкенд о том, что транзакция отправлена.
-              setTimeout(async () => {
-                try {
-                  await api.verifyDeposit({
-                    amount: parseFloat(amount.value),
-                    boc: result.boc
-                  });
-                } catch (e) {
-                  console.warn("Auto-verification pending...", e);
-                }
-              }, 15000);
+              // Отправляем сигнал на бэкенд сразу, без задержки, чтобы бэкенд начал поллинг TonAPI
+              api.verifyDeposit({
+                amount: parseFloat(amount.value),
+                boc: result.boc
+              }).catch(e => {
+                console.warn("Auto-verification failed or timed out", e);
+              });
               
               window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
               closeModal();

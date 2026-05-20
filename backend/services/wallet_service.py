@@ -318,10 +318,10 @@ class WalletService:
                 headers["Authorization"] = f"Bearer {settings.TON_API_KEY}"
             
             event_data = None
-            async with httpx.AsyncClient(timeout=10.0) as http_client:
+            async with httpx.AsyncClient(timeout=15.0) as http_client:
                 # Пытаемся несколько раз, так как индексация может занимать время
-                # Увеличено до 8 попыток по 2 секунды = 16 секунд ожидания
-                for attempt in range(8):
+                # Увеличено до 15 попыток по 3 секунды = 45 секунд ожидания
+                for attempt in range(15):
                     logger.debug(f"WalletService: Attempt {attempt + 1} to find event for hash {tx_hash}")
                     
                     url = f"{base_url}/events/{tx_hash}"
@@ -344,8 +344,8 @@ class WalletService:
                     except Exception as e:
                         logger.debug(f"WalletService: Request error: {e}")
                     
-                    if attempt < 7:
-                        await asyncio.sleep(2) # Ждем 2 секунды
+                    if attempt < 14:
+                        await asyncio.sleep(3) # Ждем 3 секунды
 
             if not event_data:
                 logger.warning(f"WalletService: Event {tx_hash} not found on-chain after all attempts")
