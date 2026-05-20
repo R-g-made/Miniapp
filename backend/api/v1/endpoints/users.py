@@ -8,6 +8,7 @@ from backend.models.user import User
 from backend.schemas.user import UserUpdate, UserResponse
 from backend.crud.user import user_repository
 from backend.builders.user_profile import UserProfileBuilder
+from backend.services.deposit_service import deposit_service
 
 from sqlalchemy.orm import selectinload
 
