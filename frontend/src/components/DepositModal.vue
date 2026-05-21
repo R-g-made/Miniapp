@@ -37,7 +37,7 @@
               >
               <input 
                 type="number" 
-                placeholder="Enter amount" 
+                :placeholder="activeRefCurrency === 'TON' ? 'Min 0.1 TON' : 'Min 30 Stars'" 
                 class="deposit-input"
                 v-model="amount"
               >
@@ -153,6 +153,16 @@ export default {
 
     const handleDeposit = async () => {
       if (!amount.value || parseFloat(amount.value) <= 0) return;
+
+      const numAmount = parseFloat(amount.value);
+      if (activeRefCurrency.value === 'TON' && numAmount < 0.1) {
+        notificationStore.error('Invalid amount', 'Minimum deposit is 0.1 TON');
+        return;
+      }
+      if (activeRefCurrency.value === 'STARS' && numAmount < 30) {
+        notificationStore.error('Invalid amount', 'Minimum deposit is 30 Stars');
+        return;
+      }
 
       if (activeRefCurrency.value === 'TON' && !isConnected.value) {
         // Если кошелек не подключен, сначала просим подключить. Не создаем транзакцию в БД.

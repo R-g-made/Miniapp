@@ -131,6 +131,17 @@ async def replenish_wallet(
     """
     logger.info(f"API: User {current_user.telegram_id} is replenishing wallet with {obj_in.amount} {obj_in.currency}")
     
+    if obj_in.currency == Currency.TON and obj_in.amount < settings.MIN_DEPOSIT_TON:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Minimum deposit amount is {settings.MIN_DEPOSIT_TON} TON"
+        )
+    if obj_in.currency == Currency.STARS and obj_in.amount < settings.MIN_DEPOSIT_STARS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Minimum deposit amount is {settings.MIN_DEPOSIT_STARS} STARS"
+        )
+
     transaction_id = str(uuid.uuid4())
     wallet_service = WalletService(db)
     builder = WalletReplenishBuilder().with_transaction_id(transaction_id)

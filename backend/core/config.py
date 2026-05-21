@@ -76,7 +76,8 @@ class Settings(BaseSettings):
     MARKET_FEE_PERCENTAGE: float = 0.05 # Комиссия системы (5%)
     STARS_TO_TON_RATE: float = 0.013
     LIVE_DROP_INTERVAL: int = 20 # Интервал генерации дропов в секундах (имитация активности)
-    MIN_DEPOSIT: float = 0.1#TODO
+    MIN_DEPOSIT_TON: float = 0.1
+    MIN_DEPOSIT_STARS: int = 30
     WALLET_ADDRESS: str = "UQDSokuUeDuRCbIKeeCgaiCa001aV0Q3wc6ZX-pdPcnbpNFt"
     MAX_WITHDRAWALS_PER_DAY: int = 3 # Лимит выводов стикеров в 24 часа
     MIN_REFERRAL_WITHDRAWAL_TON: float = 5.0 # Минимальный вывод реферальных наград
