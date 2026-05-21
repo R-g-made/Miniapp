@@ -119,6 +119,15 @@
               <span class="sticker-main-number">#{{ selectedSticker.number }}</span>
             </div>
 
+            <!-- Блок блокировки -->
+            <div v-if="isLocked(selectedSticker.unlock_date)" class="lock-banner">
+              <img src="@/assets/icons/lock.svg" alt="Lock" class="lock-icon">
+              <div class="lock-text-container">
+                <span class="lock-text">Withdrawal of this sticker</span>
+                <span class="lock-text">is locked until {{ formatDate(selectedSticker.unlock_date) }}</span>
+              </div>
+            </div>
+
             <div class="modal-actions-container">
               <!-- Sell for Active Currency -->
               <div class="action-row" @click="sellSticker(activeCurrency)">
@@ -142,7 +151,7 @@
               </div>
 
               <!-- Withdraw -->
-              <div class="action-row" @click="transferSticker" :style="{ opacity: isTransferring ? 0.5 : 1, pointerEvents: isTransferring ? 'none' : 'auto' }">
+              <div class="action-row" @click="!isLocked(selectedSticker.unlock_date) && transferSticker()" :style="{ opacity: (isTransferring || isLocked(selectedSticker.unlock_date)) ? 0.5 : 1, pointerEvents: (isTransferring || isLocked(selectedSticker.unlock_date)) ? 'none' : 'auto' }">
                 <img src="@/assets/icons/sort-icon.svg" alt="Sort" class="action-icon sort-icon">
                 <span class="action-text">{{ isTransferring ? 'Withdrawing...' : 'Withdraw to' }}</span>
                 <template v-if="selectedSticker.is_onchain">
@@ -360,6 +369,7 @@ export default {
 
     const transferSticker = async () => {
       if (isTransferring.value) return;
+      if (selectedSticker.value && isLocked(selectedSticker.value.unlock_date)) return;
 
       isTransferring.value = true;
       try {
@@ -387,7 +397,7 @@ export default {
     };
 
     const formatDate = (dateStr) => {
-        return new Date(dateStr).toLocaleDateString();
+        return new Date(dateStr).toLocaleDateString('ru-RU');
     };
 
     const getIssuerIcon = (slug) => {
@@ -851,6 +861,36 @@ export default {
   color: rgba(255, 255, 255, 0.5); /* ffffff 50% прозрачность */
   font-size: 22px; /* те же размеры */
   font-weight: 500; /* и жирность */
+}
+
+/* Lock Banner */
+.lock-banner {
+  width: 100%;
+  background-color: #2D2A1C;
+  border-radius: 35px;
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.lock-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.lock-text-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.lock-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .modal-actions-container {
