@@ -31,6 +31,7 @@ class TransactionStatus(str, Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     REFUNDED = "REFUNDED"
+    EXPIRED = "EXPIRED"
 
 class ExternalProviderType(str, Enum):
     TON_API = "ton_api"

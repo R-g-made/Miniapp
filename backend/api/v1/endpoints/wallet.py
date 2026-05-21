@@ -13,9 +13,7 @@ from backend.schemas.wallet import (
     TonProofCheckResponse,
     TonProofCheckData,
     WalletDisconnectResponse,
-    WalletDisconnectData,
-    WalletWithdrawRequest,
-    WalletVerifyDepositRequest
+    WalletDisconnectData
 )
 from backend.services.wallet_service import WalletService
 from backend.builders.wallet import WalletReplenishBuilder, TonProofBuilder
@@ -144,6 +142,8 @@ async def replenish_wallet(
         
         # Используем ton_core вместо tonutils для формирования BOC
         from ton_core import begin_cell, cell_to_b64, to_nano
+        from backend.models.transaction import TonDeposit
+        from backend.models.enums import TransactionStatus
         
         # Явно приводим к int, чтобы избежать дробных чисел в строке amount
         nanotons = int(to_nano(obj_in.amount))
@@ -160,8 +160,19 @@ async def replenish_wallet(
             )
             boc_payload = cell_to_b64(comment_cell)
             logger.debug(f"API: Generated BOC payload: {boc_payload}")
+            
+            # Сохраняем в БД со статусом PENDING
+            new_deposit = TonDeposit(
+                user_id=current_user.id,
+                mnemonic=transaction_id,
+                amount_ton=obj_in.amount,
+                status=TransactionStatus.PENDING
+            )
+            db.add(new_deposit)
+            await db.commit()
+            
         except Exception as e:
-            logger.error(f"API: Failed to generate BOC: {e}")
+            logger.error(f"API: Failed to generate BOC or save deposit: {e}")
             raise HTTPException(status_code=500, detail="Failed to generate transaction payload")
         
         return (
@@ -192,87 +203,4 @@ async def replenish_wallet(
     logger.error(f"API: Unsupported currency {obj_in.currency} for user {current_user.telegram_id}")
     raise HTTPException(status_code=400, detail="Unsupported currency")
 
-@router.post("/verify-deposit")
-async def verify_deposit(
-    obj_in: WalletVerifyDepositRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.get_current_user)
-):
-    """
-    Проверка пополнения в TON по хешу транзакции или BOC.
-    """
-    logger.info(f"API: Received verify-deposit request from user {current_user.telegram_id}. Hash: {obj_in.hash}, Has BOC: {bool(obj_in.boc)}")
-    wallet_service = WalletService(db)
-    
-    tx_hash = obj_in.hash
-    if not tx_hash and obj_in.boc:
-        # Если пришел BOC, пытаемся рассчитать хеш из него
-        try:
-            import base64
-            from ton_core import Cell
-            # Рассчитываем хеш внешнего сообщения из BOC
-            # BOC содержит External Message, который передается в base64
-            boc_bytes = base64.b64decode(obj_in.boc)
-            cell = Cell.one_from_boc(boc_bytes)
-            tx_hash = cell.hash.hex()
-            logger.info(f"API: Calculated message hash from BOC: {tx_hash}")
-        except Exception as e:
-            logger.error(f"API: Failed to calculate hash from BOC: {e}")
-            
-    if not tx_hash:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Transaction hash or BOC is required"
-        )
-        
-    success = await wallet_service.verify_ton_deposit(
-        user=current_user,
-        amount_ton=obj_in.amount,
-        tx_hash=tx_hash
-    )
-    
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Deposit verification failed or transaction not found in blockchain yet"
-        )
-    
-    return {"status": "success", "message": "Deposit verified successfully"}
 
-@router.post("/withdraw")
-async def withdraw_funds(
-    obj_in: WalletWithdrawRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.get_current_user)
-):
-    """
-    Заявка на вывод средств (TON или Stars).
-    Используется последний активный привязанный кошелек пользователя.
-    """
-    from backend.crud.wallet import wallet_repository
-    wallet = await wallet_repository.get_active_by_owner_id(db, owner_id=current_user.id)
-    
-    if not wallet:
-        logger.warning(f"API: Withdrawal failed for user {current_user.telegram_id} - no wallet connected")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Wallet not connected. Please connect TON wallet first."
-        )
-
-    logger.info(f"API: User {current_user.telegram_id} is requesting withdrawal of {obj_in.amount} {obj_in.currency} to linked wallet {wallet.address}")
-
-    wallet_service = WalletService(db)
-    transaction = await wallet_service.create_withdrawal_request(
-        user=current_user,
-        amount=obj_in.amount,
-        currency=obj_in.currency,
-        address=wallet.address
-    )
-    
-    if not transaction:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Insufficient funds"
-        )
-    
-    return {"status": "success", "transaction_id": str(transaction.id)}

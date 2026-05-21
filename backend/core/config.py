@@ -113,11 +113,11 @@ class Settings(BaseSettings):
     # Scheduler Settings (Intervals)
     MAINTENANCE_INTERVAL_HOURS: float = 0.083    # 5 минут для теста (было 6 часов)
     CASE_RECOVERY_INTERVAL_MINUTES: int = 5  # Проверка пустых кейсов
-    LIVE_DROP_INTERVAL: int = 5               # Скорость живой ленты (сек)
+    LIVE_DROP_INTERVAL: int = 60               # Скорость живой ленты (сек)
     
     # Scheduler Settings (Logic)
-    MAX_FLOOR_PRICE_CHANGE_PERCENTAGE: Optional[float] = 0.2 
-    REFUND_LOOKBACK_DAYS: int = 30
+    MAX_FLOOR_PRICE_CHANGE_PERCENTAGE: Optional[float] = 0.2
+    REFUND_LOOKBACK_DAYS: int = 22
     AUTO_BUY_ENABLED: bool = False
     
     # Disabled Sticker Catalogs for drop (will reroll if selected)

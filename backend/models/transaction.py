@@ -6,10 +6,24 @@ from backend.models.enums import Currency, TransactionType, TransactionStatus
 import uuid
 import datetime
 from typing import TYPE_CHECKING
-from backend.models.enums import Currency
 
 if TYPE_CHECKING:
     from backend.models.user import User
+
+class TonDeposit(UUIDModel):
+    """Депозиты через TON"""
+    __tablename__ = "ton_deposits"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    mnemonic: Mapped[str] = mapped_column(String, unique=True, index=True)
+    amount_ton: Mapped[float] = mapped_column(Float)
+    status: Mapped[TransactionStatus] = mapped_column(String, default=TransactionStatus.PENDING, index=True)
+    
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user: Mapped["User"] = relationship("User")
 
 class Transaction(UUIDModel):
     """Финансовых транзакций (Stars, TON)"""

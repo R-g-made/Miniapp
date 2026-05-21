@@ -68,13 +68,3 @@ class WalletDisconnectData(BaseSchema):
 
 class WalletDisconnectResponse(SuccessResponse[WalletDisconnectData]):
     pass
-
-class WalletWithdrawRequest(BaseSchema):
-    currency: Currency
-    amount: float = Field(..., gt=0)
-    address: Optional[str] = Field(None, min_length=40, max_length=100)
-
-class WalletVerifyDepositRequest(BaseSchema):
-    amount: float = Field(..., gt=0)
-    hash: Optional[str] = Field(None, min_length=10)
-    boc: Optional[str] = None

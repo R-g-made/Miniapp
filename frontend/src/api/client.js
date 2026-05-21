@@ -71,6 +71,4 @@ export default {
     linkWallet: (data) => apiClient.post('/wallet/link', data),
     disconnectWallet: () => apiClient.delete('/wallet/disconnect'),
     replenishWallet: (data) => apiClient.post('/wallet/replenish', data),
-    verifyDeposit: (data) => apiClient.post('/wallet/verify-deposit', data),
-    withdrawWallet: (data) => apiClient.post('/wallet/withdraw', data),
 };

@@ -45,6 +45,7 @@ class WorkerService:
         self._tasks.append(asyncio.create_task(self._run_live_drops()))
         self._tasks.append(asyncio.create_task(self._run_fast_checks_loop()))
         self._tasks.append(asyncio.create_task(self._run_maintenance_loop()))
+        self._tasks.append(asyncio.create_task(self._run_ton_deposits_check()))
         
         logger.success(f"WorkerService: {len(self._tasks)} workers started successfully.")
 
@@ -145,5 +146,137 @@ class WorkerService:
             except Exception as e:
                 logger.error(f"Maintenance Worker Global Error: {e}")
             await asyncio.sleep(settings.MAINTENANCE_INTERVAL_HOURS * 3600)
+
+    async def _run_ton_deposits_check(self):
+        logger.info("TonDeposits Worker: Started (Interval: 10s)")
+        
+        while True:
+            try:
+                from backend.models.transaction import TonDeposit, Transaction
+                from backend.models.enums import TransactionStatus, TransactionType, Currency
+                from backend.services.user_service import user_service
+                from datetime import timedelta
+                
+                async with async_session_factory() as db:
+                    # 1. Mark older than 24h as EXPIRED
+                    expiration_time = datetime.now(timezone.utc) - timedelta(hours=24)
+                    stmt_expire = update(TonDeposit).where(
+                        TonDeposit.status == TransactionStatus.PENDING,
+                        TonDeposit.created_at < expiration_time.replace(tzinfo=None)
+                    ).values(status=TransactionStatus.EXPIRED)
+                    await db.execute(stmt_expire)
+                    await db.commit()
+                    
+                    # 2. Check if there are any PENDING deposits
+                    stmt_pending = select(TonDeposit).where(TonDeposit.status == TransactionStatus.PENDING).limit(1)
+                    has_pending = (await db.execute(stmt_pending)).scalar_one_or_none()
+                    
+                    if has_pending:
+                        import httpx
+                        from ton_core import Address
+                        
+                        base_url = "https://testnet.tonapi.io/v2" if settings.IS_TESTNET else "https://tonapi.io/v2"
+                        headers = {}
+                        if settings.TON_API_KEY:
+                            headers["Authorization"] = f"Bearer {settings.TON_API_KEY}"
+                            
+                        merchant_addr_hex = Address(settings.MERCHANT_TON_ADDRESS).to_str(is_user_friendly=False)
+                        
+                        url = f"{base_url}/accounts/{settings.MERCHANT_TON_ADDRESS}/events?limit=50"
+                        async with httpx.AsyncClient(timeout=10.0) as client:
+                            resp = await client.get(url, headers=headers)
+                            if resp.status_code == 200:
+                                data = resp.json()
+                                events = data.get("events", [])
+                                
+                                for event in events:
+                                    if event.get("in_progress", False):
+                                        continue
+                                        
+                                    for action in event.get("actions", []):
+                                        if action.get("type") == "TonTransfer":
+                                            transfer = action.get("ton_transfer") or action.get("TonTransfer")
+                                            if not transfer: continue
+                                            
+                                            recipient = transfer.get("recipient", {})
+                                            recipient_addr = recipient.get("address") if isinstance(recipient, dict) else recipient
+                                            if not recipient_addr: continue
+                                            
+                                            try:
+                                                norm_recipient = Address(recipient_addr).to_str(is_user_friendly=False)
+                                            except Exception:
+                                                continue
+                                                
+                                            if norm_recipient != merchant_addr_hex:
+                                                continue
+                                                
+                                            comment = transfer.get("comment")
+                                            if not comment: continue
+                                            
+                                            amount_nano = int(transfer.get("amount", 0))
+                                            
+                                            # Lookup pending deposit by mnemonic (comment)
+                                            stmt_dep = select(TonDeposit).where(
+                                                TonDeposit.status == TransactionStatus.PENDING,
+                                                TonDeposit.mnemonic == comment
+                                            )
+                                            deposit = (await db.execute(stmt_dep)).scalar_one_or_none()
+                                            
+                                            if deposit:
+                                                expected_nano = deposit.amount_ton * 10**9
+                                                # Check 5% margin
+                                                if amount_nano >= (expected_nano * 0.95):
+                                                    # Complete deposit
+                                                    deposit.status = TransactionStatus.COMPLETED
+                                                    
+                                                    # Check if transaction with this event_id already exists
+                                                    event_id = event.get("event_id")
+                                                    stmt_tx = select(Transaction).where(Transaction.hash == event_id)
+                                                    existing_tx = (await db.execute(stmt_tx)).scalar_one_or_none()
+                                                    
+                                                    if not existing_tx:
+                                                        user = await user_service.get_locked(db, deposit.user_id)
+                                                        if user:
+                                                            actual_ton = round(amount_nano / 10**9, 9)
+                                                            user.balance_ton = float(user.balance_ton) + actual_ton
+                                                            
+                                                            tx = Transaction(
+                                                                user_id=user.id,
+                                                                amount=actual_ton,
+                                                                currency=Currency.TON,
+                                                                type=TransactionType.DEPOSIT,
+                                                                status=TransactionStatus.COMPLETED,
+                                                                hash=event_id,
+                                                                details={"onchain_data": str(event)}
+                                                            )
+                                                            db.add(tx)
+                                                            db.add(user)
+                                                            db.add(deposit)
+                                                            
+                                                            try:
+                                                                await db.commit()
+                                                                
+                                                                # Send WS update
+                                                                from backend.core.websocket_manager import manager
+                                                                from backend.schemas.websocket import WSEventMessage
+                                                                from backend.models.enums import WSMessageType
+                                                                await manager.send_to_user(
+                                                                    user_id=str(user.id),
+                                                                    message=WSEventMessage(
+                                                                        type=WSMessageType.BALANCE_UPDATE,
+                                                                        data={
+                                                                            "currency": Currency.TON.value,
+                                                                            "new_balance": float(user.balance_ton)
+                                                                        }
+                                                                    )
+                                                                )
+                                                                logger.success(f"TonDeposits Worker: Confirmed deposit {deposit.id} for user {user.id}")
+                                                            except Exception as e:
+                                                                await db.rollback()
+                                                                logger.error(f"TonDeposits Worker: Failed to commit deposit {deposit.id}: {e}")
+            except Exception as e:
+                logger.error(f"TonDeposits Worker Global Error: {e}")
+            
+            await asyncio.sleep(10)
 
 worker_service = WorkerService()
