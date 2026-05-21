@@ -19,6 +19,7 @@ export const useAppStore = defineStore('app', {
         isMaintenance: false,
         isNavBarHidden: false,
         isDepositOpen: false,
+        isSubscribeModalOpen: false,
         cases: [], // Список кейсов с их статусом
         homeFilters: {
             selectedIssuer: null,
@@ -35,7 +36,11 @@ export const useAppStore = defineStore('app', {
         },
         setDepositOpen(open) {
             this.isDepositOpen = open;
-            this.isNavBarHidden = open; // Скрываем навбар при открытом модальном окне
+            this.isNavBarHidden = open || this.isSubscribeModalOpen; 
+        },
+        setSubscribeModalOpen(open) {
+            this.isSubscribeModalOpen = open;
+            this.isNavBarHidden = open || this.isDepositOpen;
         },
         addLiveDrop(drop) {
             const newDrop = {
