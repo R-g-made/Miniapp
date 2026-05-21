@@ -870,9 +870,10 @@ export default {
   border-radius: 35px;
   display: flex;
   align-items: center;
-  padding: 16px 24px;
+  padding: 24px; /* Изменено с 16px 24px на 24px чтобы соответствовать action-row */
   gap: 16px;
   margin-bottom: 12px;
+  box-sizing: border-box; /* Важно для совпадения ширины */
 }
 
 .lock-icon {
@@ -899,6 +900,7 @@ export default {
   border-radius: 35px; /* закругление 35 */
   display: flex;
   flex-direction: column;
+  box-sizing: border-box; /* Добавлено для согласованности ширины */
 }
 
 .action-row {
