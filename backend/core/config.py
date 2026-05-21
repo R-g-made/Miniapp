@@ -5,8 +5,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "MiniApp"
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
-    UNAVAILABLE_MODE: bool = True
-    ADMIN_TG_ID: int = 1131784912 #перенести в список
+    UNAVAILABLE_MODE: bool = False
+    ADMIN_TG_ID: int = 1131784912 #перенести в список,убрать дублирование
     
     # Database
     POSTGRES_SERVER: str = "localhost"
