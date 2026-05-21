@@ -2,8 +2,8 @@
   <div class="maintenance-screen">
     <div class="maintenance-content">
       <div class="maintenance-lottie" ref="lottieContainer"></div>
-      <h2 class="maintenance-title">Проект обновляется</h2>
-      <p class="maintenance-text">Будет доступен чуть позже</p>
+      <h2 class="maintenance-title">Project is updating</h2>
+      <p class="maintenance-text">Will be available shortly</p>
     </div>
     
     <div class="maintenance-footer">
