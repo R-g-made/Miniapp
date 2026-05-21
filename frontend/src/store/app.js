@@ -16,6 +16,7 @@ export const useAppStore = defineStore('app', {
             min_deposit: 1.0
         },
         initialized: false,
+        isMaintenance: false,
         isNavBarHidden: false,
         isDepositOpen: false,
         cases: [], // Список кейсов с их статусом
@@ -26,6 +27,9 @@ export const useAppStore = defineStore('app', {
     }),
     
     actions: {
+        setMaintenance(isMaintenance) {
+            this.isMaintenance = isMaintenance;
+        },
         setHomeFilters(filters) {
             this.homeFilters = { ...this.homeFilters, ...filters };
         },

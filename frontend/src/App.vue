@@ -1,14 +1,17 @@
 <template>
   <div class="app-container">
-    <header class="app-header">
-      <BalanceBar @add-funds="openDeposit" />
-    </header>
-    <main class="app-content">
-      <router-view></router-view>
-    </main>
-    <NavBar />
-    <DepositModal />
-    <NotificationContainer />
+    <template v-if="!appStore.isMaintenance">
+      <header class="app-header">
+        <BalanceBar @add-funds="openDeposit" />
+      </header>
+      <main class="app-content">
+        <router-view></router-view>
+      </main>
+      <NavBar />
+      <DepositModal />
+      <NotificationContainer />
+    </template>
+    <MaintenanceView v-else />
   </div>
 </template>
 
@@ -22,9 +25,10 @@ import BalanceBar from './components/BalanceBar.vue';
 import NavBar from './components/NavBar.vue';
 import DepositModal from './components/DepositModal.vue';
 import NotificationContainer from './components/NotificationContainer.vue';
+import MaintenanceView from './components/MaintenanceView.vue';
 
 export default {
-  components: { BalanceBar, NavBar, DepositModal, NotificationContainer },
+  components: { BalanceBar, NavBar, DepositModal, NotificationContainer, MaintenanceView },
   setup() {
     const authStore = useAuthStore();
     const appStore = useAppStore();

@@ -16,6 +16,13 @@ async def login(
     auth_service = AuthService(db)
     user, access_token = await auth_service.authenticate_telegram_user(obj_in.init_data)
     
+    from backend.core.config import settings
+    if settings.UNAVAILABLE_MODE and user.telegram_id != settings.ADMIN_TG_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="MAINTENANCE_MODE", #Перенестив  enum
+        )
+    
     from backend.services.wallet_service import WalletService
     wallet_service = WalletService(db)
     ton_payload = await wallet_service.generate_ton_proof_payload()

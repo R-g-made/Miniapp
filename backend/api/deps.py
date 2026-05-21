@@ -41,6 +41,12 @@ async def get_current_user(
     if not user:
         raise EntityNotFound("User not found")
         
+    if settings.UNAVAILABLE_MODE and user.telegram_id != settings.ADMIN_TG_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="MAINTENANCE_MODE"
+        )
+        
     # Rate Limit: 5 запросов в секунду на пользователя
     if settings.USE_REDIS:
         redis_client = await redis_service.connect()

@@ -52,6 +52,11 @@ export const useAuthStore = defineStore('auth', {
                 return false;
             } catch (error) {
                 console.error("Authentication failed:", error);
+                if (error.response?.data?.detail === 'MAINTENANCE_MODE' || error.response?.status === 503) {
+                    import('./app').then(({ useAppStore }) => {
+                        useAppStore().setMaintenance(true);
+                    });
+                }
                 this.isLoading = false;
                 return false;
             }
