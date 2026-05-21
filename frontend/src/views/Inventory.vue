@@ -59,7 +59,7 @@
             <div class="sticker-footer">
               <div class="price-pill">
                 <img 
-                  v-if="activeCurrency === 'TON'"
+                  v-if="!isLocked(sticker.unlock_date) && activeCurrency === 'TON'"
                   src="@/assets/icons/ton.svg" 
                   alt="TON" 
                   class="price-icon"
@@ -130,11 +130,11 @@
 
             <div class="modal-actions-container">
               <!-- Sell for Active Currency -->
-              <div class="action-row" @click="sellSticker(activeCurrency)">
+              <div class="action-row" @click="sellSticker(isLocked(selectedSticker.unlock_date) ? 'STARS' : activeCurrency)">
                 <img src="@/assets/icons/cart.svg" alt="Cart" class="action-icon cart-icon">
                 <span class="action-text">Sell for</span>
                 <img 
-                  v-if="activeCurrency === 'TON'"
+                  v-if="!isLocked(selectedSticker.unlock_date) && activeCurrency === 'TON'"
                   src="@/assets/icons/ton.svg" 
                   alt="TON" 
                   class="action-currency-icon"
@@ -272,7 +272,11 @@ export default {
 
     const formatPrice = (sticker) => {
       if (!sticker) return '0';
-      if (activeCurrency.value === 'TON') {
+      
+      const forceStars = isLocked(sticker.unlock_date);
+      const currencyToUse = forceStars ? 'STARS' : activeCurrency.value;
+
+      if (currencyToUse === 'TON') {
         const val = sticker.floor_price_ton || 0;
         return parseFloat(val).toFixed(2);
       }

@@ -54,7 +54,7 @@
             <span class="btn-text">{{ isSelling ? 'Selling...' : 'Sell for ' + formatPrice(winningItem) }}</span>
             <template v-if="!isSelling">
               <img 
-                v-if="activeCurrency === 'TON'"
+                v-if="!winningItem?.is_locked && activeCurrency === 'TON'"
                 src="@/assets/icons/ton.svg" 
                 alt="TON" 
                 class="btn-ton-icon"
@@ -211,7 +211,11 @@ export default {
     // Вспомогательные функции
     const formatPrice = (item) => {
       if (!item) return '0';
-      if (activeCurrency.value === 'TON') {
+      
+      const forceStars = item.is_locked;
+      const currencyToUse = forceStars ? 'STARS' : activeCurrency.value;
+
+      if (currencyToUse === 'TON') {
         const val = item.price_ton || item.floor_price_ton || '0';
         return parseFloat(val).toFixed(2);
       }
@@ -322,7 +326,8 @@ export default {
           image_url: wonSticker.image_url,
           lottie_url: wonSticker.lottie_url,
           price_ton: wonSticker.floor_price_ton,
-          price_stars: wonSticker.floor_price_stars
+          price_stars: wonSticker.floor_price_stars,
+          is_locked: wonSticker.is_locked
         };
         
         trackItems[50] = winner;
@@ -403,7 +408,8 @@ export default {
       
       isSelling.value = true;
       try {
-        const response = await api.sellSticker(winningItem.value.id, activeCurrency.value.toLowerCase());
+        const currencyToSell = winningItem.value.is_locked ? 'stars' : activeCurrency.value.toLowerCase();
+        const response = await api.sellSticker(winningItem.value.id, currencyToSell);
         const newBalance = response.data.new_balance;
         const actualCurrency = response.data.currency || activeCurrency.value;
         

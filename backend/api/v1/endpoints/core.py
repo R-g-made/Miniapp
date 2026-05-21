@@ -39,7 +39,8 @@ async def bootstrap(
     
     builder.with_config(
         maintenance=False, 
-        min_deposit=settings.MIN_DEPOSIT,
+        min_deposit_ton=settings.MIN_DEPOSIT_TON,
+        min_deposit_stars=settings.MIN_DEPOSIT_STARS,
         ref_percentage=settings.REFERRAL_PERCENTAGE
     )
     

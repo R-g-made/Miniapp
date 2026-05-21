@@ -24,10 +24,11 @@ class BootstrapBuilder:
         self._sorting_options = [SortingOption(**opt) for opt in options]
         return self
 
-    def with_config(self, maintenance: bool = False, min_deposit: float = 1.0, ref_percentage: float = 0.05):
+    def with_config(self, maintenance: bool = False, min_deposit_ton: float = 0.1, min_deposit_stars: int = 30, ref_percentage: float = 0.05):
         self._app_config = AppConfig(
             maintenance=maintenance,
-            min_deposit_amount=min_deposit,
+            min_deposit_ton=min_deposit_ton,
+            min_deposit_stars=min_deposit_stars,
             ref_percentage=ref_percentage
         )
         return self
