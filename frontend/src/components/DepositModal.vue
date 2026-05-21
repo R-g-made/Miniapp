@@ -181,6 +181,19 @@ export default {
           if (!tc.connected) {
               console.error('Cannot send transaction: TonConnect is not connected.');
               notificationStore.error('Error', 'Wallet is not connected');
+              
+              // Force disconnect local and backend
+              try {
+                await disconnectWallet();
+                await api.disconnectWallet();
+                if (authStore.user) {
+                  authStore.user.wallet_address = null;
+                }
+                isConnected.value = false;
+                walletAddress.value = '';
+              } catch (err) {
+                console.error('Error while auto-disconnecting:', err);
+              }
               return;
           }
 
@@ -218,7 +231,26 @@ export default {
             }
           } catch (error) {
             console.error('TonConnect sendTransaction error:', error);
-            // Можно добавить уведомление пользователю здесь
+            
+            // Если ошибка связана с отключенным кошельком
+            if (error?.message?.toLowerCase().includes('not connected') || 
+                error?.message?.toLowerCase().includes('disconnect')) {
+              try {
+                await disconnectWallet();
+                await api.disconnectWallet();
+                if (authStore.user) {
+                  authStore.user.wallet_address = null;
+                }
+                isConnected.value = false;
+                walletAddress.value = '';
+              } catch (err) {
+                console.error('Error while auto-disconnecting:', err);
+              }
+            } else if (error?.message?.toLowerCase().includes('user rejects')) {
+              notificationStore.info('Cancelled', 'Transaction cancelled');
+            } else {
+              notificationStore.error('Error', 'Failed to send transaction');
+            }
           }
         } else if (activeRefCurrency.value === 'STARS') {
           // Логика для Telegram Stars (через Telegram.WebApp.openTelegramLink)
