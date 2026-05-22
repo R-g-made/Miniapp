@@ -9,6 +9,7 @@
       </main>
       <NavBar />
       <DepositModal />
+      <SubscribeModal />
       <NotificationContainer />
     </template>
     <MaintenanceView v-else />
@@ -24,11 +25,12 @@ import { wsService } from './api/websocket';
 import BalanceBar from './components/BalanceBar.vue';
 import NavBar from './components/NavBar.vue';
 import DepositModal from './components/DepositModal.vue';
+import SubscribeModal from './components/SubscribeModal.vue';
 import NotificationContainer from './components/NotificationContainer.vue';
 import MaintenanceView from './components/MaintenanceView.vue';
 
 export default {
-  components: { BalanceBar, NavBar, DepositModal, NotificationContainer, MaintenanceView },
+  components: { BalanceBar, NavBar, DepositModal, SubscribeModal, NotificationContainer, MaintenanceView },
   setup() {
     const authStore = useAuthStore();
     const appStore = useAppStore();
