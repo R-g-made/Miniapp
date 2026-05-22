@@ -106,7 +106,7 @@ export default {
 <style scoped>
 .subscribe-modal-root {
   position: relative;
-  z-index: 105; /* Выше остальных элементов */
+  z-index: 2000; /* Выше NavBar (у которого 1000) */
 }
 
 .modal-overlay {
