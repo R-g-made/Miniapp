@@ -44,10 +44,18 @@ export default {
     let lottieInstance = null;
 
     onMounted(() => {
-      // Показываем с небольшой задержкой для плавности при каждом запуске
-      setTimeout(() => {
-        isOpen.value = true;
-      }, 1000);
+      // Проверяем время последнего показа
+      const lastSeenTime = localStorage.getItem('lastSeenSubscribePromo');
+      const currentTime = new Date().getTime();
+      const twelveHoursInMs = 12 * 60 * 60 * 1000; // 12 часов в миллисекундах
+
+      if (!lastSeenTime || (currentTime - parseInt(lastSeenTime)) > twelveHoursInMs) {
+        // Показываем с небольшой задержкой для плавности
+        setTimeout(() => {
+          isOpen.value = true;
+          localStorage.setItem('lastSeenSubscribePromo', currentTime.toString());
+        }, 1000);
+      }
     });
 
     watch(isOpen, (newVal) => {
@@ -82,6 +90,10 @@ export default {
     };
 
     const handleSubscribe = () => {
+      // Если пользователь нажал подписаться, не показываем модалку 1 неделю
+      const oneWeekInMs = new Date().getTime() + (7 * 24 * 60 * 60 * 1000); // +1 неделя
+      localStorage.setItem('lastSeenSubscribePromo', oneWeekInMs.toString());
+
       const tg = window.Telegram?.WebApp;
       if (tg && tg.openTelegramLink) {
         // Открытие ссылки внутри Telegram
