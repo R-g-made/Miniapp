@@ -10,6 +10,8 @@
       <div v-if="isOpen" class="modal-wrapper" @click="closeModal">
         <div class="subscribe-modal" @click.stop>
           
+          <div class="modal-drag-handle"></div>
+
           <div class="lottie-container" ref="lottieContainer"></div>
 
           <h2 class="modal-title">
@@ -150,12 +152,20 @@ export default {
   margin-bottom: calc(20px + env(keyboard-inset-height, 0px));
   background: #202020;
   border-radius: 48px;
-  padding: 30px 20px 20px 20px;
+  padding: 16px 20px 20px 20px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   transition: transform 0.3s ease;
+}
+
+.modal-drag-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 100px;
+  margin-bottom: 20px;
 }
 
 .lottie-container {
