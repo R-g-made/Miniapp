@@ -153,7 +153,7 @@ export default {
 }
 
 .modal-title {
-  font-size: 24px;
+  font-size: 21px;
   font-weight: 700;
   color: #FFFFFF;
   margin: 0 0 12px 0;
@@ -161,7 +161,7 @@ export default {
 }
 
 .gradient-text {
-  background: linear-gradient(90deg, #5A98F2, #84B1F8); /* Синий градиент для слова Channel */
+  background: linear-gradient(270deg, #5A98F2, #ffffffff); /* Перевернутый синий градиент */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -209,7 +209,7 @@ export default {
 /* Анимации появления */
 .overlay-fade-enter-active,
 .overlay-fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.4s ease;
 }
 .overlay-fade-enter-from,
 .overlay-fade-leave-to {
@@ -218,7 +218,7 @@ export default {
 
 .modal-slide-enter-active,
 .modal-slide-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .modal-slide-enter-from,
 .modal-slide-leave-to {
