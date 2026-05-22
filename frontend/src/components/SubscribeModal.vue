@@ -161,7 +161,7 @@ export default {
 }
 
 .modal-drag-handle {
-  width: 40px;
+  width: 60px;
   height: 4px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 100px;
