@@ -125,8 +125,8 @@ export default {
       }
       
       return {
-        width: `calc(${slotWidth}% - 8px)`,
-        left: `calc(${activeIndex.value * slotWidth}% + 4px)`,
+        width: `calc(${slotWidth}% - 2px)`,
+        left: `calc(${activeIndex.value * slotWidth}% + 1px)`,
         transform: `scaleX(${scaleX}) scaleY(${scaleY})`
       };
     });
@@ -244,8 +244,8 @@ export default {
   border-radius: 1000px;
   top: 4px;
   /* Анимация движения и трансформации */
-  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
-  will-change: transform, left;
+  will-change: transform, left, width;
 }
 </style>
