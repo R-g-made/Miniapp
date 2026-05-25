@@ -53,7 +53,7 @@ export default {
         size: 22
       },
       { 
-        name: 'Rewards', 
+        name: 'Tournament', 
         path: '/tournament', 
         icon: new URL('../assets/icons/trophy.svg', import.meta.url).href,
         size: 22
@@ -125,8 +125,8 @@ export default {
       }
       
       return {
-        width: `calc(${slotWidth}% - 12px)`,
-        left: `calc(${activeIndex.value * slotWidth}% + 6px)`,
+        width: `calc(${slotWidth}% - 4px)`,
+        left: `calc(${activeIndex.value * slotWidth}% + 2px)`,
         transform: `scaleX(${scaleX}) scaleY(${scaleY})`
       };
     });
