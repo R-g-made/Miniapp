@@ -713,7 +713,7 @@ export default {
 
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 20px;
   width: 100%;
   zoom: 0.9;

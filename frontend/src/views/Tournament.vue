@@ -241,7 +241,7 @@ export default {
 }
 
 .subtitle {
-  font-size: 13px;
+  font-size: 17px;
   color: #8E8E93;
   margin: 0 0 24px 0;
   line-height: 1.4;
@@ -300,7 +300,7 @@ export default {
   padding: 0 20px;
   height: 58px;
   color: #fff;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -327,7 +327,7 @@ export default {
   overflow: hidden;
   padding: 0 20px;
   color: #8E8E93;
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.4;
   text-align: left;
 }
@@ -399,18 +399,18 @@ export default {
 
 .username {
   color: #fff;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 500;
 }
 
 .divider {
   color: #3A3A3C;
-  font-size: 14px;
+  font-size: 17px;
 }
 
 .rank, .rank-list {
   color: #8E8E93;
-  font-size: 14px;
+  font-size: 17px;
 }
 
 .item-right {
