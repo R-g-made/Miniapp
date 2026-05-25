@@ -46,6 +46,7 @@ class WorkerService:
         self._tasks.append(asyncio.create_task(self._run_fast_checks_loop()))
         self._tasks.append(asyncio.create_task(self._run_maintenance_loop()))
         self._tasks.append(asyncio.create_task(self._run_ton_deposits_check()))
+        self._tasks.append(asyncio.create_task(self._run_tournament_worker()))
         
         logger.success(f"WorkerService: {len(self._tasks)} workers started successfully.")
 
@@ -278,5 +279,38 @@ class WorkerService:
                 logger.error(f"TonDeposits Worker Global Error: {e}")
             
             await asyncio.sleep(10)
+
+    async def _run_tournament_worker(self):
+        logger.info("Tournament Worker: Started")
+        lock_key = "tournament_worker_lock"
+        import uuid
+        instance_id = str(uuid.uuid4())
+        
+        while True:
+            try:
+                from backend.services.tournament import tournament_service
+                settings = tournament_service.get_settings()
+                check_interval = settings.get("check_interval", 300) if settings else 300
+                
+                await asyncio.sleep(check_interval)
+                
+                if not tournament_service.is_active():
+                    continue
+
+                try:
+                    redis_client = await redis_service.connect()
+                    lock_duration = int(check_interval * 0.8)
+                    is_locked = await redis_client.set(lock_key, instance_id, nx=True, ex=lock_duration)
+                    if not is_locked:
+                        current_owner = await redis_client.get(lock_key)
+                        if current_owner != instance_id: continue
+                        await redis_client.expire(lock_key, lock_duration)
+                except Exception:
+                    pass
+                
+                await tournament_service.update_leaderboard()
+            except Exception as e:
+                logger.error(f"Tournament Worker Error: {e}")
+                await asyncio.sleep(60)
 
 worker_service = WorkerService()

@@ -67,9 +67,12 @@ class ChanceService:
         items_data = []
         available_items = []
         
+        from backend.services.tournament import tournament_service
+        reserved_sticker_ids = tournament_service.get_reserved_sticker_ids()
+        
         # Собираем данные по всем айтемам
         for item in case_obj.items:
-            count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id)
+            count = await crud_sticker.count_available_in_pool(db, item.sticker_catalog_id, exclude_ids=reserved_sticker_ids)
             price = item.sticker_catalog.floor_price_ton or 0.1
             
             item_info = {

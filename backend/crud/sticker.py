@@ -56,7 +56,7 @@ class StickerRepository(BaseRepository[UserSticker]):
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_random_from_pool(self, db: AsyncSession, catalog_id: UUID) -> Optional[UserSticker]:
+    async def get_random_from_pool(self, db: AsyncSession, catalog_id: UUID, exclude_ids: List[UUID] = None) -> Optional[UserSticker]:
         """
         Получает случайный свободный стикер из пула для данного каталога.
         """
@@ -65,12 +65,16 @@ class StickerRepository(BaseRepository[UserSticker]):
             UserSticker.catalog_id == catalog_id,
             UserSticker.owner_id == None,
             UserSticker.is_available == True
-        ).order_by(func.random()).limit(1)
+        )
+        if exclude_ids:
+            query = query.where(UserSticker.id.notin_(exclude_ids))
+            
+        query = query.order_by(func.random()).limit(1)
         
         result = await db.execute(query)
         return result.scalar_one_or_none()
 
-    async def count_available_in_pool(self, db: AsyncSession, catalog_id: UUID) -> int:
+    async def count_available_in_pool(self, db: AsyncSession, catalog_id: UUID, exclude_ids: List[UUID] = None) -> int:
         """
         Считает количество доступных стикеров в пуле для конкретного каталога.
         В таблице sticker_pool поле называется catalog_id.
@@ -89,6 +93,9 @@ class StickerRepository(BaseRepository[UserSticker]):
             UserSticker.owner_id == None,
             UserSticker.is_available == True
         )
+        if exclude_ids:
+            query = query.where(UserSticker.id.notin_(exclude_ids))
+            
         available = await db.scalar(query) or 0
         
         # Fallback для SQLite/строковых ID
@@ -98,11 +105,13 @@ class StickerRepository(BaseRepository[UserSticker]):
                 UserSticker.owner_id == None,
                 UserSticker.is_available == True
             )
+            if exclude_ids:
+                query_str = query_str.where(UserSticker.id.notin_([str(e) for e in exclude_ids]))
             available = await db.scalar(query_str) or 0
             
         return available
 
-    async def get_all_pool_counts(self, db: AsyncSession) -> List[Tuple[UUID, int]]:
+    async def get_all_pool_counts(self, db: AsyncSession, exclude_ids: List[UUID] = None) -> List[Tuple[UUID, int]]:
         """
         Считает количество доступных стикеров в пуле для всех каталогов.
         Возвращает список кортежей (catalog_id, count).
@@ -113,7 +122,12 @@ class StickerRepository(BaseRepository[UserSticker]):
         ).where(
             UserSticker.owner_id == None,
             UserSticker.is_available == True
-        ).group_by(UserSticker.catalog_id)
+        )
+        
+        if exclude_ids:
+            query = query.where(UserSticker.id.notin_(exclude_ids))
+            
+        query = query.group_by(UserSticker.catalog_id)
         
         result = await db.execute(query)
         return result.all()

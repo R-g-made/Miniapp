@@ -25,6 +25,7 @@ from backend.core.websocket_manager import manager
 from backend.schemas.websocket import WSEventMessage, WSMessageType
 from backend.core.exceptions import EntityNotFound, InvalidOperation, InsufficientFunds
 from backend.core.config import settings
+from backend.services.tournament import tournament_service
 
 class CaseService:
     async def open_case(
@@ -64,10 +65,13 @@ class CaseService:
         weights = []
         has_missing_items = False
         
+        # Получаем зарезервированные ID стикеров для турнира, чтобы они не выпали
+        reserved_sticker_ids = tournament_service.get_reserved_sticker_ids()
+        
         for item in items:
             cat_id_str = str(item.sticker_catalog_id)
             cat_id = UUID(cat_id_str)
-            count = await crud_sticker.count_available_in_pool(db, cat_id)
+            count = await crud_sticker.count_available_in_pool(db, cat_id, exclude_ids=reserved_sticker_ids)
             
             if count > 0:
                 weights.append(item.chance)
@@ -109,7 +113,7 @@ class CaseService:
         catalog_id = UUID(str(selected_catalog_item.sticker_catalog_id))
         logger.info(f"CaseService: Selected catalog item: {catalog_id}")
         
-        won_sticker = await crud_sticker.get_random_from_pool(db, catalog_id)
+        won_sticker = await crud_sticker.get_random_from_pool(db, catalog_id, exclude_ids=reserved_sticker_ids)
         
         if not won_sticker:
             # Сюда мы попадаем только в случае race condition (кто-то купил стикер между нашей проверкой и попыткой забрать)
@@ -266,6 +270,8 @@ class CaseService:
         has_empty_items = False
         empty_item_names = []
         
+        reserved_sticker_ids = tournament_service.get_reserved_sticker_ids()
+        
         for item in case_obj.items:
             cat_id_str = str(item.sticker_catalog_id)
             # Игнорируем стикеры из списка отключенных (они не влияют на "пустоту" кейса)
@@ -274,7 +280,7 @@ class CaseService:
                 
             # Принудительно приводим к UUID для надежности сравнения
             cat_id = UUID(cat_id_str)
-            count = await crud_sticker.count_available_in_pool(db, cat_id)
+            count = await crud_sticker.count_available_in_pool(db, cat_id, exclude_ids=reserved_sticker_ids)
             if count <= 0:
                 has_empty_items = True
                 empty_item_names.append(item.sticker_catalog.name)
@@ -284,9 +290,10 @@ class CaseService:
         if has_empty_items:
             # Считаем общее количество доступных стикеров в кейсе (кроме отключенных)
             total_available = 0
+            reserved_sticker_ids = tournament_service.get_reserved_sticker_ids()
             for item in case_obj.items:
                 if str(item.sticker_catalog_id) not in settings.DISABLED_STICKER_CATALOG_IDS:
-                    total_available += await crud_sticker.count_available_in_pool(db, UUID(str(item.sticker_catalog_id)))
+                    total_available += await crud_sticker.count_available_in_pool(db, UUID(str(item.sticker_catalog_id)), exclude_ids=reserved_sticker_ids)
 
             # ЖЕСТКАЯ ПРОВЕРКА:
             # Если distribution=True -> кейс живет пока есть хоть один стикер
@@ -328,6 +335,7 @@ class CaseService:
 
                 available_types = []
                 missing_types = []
+                reserved_sticker_ids = tournament_service.get_reserved_sticker_ids()
                 
                 for item in case_obj.items:
                     cat_id_str = str(item.sticker_catalog_id)
@@ -336,7 +344,7 @@ class CaseService:
                         continue
                         
                     cat_id = UUID(cat_id_str)
-                    count = await crud_sticker.count_available_in_pool(db, cat_id)
+                    count = await crud_sticker.count_available_in_pool(db, cat_id, exclude_ids=reserved_sticker_ids)
                     if count > 0:
                         available_types.append(f"{item.sticker_catalog.name} ({count} шт.)")
                     else:

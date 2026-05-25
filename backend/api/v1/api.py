@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.api.v1.endpoints import users, core, auth, stickers, cases, wallet, referrals, ws
+from backend.api.v1.endpoints import users, core, auth, stickers, cases, wallet, referrals, ws, tournament
 
 api_router = APIRouter()
 api_router.include_router(core.router, tags=["core"])
@@ -10,3 +10,4 @@ api_router.include_router(cases.router, prefix="/cases", tags=["cases"])
 api_router.include_router(wallet.router, prefix="/wallet", tags=["wallet"])
 api_router.include_router(referrals.router, prefix="/referrals", tags=["referrals"])
 api_router.include_router(ws.router, prefix="/ws", tags=["ws"])
+api_router.include_router(tournament.router, prefix="/tournament", tags=["tournament"])

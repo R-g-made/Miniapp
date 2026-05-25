@@ -145,7 +145,18 @@ export default {
 
     const handleWalletConnect = async () => {
       if (isConnected.value) {
-        await disconnectWallet();
+        try {
+          await disconnectWallet();
+          await api.disconnectWallet();
+        } catch (err) {
+          console.error('Error disconnecting wallet:', err);
+        } finally {
+          if (authStore.user) {
+            authStore.user.wallet_address = null;
+          }
+          isConnected.value = false;
+          walletAddress.value = '';
+        }
       } else {
         await connectWallet();
       }
@@ -193,7 +204,12 @@ export default {
           
           if (!tc.connected) {
               console.error('Cannot send transaction: TonConnect is not connected.');
-              notificationStore.error('Error', 'Wallet is not connected');
+              
+              if (authStore.user?.wallet_address) {
+                notificationStore.info('Session expired', 'Please reconnect your wallet to continue');
+              } else {
+                notificationStore.error('Error', 'Wallet is not connected');
+              }
               
               // Force disconnect local and backend
               try {
@@ -242,6 +258,7 @@ export default {
             // Если ошибка связана с отключенным кошельком
             if (error?.message?.toLowerCase().includes('not connected') || 
                 error?.message?.toLowerCase().includes('disconnect')) {
+              notificationStore.info('Session expired', 'Please reconnect your wallet to continue');
               try {
                 await disconnectWallet();
                 await api.disconnectWallet();
