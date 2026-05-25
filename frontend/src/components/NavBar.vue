@@ -53,6 +53,12 @@ export default {
         size: 22
       },
       { 
+        name: 'Rewards', 
+        path: '/tournament', 
+        icon: new URL('../assets/icons/trophy.svg', import.meta.url).href,
+        size: 22
+      },
+      { 
         name: 'Profile', 
         path: '/profile', 
         icon: new URL('../assets/icons/profile.svg', import.meta.url).href,
@@ -105,7 +111,7 @@ export default {
 
     const indicatorStyle = computed(() => {
       const itemWidth = 60; // min-width
-      const gap = 54;
+      const gap = 20;
       const offset = activeIndex.value * (itemWidth + gap);
       
       let scaleX = 1;
@@ -121,7 +127,7 @@ export default {
       
       return {
         transform: `translateX(calc(-50% + ${offset}px)) scaleX(${scaleX}) scaleY(${scaleY})`,
-        left: 'calc(31px + 30px)' 
+        left: 'calc(16px + 30px)' 
       };
     });
 
@@ -169,12 +175,13 @@ export default {
   
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 1000px;
-  padding: 18px 31px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 54px;
+  gap: 20px;
   z-index: 1000;
   width: max-content;
+  max-width: 95vw;
   
   /* Анимация уплывания */
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);

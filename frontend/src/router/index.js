@@ -29,6 +29,11 @@ const routes = [
     path: '/referrals',
     name: 'Referrals',
     component: () => import('../views/Referrals.vue')
+  },
+  {
+    path: '/tournament',
+    name: 'Tournament',
+    component: () => import('../views/Tournament.vue')
   }
 ]
 

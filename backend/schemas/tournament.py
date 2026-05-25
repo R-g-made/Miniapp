@@ -13,6 +13,7 @@ class TournamentLeaderboardEntry(BaseModel):
 class TournamentResponse(BaseModel):
     is_active: bool
     last_update: str
+    end_time: Optional[str] = None
     current_user_place: str
     current_user_volume: float
     leaderboard: List[TournamentLeaderboardEntry]

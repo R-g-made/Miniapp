@@ -71,4 +71,7 @@ export default {
     linkWallet: (data) => apiClient.post('/wallet/link', data),
     disconnectWallet: () => apiClient.delete('/wallet/disconnect'),
     replenishWallet: (data) => apiClient.post('/wallet/replenish', data),
+
+    // Tournament
+    getLeaderboard: () => apiClient.get('/tournament/leaderboard'),
 };

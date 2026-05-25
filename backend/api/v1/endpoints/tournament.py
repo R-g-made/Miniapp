@@ -18,6 +18,8 @@ async def get_leaderboard(
 ):
     is_active = tournament_service.is_active()
     cache_data = await tournament_service.get_leaderboard_from_cache()
+    settings = tournament_service.get_settings()
+    end_time_str = settings.get("end_time")
 
     user_id_str = str(current_user.id)
     leaderboard = cache_data.get("leaderboard", [])
@@ -34,7 +36,6 @@ async def get_leaderboard(
     else:
         # Если турнир активен и пользователя нет в топе - запрашиваем его объем напрямую из БД
         if is_active:
-            settings = tournament_service.get_settings()
             try:
                 start_time = datetime.strptime(settings["start_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
                 end_time = datetime.strptime(settings["end_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
@@ -46,7 +47,7 @@ async def get_leaderboard(
 
     response = (
         TournamentResponseBuilder()
-        .set_status(is_active)
+        .set_status(is_active, end_time_str)
         .set_cache_data(cache_data)
         .set_current_user_info(current_user_place, current_user_volume)
         .build()

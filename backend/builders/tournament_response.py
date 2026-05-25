@@ -4,12 +4,14 @@ class TournamentResponseBuilder:
     def __init__(self):
         self._is_active = False
         self._last_update = ""
+        self._end_time = None
         self._leaderboard = []
         self._current_user_place = "50+"
         self._current_user_volume = 0.0
 
-    def set_status(self, is_active: bool):
+    def set_status(self, is_active: bool, end_time: str = None):
         self._is_active = is_active
+        self._end_time = end_time
         return self
 
     def set_cache_data(self, cache_data: dict):
@@ -33,6 +35,7 @@ class TournamentResponseBuilder:
         return TournamentResponse(
             is_active=self._is_active,
             last_update=self._last_update,
+            end_time=self._end_time,
             current_user_place=self._current_user_place,
             current_user_volume=self._current_user_volume,
             leaderboard=entries

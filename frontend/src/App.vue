@@ -46,7 +46,7 @@ export default {
 
       watch(() => route.path, (newPath) => {
         // Скрываем кнопку назад на страницах, где есть нижняя навигация
-        if (newPath === '/' || newPath === '/home' || newPath === '/inventory' || newPath === '/profile') {
+        if (newPath === '/' || newPath === '/home' || newPath === '/inventory' || newPath === '/profile' || newPath === '/tournament') {
           backButton.hide();
         } else {
           backButton.show();
@@ -83,8 +83,8 @@ export default {
             console.log('App: TonConnect session expired, cleaning up...');
             
             // Вызываем notification
-            const notificationStore = (await import('./store/notification')).useNotificationStore();
-            notificationStore.info('Session expired', 'Please reconnect your wallet to continue');
+            // const notificationStore = (await import('./store/notification')).useNotificationStore();
+            // notificationStore.info('Session expired', 'Please reconnect your wallet to continue');
             
             // Очищаем локально и на бэкенде
             try {
