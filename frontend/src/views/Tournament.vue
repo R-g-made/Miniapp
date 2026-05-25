@@ -266,7 +266,7 @@ export default {
   border-radius: 19px;
   padding: 8px 16px;
   color: #fff;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
 }
 
@@ -280,7 +280,7 @@ export default {
   border-radius: 100px;
   padding: 8px 24px;
   color: #fff;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
 }
 
