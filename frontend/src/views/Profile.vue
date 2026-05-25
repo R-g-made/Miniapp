@@ -129,8 +129,17 @@ export default {
     // Следим за изменениями в authStore, чтобы подхватывать кошелек из БД
     watch(() => authStore.user?.wallet_address, (newAddr) => {
       if (newAddr) {
-        isConnected.value = true;
-        walletAddress.value = newAddr;
+        // Дополнительно проверяем, реально ли подключен TonConnect, прежде чем доверять БД
+        import('../api/tonConnect').then(async ({ getTonConnect }) => {
+          const tc = await getTonConnect();
+          if (tc.connected) {
+            isConnected.value = true;
+            walletAddress.value = newAddr;
+          } else {
+            isConnected.value = false;
+            walletAddress.value = '';
+          }
+        });
       } else if (!authStore.isLoading) {
         // Если в БД пусто, проверяем TonConnect, прежде чем сбрасывать
         import('../api/tonConnect').then(async ({ getTonConnect }) => {
@@ -157,9 +166,15 @@ export default {
           walletAddress.value = tc.account.address;
         } else if (authStore.user?.wallet_address) {
           // Если библиотека говорит "не подключен", но в БД есть адрес - 
-          // доверяем БД для отображения, пока юзер не нажмет Disconnect
-          isConnected.value = true;
-          walletAddress.value = authStore.user.wallet_address;
+          // проверяем, не истекла ли сессия, чтобы не показывать фейковое подключение
+          if (!tc.connected) {
+            isConnected.value = false;
+            walletAddress.value = '';
+            // Позволяем глобальному checkWalletSession из App.vue обработать отвязку на бэкенде
+          } else {
+            isConnected.value = true;
+            walletAddress.value = authStore.user.wallet_address;
+          }
         }
         
         unsubscribe = tc.onStatusChange(async (wallet) => {
@@ -225,7 +240,34 @@ export default {
     });
 
     const handleWalletClick = async () => {
+      // Если кошелек кажется подключенным, но фактически сессия истекла
       if (isConnected.value) {
+        try {
+          const { getTonConnect } = await import('../api/tonConnect');
+          const tc = await getTonConnect();
+          
+          if (!tc.connected) {
+            // Сессия истекла, показываем модалку для переподключения
+            isMenuOpen.value = false;
+            notificationStore.info('Session expired', 'Please reconnect your wallet to continue');
+            const { connectWallet, disconnectWallet } = await import('../api/tonConnect');
+            const api = (await import('../api/client')).default;
+            
+            // Очищаем старые данные
+            await disconnectWallet();
+            await api.disconnectWallet();
+            if (authStore.user) authStore.user.wallet_address = null;
+            isConnected.value = false;
+            walletAddress.value = '';
+            
+            // Запрашиваем новое подключение
+            connectWallet();
+            return;
+          }
+        } catch (e) {
+          console.error('Error checking wallet status on click:', e);
+        }
+        
         isMenuOpen.value = !isMenuOpen.value;
       } else {
         const { connectWallet } = await import('../api/tonConnect');
@@ -241,8 +283,12 @@ export default {
     const disconnect = async () => {
       isMenuOpen.value = false;
       try {
-        const { disconnectWallet } = await import('../api/tonConnect');
-        await disconnectWallet();
+        const { disconnectWallet, getTonConnect } = await import('../api/tonConnect');
+        const tc = await getTonConnect();
+        
+        if (tc.connected) {
+            await disconnectWallet();
+        }
         
         // Also call backend disconnect API if available
         const api = (await import('../api/client')).default;

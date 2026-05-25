@@ -71,9 +71,46 @@ export default {
       appStore.setDepositOpen(true);
     };
 
-    return { authStore, appStore, openDeposit };
+    // Глобальная проверка сессии кошелька при загрузке приложения
+    const checkWalletSession = async () => {
+      try {
+        if (authStore.user?.wallet_address) {
+          const { getTonConnect, disconnectWallet } = await import('./api/tonConnect');
+          const tc = await getTonConnect();
+          
+          // Если TonConnect говорит что отключен, а в БД есть кошелек
+          if (!tc.connected) {
+            console.log('App: TonConnect session expired, cleaning up...');
+            
+            // Вызываем notification
+            const notificationStore = (await import('./store/notification')).useNotificationStore();
+            notificationStore.info('Session expired', 'Please reconnect your wallet to continue');
+            
+            // Очищаем локально и на бэкенде
+            try {
+              await disconnectWallet();
+              const api = (await import('./api/client')).default;
+              await api.disconnectWallet();
+            } catch (err) {
+              console.error('App: Error while auto-disconnecting:', err);
+            }
+            
+            // Очищаем стор
+            if (authStore.user) {
+              authStore.user.wallet_address = null;
+            }
+          }
+        }
+      } catch (e) {
+        console.error('App: Error checking wallet session', e);
+      }
+    };
+
+    return { authStore, appStore, openDeposit, checkWalletSession };
   },
   mounted() {
+    this.checkWalletSession();
+
     const checkFullscreen = () => {
       if (!window.Telegram?.WebApp) return;
       
