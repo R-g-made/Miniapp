@@ -125,8 +125,8 @@ export default {
       }
       
       return {
-        width: `calc(${slotWidth}% - 4px)`,
-        left: `calc(${activeIndex.value * slotWidth}% + 2px)`,
+        width: `calc(${slotWidth}% - 8px)`,
+        left: `calc(${activeIndex.value * slotWidth}% + 4px)`,
         transform: `scaleX(${scaleX}) scaleY(${scaleY})`
       };
     });
@@ -232,7 +232,7 @@ export default {
 /* Скользящий индикатор */
 .active-indicator {
   position: absolute;
-  height: calc(100% - 12px);
+  height: calc(100% - 8px);
   
   /* Цвет 414141 с 50% прозрачностью и 5px блюром */
   background: rgba(65, 65, 65, 0.5);
@@ -242,7 +242,7 @@ export default {
   box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
   
   border-radius: 1000px;
-  top: 6px;
+  top: 4px;
   /* Анимация движения и трансформации */
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
