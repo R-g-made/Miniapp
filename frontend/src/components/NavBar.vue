@@ -175,7 +175,7 @@ export default {
   
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 1000px;
-  padding: 12px 16px;
+  padding: 15px 16px;
   display: flex;
   align-items: center;
   gap: 20px;
@@ -210,23 +210,31 @@ export default {
 
 .nav-icon {
   object-fit: contain;
-  transition: opacity 0.3s ease;
-  filter: brightness(0) invert(1); /* Иконки всегда белые */
+  transition: filter 0.3s ease;
+  filter: brightness(0) invert(0.6); /* Неактивные иконки серые */
+}
+
+.nav-item.active .nav-icon {
+  filter: brightness(0) invert(1); /* Активные белые */
 }
 
 .nav-text {
   font-size: 12px;
   font-weight: 500;
-  color: #FFFFFF;
+  color: #8E8E93; /* Неактивный текст серый */
   white-space: nowrap;
-  transition: opacity 0.3s ease;
+  transition: color 0.3s ease;
+}
+
+.nav-item.active .nav-text {
+  color: #FFFFFF; /* Активный белый */
 }
 
 /* Скользящий индикатор */
 .active-indicator {
   position: absolute;
-  width: 112px;
-  height: calc(100% - 8px);
+  width: 74px;
+  height: calc(100% - 12px);
   
   /* Цвет 414141 с 50% прозрачностью и 5px блюром */
   background: rgba(65, 65, 65, 0.5);
@@ -236,7 +244,7 @@ export default {
   box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
   
   border-radius: 1000px;
-  top: 4px;
+  top: 6px;
   /* Более мягкая кривая для основного перемещения */
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
