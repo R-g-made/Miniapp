@@ -110,9 +110,8 @@ export default {
     let settleTimeout = null;
 
     const indicatorStyle = computed(() => {
-      const itemWidth = 60; // min-width
-      const gap = 20;
-      const offset = activeIndex.value * (itemWidth + gap);
+      const itemCount = navItems.length;
+      const slotWidth = 100 / itemCount;
       
       let scaleX = 1;
       let scaleY = 1;
@@ -126,8 +125,9 @@ export default {
       }
       
       return {
-        transform: `translateX(calc(-50% + ${offset}px)) scaleX(${scaleX}) scaleY(${scaleY})`,
-        left: 'calc(16px + 30px)' 
+        width: `calc(${slotWidth}% - 12px)`,
+        left: `calc(${activeIndex.value * slotWidth}% + 6px)`,
+        transform: `scaleX(${scaleX}) scaleY(${scaleY})`
       };
     });
 
@@ -165,8 +165,9 @@ export default {
 .nav-bar {
   position: fixed;
   bottom: calc(35px + env(safe-area-inset-bottom, 0px));
-  left: 50%;
-  transform: translateX(-50%);
+  left: 15px;
+  width: calc(100vw - 30px);
+  box-sizing: border-box;
   
   /* Черный 10% и блюр 5px */
   background: rgba(0, 0, 0, 0.1);
@@ -175,31 +176,29 @@ export default {
   
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 1000px;
-  padding: 15px 16px;
+  padding: 15px 0;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 20px;
   z-index: 1000;
-  width: max-content;
-  max-width: 95vw;
   
   /* Анимация уплывания */
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-bar.nav-hidden {
-  transform: translate(-50%, 150%); /* Уплывает вниз за экран */
+  transform: translateY(150%); /* Уплывает вниз за экран */
   bottom: 0;
 }
 
 .nav-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3.6px;
   cursor: pointer;
   position: relative;
-  min-width: 60px;
   z-index: 2;
   transition: transform 0.1s ease;
 }
@@ -233,7 +232,6 @@ export default {
 /* Скользящий индикатор */
 .active-indicator {
   position: absolute;
-  width: 74px;
   height: calc(100% - 12px);
   
   /* Цвет 414141 с 50% прозрачностью и 5px блюром */
@@ -245,9 +243,9 @@ export default {
   
   border-radius: 1000px;
   top: 6px;
-  /* Более мягкая кривая для основного перемещения */
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Анимация движения и трансформации */
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
-  will-change: transform;
+  will-change: transform, left;
 }
 </style>
