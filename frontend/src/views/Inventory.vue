@@ -597,7 +597,7 @@ export default {
 /* Сетка стикеров */
 .stickers-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); /* 175 мин размер */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* 150 мин размер */
   gap: 10px; /* 10 по вертикали и 10 по горизонтали */
 }
 
@@ -646,10 +646,10 @@ export default {
 
 .sticker-badge-ribbon {
   position: absolute;
-  top: 25px; /* top 25px */
-  right: -30px; /* right -30px */
-  width: 145px;
-  height: 30px;
+  top: 15px; /* top 15px */
+  right: -25px; /* right -25px */
+  width: 100px;
+  height: 24px;
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -662,13 +662,13 @@ export default {
 
 .badge-text {
   color: #FFFFFF;
-  font-size: 17px; /* 17px */
+  font-size: 14px; /* 14px */
   font-weight: 500; /* 500 жирности */
 }
 
 .sticker-image-container {
-  width: 117px; /* 117*117 */
-  height: 117px;
+  width: 90px; /* 90*90 */
+  height: 90px;
   margin-bottom: 5px; /* 5px отступ */
   display: flex;
   align-items: center;

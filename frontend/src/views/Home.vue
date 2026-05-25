@@ -466,8 +466,8 @@ export default {
 
 .cases-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-  gap: 15px; /* 15 по вертикали и 15 по горизонтали */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px; /* 10 по вертикали и 10 по горизонтали */
   margin-left: -20px;
   margin-right: -20px;
   padding: 0 20px;
@@ -517,21 +517,21 @@ export default {
 }
 
 .case-image-container {
-  width: 125px;
-  height: 125px;
+  width: 100px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .case-img {
-  width: 125px;
-  height: 125px;
+  width: 100px;
+  height: 100px;
   object-fit: contain;
 }
 
 .case-name {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: #FFFFFF;
   margin: 0;
