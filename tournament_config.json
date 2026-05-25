@@ -22,8 +22,7 @@
                 "sticker_pool_id": ""
             },
             "else": {
-                "catalog_id": "",
-                "sticker_pool_id": ""
+                "ton_balance": "+0.1"
             }
         }
     }

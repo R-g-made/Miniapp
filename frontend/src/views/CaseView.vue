@@ -713,9 +713,11 @@ export default {
 
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   width: 100%;
+  max-width: 450px; /* Ограничиваем максимальную ширину сетки */
+  margin: 0 auto; /* Центрируем сетку на больших экранах */
   zoom: 0.9;
 }
 
@@ -725,6 +727,7 @@ export default {
   flex-direction: column;
   align-items: center;
   width: 100%;
+  max-width: 120px; /* Ограничиваем максимальный размер самого айтема */
 }
 
 .chance-badge {

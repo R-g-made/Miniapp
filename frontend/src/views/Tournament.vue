@@ -74,6 +74,10 @@
               <span class="volume">{{ user.volume }}</span>
             </div>
             <img v-if="user.prize_picture_url" :src="user.prize_picture_url" class="prize-icon" />
+            <div v-else-if="user.ton_reward" class="ton-reward-pill">
+              <img src="@/assets/icons/ton.svg" class="currency-icon" />
+              <span class="ton-reward-text">{{ user.ton_reward }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -170,7 +174,7 @@ export default {
 
         calculateTimeLeft();
         if (isActive.value && endTimeStr.value) {
-          timerInterval = setInterval(calculateTimeLeft, 60000); // Обновляем раз в минуту
+          timerInterval = setInterval(calculateTimeLeft, 60000); // Обновляем каждую секунду для мгновенной реакции
         }
       } catch (e) {
         console.error('Failed to fetch leaderboard:', e);
@@ -259,7 +263,7 @@ export default {
 
 .timer-pill {
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  border-radius: 19px;
   padding: 8px 16px;
   color: #fff;
   font-size: 14px;
@@ -443,5 +447,20 @@ export default {
   width: 32px;
   height: 32px;
   border-radius: 8px;
+}
+
+.ton-reward-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #15242C;
+  border-radius: 1000px;
+  padding: 6px 10px;
+}
+
+.ton-reward-text {
+  color: #39A5ED;
+  font-size: 14px;
+  font-weight: 600;
 }
 </style>

@@ -1,151 +1,110 @@
-from pydantic_settings import BaseSettings
-from typing import Optional
+import asyncio
+import json
+import os
+import sys
+from unittest.mock import patch, AsyncMock, MagicMock
+from uuid import uuid4
+from datetime import datetime, timezone, timedelta
 
-class Settings(BaseSettings):
-    PROJECT_NAME: str = "MiniApp"
-    API_V1_STR: str = "/api/v1"
-    DEBUG: bool = False
-    UNAVAILABLE_MODE: bool = True
-    ADMIN_TG_ID: int = 1131784912 #перенести в список,убрать дублирование
-    
-    # Database
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = ""
-    POSTGRES_PASSWORD: str = ""
-    POSTGRES_DB: str = ""
-    DATABASE_URL: Optional[str] = None
-    USE_SQLITE: bool = False
+# Создаем фейковый модуль config ДО ТОГО, как импортировать сервисы бэкенда
+# Это предотвращает циклический импорт и ошибку БД
+import types
+dummy_config = types.ModuleType('backend.core.config')
+dummy_config.settings = MagicMock()
+dummy_config.settings.async_database_url = "sqlite+aiosqlite:///:memory:"
+dummy_config.settings.REDIS_URL = "redis://localhost"
+dummy_config.settings.STARS_TO_TON_RATE = 0.01
+sys.modules['backend.core.config'] = dummy_config
 
-    @property
-    def async_database_url(self) -> str:
-        if self.USE_SQLITE:
-            return "sqlite+aiosqlite:///./miniapp.db"
-        if self.DATABASE_URL:
-            return self.DATABASE_URL
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:5432/{self.POSTGRES_DB}"
-    
-    # Redis
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
-    REDIS_URL: Optional[str] = None
-    USE_REDIS: bool = True
+from backend.services.tournament import tournament_service
+from backend.models.user import User
+from backend.models.sticker import UserSticker
 
-    @property
-    def redis_connection_url(self) -> str:
-        if self.REDIS_URL:
-            return self.REDIS_URL
-        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
-    
-    # Bot
-    BOT_TOKEN: str = ""
-    BOT_START_IMAGE_URL: str = "https://i.ibb.co/jvRfMZGD/Stickerloot-new.jpg"
-    BOT_COMMUNITY_URL: str = "https://t.me/stickerloots"
-    MINI_APP_URL: str = "https://t.me/stickerloot_bot/app"
-    ADMIN_IDS: list[int] = [] # Список Telegram ID админов для уведомлений
-    
-    # TON Blockchain
-    TON_API_KEY: str = "" 
-    IS_TESTNET: bool = True
-    
-    # Thermos API
-    THERMOS_API_TOKEN: str = ""
-    THERMOS_BASE_URL: str = "https://backend.thermos.gifts/api/v1"
+async def run_mock_test():
+    print("🚀 Starting Mocked Tournament Distribution Test (NO DATABASE)...")
 
-    # GetGems API
-    GETGEMS_BASE_URL: str = "https://api.getgems.io"
-    GETGEMS_API_TOKEN: str = ""
-    GETGEMS_API_KEY: str = ""
-
-    # Laffka API
-    LAFFKA_BASE_URL: str = "https://laffka-app.shop"
-    LAFFKA_INIT_DATA: str = ""
-    LAFFKA_REF_CODE: Optional[str] = None
-    LAFFKA_API_KEY: str = ""
-
-    # Stickers Tools API
-    STICKERS_TOOLS_API_URL: str = "https://stickers.tools/api/stats-new"
+    # 1. Готовим фейковый конфиг турнира
+    config_path = os.path.join(os.getcwd(), "tournament_config.json")
+    now = datetime.now(timezone.utc)
+    start_time = now - timedelta(days=1)
+    end_time = now - timedelta(minutes=10) # Турнир закончился 10 мин назад
     
-    # Security
-    SECRET_KEY: str = "" # MUST BE SET IN .env
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 6  # 6 hours
+    fake_sticker_id = str(uuid4())
     
-    # Business Logic
-    REFERRAL_PERCENTAGE: float = 0.05
-    MARKET_FEE_PERCENTAGE: float = 0.05 # Комиссия системы (5%)
-    STARS_TO_TON_RATE: float = 0.013
-    LIVE_DROP_INTERVAL: int = 20 # Интервал генерации дропов в секундах (имитация активности)
-    MIN_DEPOSIT_TON: float = 0.1
-    MIN_DEPOSIT_STARS: int = 30
-    WALLET_ADDRESS: str = "UQDSokuUeDuRCbIKeeCgaiCa001aV0Q3wc6ZX-pdPcnbpNFt"
-    MAX_WITHDRAWALS_PER_DAY: int = 3 # Лимит выводов стикеров в 24 часа
-    MIN_REFERRAL_WITHDRAWAL_TON: float = 5.0 # Минимальный вывод реферальных наград
-    MAX_REFERRAL_WITHDRAWAL_TON: float = 15.0 # Максимальный вывод реферальных наград
-    
-    @property
-    def MERCHANT_TON_ADDRESS(self) -> str:
-        return self.WALLET_ADDRESS
-    
-    @property
-    def NFT_TON_ADDRESS(self) -> str:
-        return self.WALLET_ADDRESS
-    
-    # Chance Redistribution Settings
-    TARGET_RTP: float = 0.90
-    CHANCE_BASE_FEE: float = 10.0
-    CHANCE_FEE_TOLERANCE: float = 5.0
-    CHANCE_CHEAP_THRESHOLD: float = 0.15 # Нижние 15% диапазона цен - дешевые
-    CHANCE_EXPENSIVE_THRESHOLD: float = 0.85 # Верхние 15% диапазона цен - дорогие
-    CHANCE_CATEGORY_LIMITS: dict = {
-        "cheap": {"min": 0.20, "max": 0.95, "weight": 2.0},
-        "medium": {"min": 0.05, "max": 0.20, "weight": 0.5},
-        "expensive": {"min": 0.0025, "max": 0.05, "weight": 0.05},
+    config_data = {
+        "Tournament": {
+            "Setting": {
+                "start_time": start_time.strftime("%d.%m.%Y %H:%M:%S"),
+                "end_time": end_time.strftime("%d.%m.%Y %H:%M:%S"),
+                "is_distributed": False,
+                "max_place": 50
+            },
+            "PrizeByPlace": {
+                "1": {
+                    "catalog_id": str(uuid4()),
+                    "sticker_pool_id": fake_sticker_id
+                },
+                "else": {
+                    "ton_balance": "+0.77"
+                }
+            }
+        }
     }
     
-    # NFT Transfer Settings
-    # В проде эти значения ОБЯЗАТЕЛЬНО должны быть в .env
-    NFT_SENDER_MNEMONIC: str = ""  # 24 слова от кошелька-отправителя
-    NFT_SENDER_WALLET_VERSION: str = "v5r1"
-    USE_NFT_2_0: bool = True
-    NFT_FUND_ADDRESS: str = "EQDo0y1Ix8Wzqms84bFjL8Vh51RPaEIYwziBBRIi1NMadXui" # Адрес фонда
-    NFT_TG_ADDRESS: str = "EQB4ZBNOFNSIpi8Qnikm0M0PE1Hv-D-qi40J_nPyYtzA5SAX" # Адрес ТГ
-
-    # Scheduler Settings (Intervals)
-    MAINTENANCE_INTERVAL_HOURS: float = 0.083    # 5 минут для теста (было 6 часов)
-    CASE_RECOVERY_INTERVAL_MINUTES: int = 5  # Проверка пустых кейсов
-    LIVE_DROP_INTERVAL: int = 60               # Скорость живой ленты (сек)
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(config_data, f, ensure_ascii=False, indent=4)
+        
+    # 2. Создаем фейковых пользователей прямо в памяти
+    user1 = User(id=uuid4(), username="winner_1", balance_ton=0.0)
+    user2 = User(id=uuid4(), username="loser_2", balance_ton=1.0) # У него уже есть 1 TON
     
-    # Scheduler Settings (Logic)
-    MAX_FLOOR_PRICE_CHANGE_PERCENTAGE: Optional[float] = 0.2
-    REFUND_LOOKBACK_DAYS: int = 22
-    AUTO_BUY_ENABLED: bool = False
-    
-    # Disabled Sticker Catalogs for drop (will reroll if selected)
-    DISABLED_STICKER_CATALOG_IDS: list[str] = [
-        "5cb3182f-9c2e-4dbf-8184-022a11750d42",
-        "d3c4b5a6-9f8e-4456-7d6c-5b4a39281706",
-        "8e7f6a5b-4c3d-4890-2e1f-0a9b8c7d6e5f",
-        "1e2f3a4b-5c6d-4123-7e8f-9a0b1c2d3e4f",
-        "21b20628-0b5d-45f1-9bad-67b26147b767",
-        "ea1c7118-6125-4e16-bc2c-89c81c3a557f"
-    ]
-
-    # Disabled Case IDs (will never be active)
-    DISABLED_CASE_IDS: list[str] = [
-        "0882abc3-e087-443b-a633-0208ee1e93b8"
+    fake_top_users = [
+        (user1, 1000.0), # 1 место
+        (user2, 500.0)   # 2 место (получит 'else' награду)
     ]
     
-    # Удаляем старые/дублирующие:
-    # AUTO_BUY_INTERVAL_HOURS, FLOOR_CHECK_INTERVAL_HOURS и т.д.
+    # 3. Создаем фейковый стикер
+    fake_sticker = UserSticker(id=uuid4(), owner_id=None, is_available=True)
     
-    #TODO конкертика
-    ANOTHER_SETTING: int = 1
+    # 4. Настраиваем перехватчики (mocks)
+    mock_db_session = AsyncMock()
+    mock_db_session.execute.return_value.scalar_one_or_none.return_value = fake_sticker
     
-    model_config = {
-        "env_file": ".env",
-        "case_sensitive": True,
-        "extra": "ignore"
-    }
+    mock_session_factory = MagicMock()
+    mock_session_factory.return_value.__aenter__.return_value = mock_db_session
+    
+    with patch("backend.services.tournament.async_session_factory", mock_session_factory), \
+         patch("backend.services.tournament.tournament_crud.get_top_users_by_volume", new_callable=AsyncMock) as mock_crud, \
+         patch("backend.services.tournament.redis_service.connect", new_callable=AsyncMock), \
+         patch.object(tournament_service, 'get_settings', return_value=config_data["Tournament"]["Setting"]), \
+         patch.object(tournament_service, 'get_prizes', return_value=config_data["Tournament"]["PrizeByPlace"]):
+         
+        mock_crud.return_value = fake_top_users
+        
+        print("\n[+] Triggering prize distribution logic...")
+        await tournament_service.update_leaderboard()
+        
+    print("\n[+] Checking Results...")
+    
+    # Проверяем 1 место (Стикер)
+    if fake_sticker.owner_id == user1.id:
+        print(f"✅ Place 1 ({user1.username}): SUCCESS - Received Sticker")
+    else:
+        print(f"❌ Place 1 ({user1.username}): FAILED - Did not receive sticker")
+        
+    # Проверяем 2 место (ТОНы)
+    if user2.balance_ton == 1.77: # Было 1.0, добавили 0.77
+        print(f"✅ Place 2 ({user2.username}): SUCCESS - Received 0.77 TON (New Balance: {user2.balance_ton})")
+    else:
+        print(f"❌ Place 2 ({user2.username}): FAILED - Expected 1.77 TON, got {user2.balance_ton}")
+        
+    # Проверяем обновился ли конфиг
+    with open(config_path, "r", encoding="utf-8") as f:
+        updated_config = json.load(f)
+        if updated_config["Tournament"]["Setting"]["is_distributed"]:
+            print("✅ Config: SUCCESS - 'is_distributed' is set to True")
+        else:
+            print("❌ Config: FAILED - 'is_distributed' is still False")
 
-settings = Settings()
+if __name__ == "__main__":
+    asyncio.run(run_mock_test())

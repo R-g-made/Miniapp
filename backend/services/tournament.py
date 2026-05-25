@@ -137,6 +137,7 @@ class TournamentService:
                     prize_data = prizes.get(str(place), prizes.get("else", {}))
                     prize_cat_id = prize_data.get("catalog_id", "") if isinstance(prize_data, dict) else ""
                     prize_picture_url = prize_images.get(prize_cat_id, "")
+                    ton_balance_str = prize_data.get("ton_balance", "") if isinstance(prize_data, dict) else ""
 
                     leaderboard.append({
                         "place": place,
@@ -144,7 +145,8 @@ class TournamentService:
                         "username": user.username,
                         "avatar_url": user.photo_url,
                         "volume": round(float(volume), 2),
-                        "prize_picture_url": prize_picture_url
+                        "prize_picture_url": prize_picture_url,
+                        "ton_reward": ton_balance_str
                     })
 
                 now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M:%S")
@@ -169,6 +171,8 @@ class TournamentService:
             from backend.models.sticker import UserSticker
             from backend.models.sticker_action import StickerAction
             from backend.models.enums import StickerActionType
+            from backend.models.transaction import Transaction
+            from backend.models.enums import TransactionType, Currency, TransactionStatus
             
             async with async_session_factory() as db:
                 # Финальный пересчет
@@ -180,6 +184,7 @@ class TournamentService:
                     place = idx + 1
                     prize_data = prizes.get(str(place), prizes.get("else", {}))
                     pool_id_str = prize_data.get("sticker_pool_id") if isinstance(prize_data, dict) else None
+                    ton_balance_str = prize_data.get("ton_balance") if isinstance(prize_data, dict) else None
                     
                     if pool_id_str:
                         try:
@@ -204,6 +209,26 @@ class TournamentService:
                                 logger.warning(f"TournamentService: Prize {pool_id} not available or already claimed")
                         except Exception as e:
                             logger.error(f"TournamentService: Failed to assign prize for place {place}: {e}")
+                    
+                    if ton_balance_str:
+                        try:
+                            ton_amount = float(ton_balance_str.replace("+", "").strip())
+                            if ton_amount > 0:
+                                user.balance_ton = round(user.balance_ton + ton_amount, 9)
+                                db.add(user)
+                                
+                                tx = Transaction(
+                                    user_id=user.id,
+                                    amount=ton_amount,
+                                    currency=Currency.TON,
+                                    type=TransactionType.DEPOSIT,
+                                    status=TransactionStatus.COMPLETED,
+                                    details={"source": "tournament_reward", "place": place}
+                                )
+                                db.add(tx)
+                                logger.info(f"TournamentService: Credited {ton_amount} TON to user {user.id} (Place {place})")
+                        except Exception as e:
+                            logger.error(f"TournamentService: Failed to parse/credit ton_balance for place {place}: {e}")
                 
                 await db.commit()
 
