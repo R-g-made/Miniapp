@@ -111,7 +111,6 @@ export default {
 
     const indicatorStyle = computed(() => {
       const itemCount = navItems.length;
-      const slotWidth = 100 / itemCount;
       
       let scaleX = 1;
       let scaleY = 1;
@@ -125,8 +124,8 @@ export default {
       }
       
       return {
-        width: `calc(${slotWidth}% - 2px)`,
-        left: `calc(${activeIndex.value * slotWidth}% + 1px)`,
+        width: `calc((100% - 8px) / ${itemCount})`,
+        left: `calc(4px + ((100% - 8px) / ${itemCount}) * ${activeIndex.value})`,
         transform: `scaleX(${scaleX}) scaleY(${scaleY})`
       };
     });
@@ -176,7 +175,7 @@ export default {
   
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 1000px;
-  padding: 15px 0;
+  padding: 15px 4px;
   display: flex;
   justify-content: space-between;
   align-items: center;
