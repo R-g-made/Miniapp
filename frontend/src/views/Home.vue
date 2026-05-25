@@ -517,21 +517,21 @@ export default {
 }
 
 .case-image-container {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .case-img {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   object-fit: contain;
 }
 
 .case-name {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 700;
   color: #FFFFFF;
   margin: 0;
