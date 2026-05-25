@@ -667,8 +667,8 @@ export default {
 }
 
 .sticker-image-container {
-  width: 90px; /* 90*90 */
-  height: 90px;
+  width: 110px; 
+  height: 110px;
   margin-bottom: 5px; /* 5px отступ */
   display: flex;
   align-items: center;
