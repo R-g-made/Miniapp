@@ -26,8 +26,10 @@
             <path d="M6 9L12 15L18 9" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <div v-show="isHowItWorksOpen" class="how-it-works-content">
-          Open pack more and climb to the top with this leaderboard
+        <div class="content-wrapper" :class="{ 'is-open': isHowItWorksOpen }">
+          <div class="how-it-works-content">
+            Open pack more and climb to the top with this leaderboard
+          </div>
         </div>
       </div>
     </div>
@@ -222,8 +224,8 @@ export default {
 }
 
 .header-card {
-  background: #1c1c1e;
-  border-radius: 24px;
+  background: linear-gradient(126.87deg, rgba(67, 76, 199, 0.1) 14.318%, rgba(220, 136, 213, 0.1) 85.682%);
+  border-radius: 39px;
   padding: 24px 20px;
   display: flex;
   flex-direction: column;
@@ -279,45 +281,64 @@ export default {
 }
 
 .lottie-container {
-  width: 200px;
-  height: 200px;
+  width: 143px;
+  height: 143px;
   margin-bottom: 24px;
 }
 
 .how-it-works {
   width: 100%;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 30px;
   overflow: hidden;
-  transition: all 0.3s ease;
 }
 
 .how-it-works-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 0 20px;
+  height: 58px;
   color: #fff;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
 
+.how-it-works-header svg {
+  transition: transform 0.3s ease;
+}
+
 .rotated {
-  transform: rotate(180deg);
+  transform: rotate(-180deg);
+}
+
+.content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.content-wrapper.is-open {
+  grid-template-rows: 1fr;
 }
 
 .how-it-works-content {
-  padding: 0 16px 16px;
+  overflow: hidden;
+  padding: 0 20px;
   color: #8E8E93;
   font-size: 13px;
   line-height: 1.4;
   text-align: left;
 }
 
+.content-wrapper.is-open .how-it-works-content {
+  padding-bottom: 20px;
+}
+
 .leaderboard-card {
   background: #1c1c1e;
-  border-radius: 24px;
+  border-radius: 31px;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -333,8 +354,10 @@ export default {
 
 .user-item {
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  padding: 12px 16px;
+  border-radius: 1000px;
+  height: 58px;
+  box-sizing: border-box;
+  padding: 0 16px;
   margin-bottom: 8px;
 }
 
@@ -400,6 +423,9 @@ export default {
   display: flex;
   align-items: center;
   gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1000px;
+  padding: 6px 12px;
 }
 
 .currency-icon {
