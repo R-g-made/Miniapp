@@ -24,8 +24,8 @@ async def get_leaderboard(
     user_id_str = str(current_user.id)
     leaderboard = cache_data.get("leaderboard", [])
     
-    # Ищем текущего пользователя в кэше лидеров
-    user_in_top = next((entry for entry in leaderboard if entry.get("user_id") == user_id_str), None)
+    # Ищем текущего пользователя в кэше лидеров (сравниваем строки для надежности)
+    user_in_top = next((entry for entry in leaderboard if str(entry.get("user_id")) == user_id_str), None)
 
     current_user_place = "50+"
     current_user_volume = 0.0
