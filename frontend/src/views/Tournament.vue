@@ -2,7 +2,7 @@
   <div class="tournament-view">
     <div class="header-card">
       <h1 class="title">Volume Tournament</h1>
-      <p class="subtitle">Open pack more and climb to the top<br>with this leaderboard</p>
+      <p class="subtitle">Open packs, increase your volume and claim one of the 50 rewards!</p>
       
       <div class="timer-container">
         <div v-if="isActive && timeLeft" class="timer-pills">
@@ -28,7 +28,11 @@
         </div>
         <div class="content-wrapper" :class="{ 'is-open': isHowItWorksOpen }">
           <div class="how-it-works-content">
-            Open pack more and climb to the top with this leaderboard
+            <div class="rules-text">
+              <p>The more packs you open, the higher your volume and your position on the leaderboard.</p>
+              <p>Both TON and Stars purchases are counted. The total value of all opened packs is summed up to move you up the tournament ladder.</p>
+              <p class="update-note">*Data updates every 5 minutes</p>
+            </div>
           </div>
         </div>
       </div>
@@ -364,6 +368,19 @@ export default {
   font-size: 16px;
   line-height: 1.4;
   text-align: left;
+}
+
+.rules-text {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.update-note {
+  font-size: 13px;
+  font-style: italic;
+  margin-top: 4px;
+  color: #636366;
 }
 
 .content-wrapper.is-open .how-it-works-content {
