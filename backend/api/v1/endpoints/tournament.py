@@ -18,6 +18,12 @@ async def get_leaderboard(
 ):
     is_active = tournament_service.is_active()
     cache_data = await tournament_service.get_leaderboard_from_cache()
+    
+    # Если турнир активен, но кэш пуст (например, после перезапуска сервера)
+    if is_active and not cache_data.get("leaderboard"):
+        await tournament_service.update_leaderboard()
+        cache_data = await tournament_service.get_leaderboard_from_cache()
+
     settings = tournament_service.get_settings()
     end_time_str = settings.get("end_time")
 

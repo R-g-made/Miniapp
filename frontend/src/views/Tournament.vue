@@ -70,7 +70,7 @@
             <div class="user-info">
               <span class="rank-list">№{{ user.place }}</span>
               <span class="divider">|</span>
-              <span class="username">{{ user.username || 'Anonymous' }}</span>
+              <span class="username">{{ formatName(user.username) }}</span>
             </div>
           </div>
           <div class="item-right">
@@ -127,6 +127,14 @@ export default {
       return name.charAt(0).toUpperCase();
     };
 
+    const formatName = (name) => {
+      if (!name) return 'Anonymous';
+      if (name.length > 6) {
+        return name.substring(0, 6) + '...';
+      }
+      return name;
+    };
+
     const toggleHowItWorks = () => {
       isHowItWorksOpen.value = !isHowItWorksOpen.value;
     };
@@ -154,8 +162,18 @@ export default {
         parseInt(timeParts[2])
       ));
 
+      // Теперь берем текущее время тоже в UTC для честного сравнения
       const now = new Date();
-      const diff = endDate.getTime() - now.getTime();
+      const nowUtc = Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        now.getUTCHours(),
+        now.getUTCMinutes(),
+        now.getUTCSeconds()
+      );
+      
+      const diff = endDate.getTime() - nowUtc;
 
       if (diff <= 0) {
         timeLeft.value = null;
@@ -181,9 +199,10 @@ export default {
         currentUserVolume.value = data.current_user_volume;
         leaderboard.value = data.leaderboard;
 
+        if (timerInterval) clearInterval(timerInterval);
         calculateTimeLeft();
         if (isActive.value && endTimeStr.value) {
-          timerInterval = setInterval(calculateTimeLeft, 60000); // Обновляем каждую секунду для мгновенной реакции
+          timerInterval = setInterval(calculateTimeLeft, 60000); 
         }
       } catch (e) {
         console.error('Failed to fetch leaderboard:', e);

@@ -147,7 +147,7 @@ class TournamentService:
                     leaderboard.append({
                         "place": place,
                         "user_id": str(user.id),
-                        "username": user.username,
+                        "username": user.full_name or user.username or "Anonymous",
                         "avatar_url": user.photo_url,
                         "volume": round(float(volume), 2),
                         "prize_picture_url": prize_picture_url,
