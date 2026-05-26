@@ -32,17 +32,27 @@ async def get_leaderboard(
 
     if user_in_top:
         current_user_place = str(user_in_top.get("place", "50+"))
-        current_user_volume = user_in_top.get("volume", 0.0)
-    else:
-        # Запрашиваем объем пользователя напрямую из БД, если его нет в топе
-        try:
-            start_time = datetime.strptime(settings["start_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
-            end_time = datetime.strptime(settings["end_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
-            
-            volume = await tournament_crud.get_user_volume(db, current_user.id, start_time, end_time)
-            current_user_volume = round(volume, 2)
-        except Exception:
-            pass
+
+    # Запрашиваем объем пользователя напрямую из БД всегда, чтобы объем обновлялся мгновенно
+    try:
+        start_time = datetime.strptime(settings["start_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
+        end_time = datetime.strptime(settings["end_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
+        
+        # Для SQLite убираем timezone info для корректного сравнения с func.now()
+        from backend.core.config import settings as app_settings
+        if app_settings.USE_SQLITE:
+            start_time = start_time.replace(tzinfo=None)
+            end_time = end_time.replace(tzinfo=None)
+        
+        volume = await tournament_crud.get_user_volume(db, current_user.id, start_time, end_time)
+        current_user_volume = round(volume, 2)
+        
+        # Обновляем объем в кэшированном списке для консистентности на фронтенде
+        if user_in_top:
+            user_in_top["volume"] = current_user_volume
+    except Exception:
+        if user_in_top:
+            current_user_volume = user_in_top.get("volume", 0.0)
 
     response = (
         TournamentResponseBuilder()
