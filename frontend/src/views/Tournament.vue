@@ -242,6 +242,7 @@ export default {
       currentUserVolume,
       leaderboard,
       getInitials,
+      formatName,
       currentUserData
     };
   }
