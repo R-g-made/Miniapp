@@ -17,7 +17,7 @@ async def login(
     user, access_token = await auth_service.authenticate_telegram_user(obj_in.init_data)
     
     from backend.core.config import settings
-    if settings.UNAVAILABLE_MODE and user.telegram_id not in settings.ADMIN_IDS:
+    if settings.UNAVAILABLE_MODE and user.telegram_id not in settings.ADMIN_TG_IDS:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="MAINTENANCE_MODE", #Перенестив  enum
