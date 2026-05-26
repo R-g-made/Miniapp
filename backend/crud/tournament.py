@@ -20,8 +20,8 @@ class CRUDTournament:
         # Перевод Stars в TON для правильного объема
         volume_expr = func.sum(
             case(
-                (Transaction.currency == Currency.TON, Transaction.amount),
-                (Transaction.currency == Currency.STARS, Transaction.amount * settings.STARS_TO_TON_RATE),
+                (Transaction.currency == Currency.TON.value, Transaction.amount),
+                (Transaction.currency == Currency.STARS.value, Transaction.amount * settings.STARS_TO_TON_RATE),
                 else_=0.0
             )
         ).label("total_volume")
@@ -30,10 +30,10 @@ class CRUDTournament:
             select(User, volume_expr)
             .join(Transaction, Transaction.user_id == User.id)
             .where(
-                Transaction.type == TransactionType.OPEN_CASE,
+                Transaction.type == TransactionType.OPEN_CASE.value,
                 Transaction.created_at >= start_time,
                 Transaction.created_at <= end_time,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED.value
             )
         )
 
@@ -67,8 +67,8 @@ class CRUDTournament:
         """Получить объём конкретного пользователя (если он не в ТОП-50)"""
         volume_expr = func.sum(
             case(
-                (Transaction.currency == Currency.TON, Transaction.amount),
-                (Transaction.currency == Currency.STARS, Transaction.amount * settings.STARS_TO_TON_RATE),
+                (Transaction.currency == Currency.TON.value, Transaction.amount),
+                (Transaction.currency == Currency.STARS.value, Transaction.amount * settings.STARS_TO_TON_RATE),
                 else_=0.0
             )
         )
@@ -77,10 +77,10 @@ class CRUDTournament:
             select(volume_expr)
             .where(
                 Transaction.user_id == user_id,
-                Transaction.type == TransactionType.OPEN_CASE,
+                Transaction.type == TransactionType.OPEN_CASE.value,
                 Transaction.created_at >= start_time,
                 Transaction.created_at <= end_time,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED.value
             )
         )
         result = await db.execute(stmt)

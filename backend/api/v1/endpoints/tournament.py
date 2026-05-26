@@ -35,14 +35,9 @@ async def get_leaderboard(
 
     # Запрашиваем объем пользователя напрямую из БД всегда, чтобы объем обновлялся мгновенно
     try:
-        start_time = datetime.strptime(settings["start_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
-        end_time = datetime.strptime(settings["end_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
-        
-        # Для SQLite убираем timezone info для корректного сравнения с func.now()
-        from backend.core.config import settings as app_settings
-        if app_settings.USE_SQLITE:
-            start_time = start_time.replace(tzinfo=None)
-            end_time = end_time.replace(tzinfo=None)
+        # Парсим даты как UTC, а затем убираем tzinfo, так как в БД хранятся наивные даты
+        start_time = datetime.strptime(settings["start_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc).replace(tzinfo=None)
+        end_time = datetime.strptime(settings["end_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc).replace(tzinfo=None)
         
         volume = await tournament_crud.get_user_volume(db, current_user.id, start_time, end_time)
         current_user_volume = round(volume, 2)

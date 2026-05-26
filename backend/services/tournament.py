@@ -111,11 +111,15 @@ class TournamentService:
         prizes = self.get_prizes()
         max_place = settings.get("max_place", 50)
         ignore_list = settings.get("ignore_user_id_list", [])
+        
+        # Убираем tzinfo для корректного сравнения с наивными датами в БД
+        start_time_naive = start_time.replace(tzinfo=None) if start_time.tzinfo else start_time
+        end_time_naive = end_time.replace(tzinfo=None) if end_time.tzinfo else end_time
 
         try:
             async with async_session_factory() as db:
                 top_users = await tournament_crud.get_top_users_by_volume(
-                    db, start_time, end_time, limit=max_place, ignore_user_ids=ignore_list
+                    db, start_time_naive, end_time_naive, limit=max_place, ignore_user_ids=ignore_list
                 )
                 
                 prize_catalog_ids = set()
@@ -168,6 +172,10 @@ class TournamentService:
         ignore_list = settings.get("ignore_user_id_list", [])
         prizes = self.get_prizes()
 
+        # Убираем tzinfo для корректного сравнения с наивными датами в БД
+        start_time_naive = start_time.replace(tzinfo=None) if start_time.tzinfo else start_time
+        end_time_naive = end_time.replace(tzinfo=None) if end_time.tzinfo else end_time
+
         try:
             from backend.models.sticker import UserSticker
             from backend.models.sticker_action import StickerAction
@@ -178,7 +186,7 @@ class TournamentService:
             async with async_session_factory() as db:
                 # Финальный пересчет
                 top_users = await tournament_crud.get_top_users_by_volume(
-                    db, start_time, end_time, limit=max_place, ignore_user_ids=ignore_list
+                    db, start_time_naive, end_time_naive, limit=max_place, ignore_user_ids=ignore_list
                 )
                 
                 for idx, (user, volume) in enumerate(top_users):
