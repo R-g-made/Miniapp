@@ -872,7 +872,6 @@ export default {
   margin-bottom: env(safe-area-inset-bottom); /* Только отступ системы, 20px уже есть в паддинге оверлея */
   padding: 12px 15px 15px 15px;
   box-sizing: border-box;
-  transition: transform 0.3s ease;
 }
 
 .modal-drag-handle {
@@ -1040,7 +1039,7 @@ export default {
 /* Анимация появления снизу (slide-up) */
 .slide-up-enter-active,
 .slide-up-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slide-up-enter-active .modal-content-new,

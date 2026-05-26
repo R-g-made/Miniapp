@@ -93,7 +93,15 @@
     <!-- Окошко сортировки -->
     <Transition name="slide-up">
       <div v-if="isSortOpen" class="modal-overlay" @click="isSortOpen = false">
-        <div class="sort-modal" @click.stop>
+        <div 
+          class="sort-modal" 
+          @click.stop
+          @touchstart="handleTouchStart"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
+          :style="modalStyle"
+        >
+          <div class="modal-drag-handle"></div>
           <div class="sort-list">
             <div 
               v-for="option in sortingOptions" 
@@ -152,6 +160,42 @@ export default {
     
     // Сортировка
     const isSortOpen = ref(false);
+
+    // Свайп вниз для сортировки
+    const touchStartY = ref(0);
+    const touchCurrentY = ref(0);
+    const translateY = ref(0);
+    const isDragging = ref(false);
+
+    const handleTouchStart = (e) => {
+      touchStartY.value = e.touches[0].clientY;
+      touchCurrentY.value = e.touches[0].clientY;
+      isDragging.value = true;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isDragging.value) return;
+      touchCurrentY.value = e.touches[0].clientY;
+      const diff = touchCurrentY.value - touchStartY.value;
+      if (diff > 0) {
+        translateY.value = diff;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      isDragging.value = false;
+      if (translateY.value > 100) {
+        isSortOpen.value = false;
+      }
+      translateY.value = 0;
+    };
+
+    const modalStyle = computed(() => {
+      return {
+        transform: `translateY(${translateY.value}px)`,
+        transition: isDragging.value ? 'none' : 'transform 0.3s ease'
+      };
+    });
     
     // Следим за открытием сортировки, чтобы прятать NavBar
     watch(isSortOpen, (val) => {
@@ -322,7 +366,11 @@ export default {
       formatPrice,
       activeCurrency,
       getCardStyle,
-      emptyLottieContainer
+      emptyLottieContainer,
+      handleTouchStart,
+      handleTouchMove,
+      handleTouchEnd,
+      modalStyle
     };
   }
 }
@@ -585,11 +633,23 @@ export default {
 .sort-modal {
   background-color: #202020; /* Изменен на 202020 */
   border-radius: 50px; /* Закругление модалки 50 */
-  padding: 20px;
+  padding: 16px 20px 20px 20px;
   width: 100%;
   max-width: 500px; /* Максимальная ширина 500 пикселей */
   margin-bottom: calc(20px + env(safe-area-inset-bottom)); /* 20px + safezone tg снизу */
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.modal-drag-handle {
+  width: 60px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 100px;
+  margin-bottom: 20px;
 }
 
 .sort-list {
