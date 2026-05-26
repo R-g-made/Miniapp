@@ -474,9 +474,10 @@ export default {
 }
 
 .prize-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: contain;
 }
 
 .ton-reward-pill {
