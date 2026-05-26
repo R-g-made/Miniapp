@@ -1,28 +1,56 @@
 {
     "Tournament": {
         "Setting": {
-            "start_time": "26.05.2026 14:45:49",
-            "end_time": "26.05.2026 16:35:49",
+            "start_time": "23.05.2026 00:00:00",
+            "end_time": "30.06.2026 00:00:00",
             "ignore_user_id_list": [],
             "max_place": 50,
             "check_interval": 300,
-            "is_distributed": true
+            "is_distributed": false
         },
         "PrizeByPlace": {
             "1": {
-                "catalog_id": "2c2d0cf2-2329-4327-af18-15438f94dbbf",
-                "sticker_pool_id": "f9296232-dd83-4952-b6b0-3d2034b7526d"
+                "catalog_id": "cf1dec3d-0762-40b5-bc9c-291580563a9e",
+                "sticker_pool_id": "2c2592da-06f7-4fe5-9366-1ae0f99f8967"
             },
             "2": {
-                "catalog_id": "825feaa5-25bd-4357-8cef-b088c1186471",
-                "sticker_pool_id": "09af84f5-3183-4841-99d8-fd10cf75bdec"
+                "catalog_id": "772b6911-a831-4e03-8bdd-c4388e1d91ba",
+                "sticker_pool_id": "e3efcf34-4994-4ee9-9ee8-fa4d7f5785e9"
             },
             "3": {
-                "catalog_id": "a3b218f2-c826-4c72-8a8c-88775cca17a2",
-                "sticker_pool_id": "1954c52c-2ea5-46a2-ba6e-a5eab86c393e"
+                "catalog_id": "81ad82bb-e6a1-47bf-911f-a38bab0f80e9",
+                "sticker_pool_id": "e1021a0e-8f5b-4330-972b-ee2e1873bc82"
+            },
+            "4": {
+                "catalog_id": "267da110-35e8-4127-abfb-d3614fceb776",
+                "sticker_pool_id": "fe30cee5-3845-459c-a60e-b71980a737c0"
+            },
+            "5": {
+                "catalog_id": "3cf74c8c-976f-43e8-b1da-3270b4e0d443",
+                "sticker_pool_id": "da915677-333f-49d2-b761-c7c67ba8dd56"
+            },
+            "6": {
+                "catalog_id": "3cf74c8c-976f-43e8-b1da-3270b4e0d443",
+                "sticker_pool_id": "57082a44-886f-400d-b805-c6655665cb2b"
+            },
+            "7": {
+                "catalog_id": "49075341-77cf-40df-9dae-268098c05f71",
+                "sticker_pool_id": "7d5b291e-562b-4e91-bf09-bb0b68a97f4e"
+            },
+            "8": {
+                "catalog_id": "49075341-77cf-40df-9dae-268098c05f71",
+                "sticker_pool_id": "f509f99d-5ff7-4f8b-9f1d-27ae41eb5888"
+            },
+            "9": {
+                "catalog_id": "b8a954e7-bdac-4fd1-a1c8-e0cc829c582d",
+                "sticker_pool_id": "c84355a4-c660-49c2-8fd5-cf486ff3b382"
+            },
+            "10": {
+                "catalog_id": "b8a954e7-bdac-4fd1-a1c8-e0cc829c582d",
+                "sticker_pool_id": "e1021a0e-8f5b-4330-972b-ee2e1873bc82"
             },
             "else": {
-                "ton_balance": "+0.77"
+                "ton_balance": "+0.1"
             }
         }
     }
