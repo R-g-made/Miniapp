@@ -50,7 +50,7 @@ class CRUDTournament:
         stmt = (
             stmt.group_by(User.id)
             .having(volume_expr > 0)
-            .order_by(desc("total_volume"))
+            .order_by(desc("total_volume"), User.created_at)
             .limit(limit)
         )
 

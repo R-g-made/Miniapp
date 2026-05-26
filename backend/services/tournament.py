@@ -101,6 +101,7 @@ class TournamentService:
         if now > end_time:
             is_distributed = settings.get("is_distributed", False)
             if not is_distributed:
+                await self._calculate_and_cache(start_time, end_time, settings) # Финальное обновление кэша перед раздачей
                 await self._distribute_prizes(start_time, end_time, settings)
             return
 
@@ -227,6 +228,24 @@ class TournamentService:
                                 )
                                 db.add(tx)
                                 logger.info(f"TournamentService: Credited {ton_amount} TON to user {user.id} (Place {place})")
+                                
+                                # Send WS notification about balance update
+                                try:
+                                    from backend.core.websocket_manager import manager
+                                    from backend.schemas.websocket import WSEventMessage
+                                    from backend.models.enums import WSMessageType
+                                    await manager.send_to_user(
+                                        user_id=str(user.id),
+                                        message=WSEventMessage(
+                                            type=WSMessageType.BALANCE_UPDATE,
+                                            data={
+                                                "currency": Currency.TON.value,
+                                                "new_balance": float(user.balance_ton)
+                                            }
+                                        )
+                                    )
+                                except Exception as ws_e:
+                                    logger.warning(f"TournamentService: Failed to send WS update: {ws_e}")
                         except Exception as e:
                             logger.error(f"TournamentService: Failed to parse/credit ton_balance for place {place}: {e}")
                 

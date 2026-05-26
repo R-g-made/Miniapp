@@ -52,6 +52,11 @@
             <img src="@/assets/icons/ton.svg" class="currency-icon" />
             <span class="volume">{{ currentUserVolume }}</span>
           </div>
+          <img v-if="currentUserData?.prize_picture_url" :src="currentUserData.prize_picture_url" class="prize-icon" />
+          <div v-else-if="currentUserData?.ton_reward" class="ton-reward-pill">
+            <img src="@/assets/icons/ton.svg" class="currency-icon" />
+            <span class="ton-reward-text">{{ currentUserData.ton_reward }}</span>
+          </div>
         </div>
       </div>
 
@@ -106,6 +111,10 @@ export default {
     const isHowItWorksOpen = ref(false);
     const timeLeft = ref(null);
     let timerInterval = null;
+
+    const currentUserData = computed(() => {
+      return leaderboard.value.find(u => String(u.place) === String(currentUserPlace.value)) || null;
+    });
 
     const userAvatar = computed(() => authStore.user?.photo_url);
     const userInitials = computed(() => {
@@ -213,7 +222,8 @@ export default {
       currentUserPlace,
       currentUserVolume,
       leaderboard,
-      getInitials
+      getInitials,
+      currentUserData
     };
   }
 }

@@ -34,16 +34,15 @@ async def get_leaderboard(
         current_user_place = str(user_in_top.get("place", "50+"))
         current_user_volume = user_in_top.get("volume", 0.0)
     else:
-        # Если турнир активен и пользователя нет в топе - запрашиваем его объем напрямую из БД
-        if is_active:
-            try:
-                start_time = datetime.strptime(settings["start_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
-                end_time = datetime.strptime(settings["end_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
-                
-                volume = await tournament_crud.get_user_volume(db, current_user.id, start_time, end_time)
-                current_user_volume = volume
-            except Exception:
-                pass
+        # Запрашиваем объем пользователя напрямую из БД, если его нет в топе
+        try:
+            start_time = datetime.strptime(settings["start_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
+            end_time = datetime.strptime(settings["end_time"], "%d.%m.%Y %H:%M:%S").replace(tzinfo=timezone.utc)
+            
+            volume = await tournament_crud.get_user_volume(db, current_user.id, start_time, end_time)
+            current_user_volume = round(volume, 2)
+        except Exception:
+            pass
 
     response = (
         TournamentResponseBuilder()

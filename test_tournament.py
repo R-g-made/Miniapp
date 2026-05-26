@@ -63,7 +63,7 @@ async def main():
         for i, user in enumerate(users):
             await db.execute(
                 text("UPDATE transactions SET created_at = :t WHERE user_id = :uid"),
-                {"t": tx_time, "uid": user.id}
+                {"t": tx_time, "uid": str(user.id).replace("-", "")}
             )
             
         print("[3] Creating Dummy Prize Stickers...")

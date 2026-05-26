@@ -1,28 +1,28 @@
 {
     "Tournament": {
         "Setting": {
-            "start_time": "23.05.2026 00:00:00",
-            "end_time": "30.06.2026 00:00:00",
+            "start_time": "26.05.2026 14:45:49",
+            "end_time": "26.05.2026 16:35:49",
             "ignore_user_id_list": [],
             "max_place": 50,
             "check_interval": 300,
-            "is_distributed": false
+            "is_distributed": true
         },
         "PrizeByPlace": {
             "1": {
-                "catalog_id": "сюда_вставь_id_каталога",
-                "sticker_pool_id": "сюда_вставь_id_конкретного_стикера_в_пуле"
+                "catalog_id": "2c2d0cf2-2329-4327-af18-15438f94dbbf",
+                "sticker_pool_id": "f9296232-dd83-4952-b6b0-3d2034b7526d"
             },
             "2": {
-                "catalog_id": "",
-                "sticker_pool_id": ""
+                "catalog_id": "825feaa5-25bd-4357-8cef-b088c1186471",
+                "sticker_pool_id": "09af84f5-3183-4841-99d8-fd10cf75bdec"
             },
             "3": {
-                "catalog_id": "",
-                "sticker_pool_id": ""
+                "catalog_id": "a3b218f2-c826-4c72-8a8c-88775cca17a2",
+                "sticker_pool_id": "1954c52c-2ea5-46a2-ba6e-a5eab86c393e"
             },
             "else": {
-                "ton_balance": "+0.1"
+                "ton_balance": "+0.77"
             }
         }
     }
