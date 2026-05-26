@@ -8,7 +8,16 @@
     <!-- Сама модалка -->
     <Transition name="modal-slide">
       <div v-if="isOpen" class="modal-wrapper" @click="closeModal">
-        <div class="deposit-modal" @click.stop>
+        <div 
+          class="deposit-modal" 
+          @click.stop
+          @touchstart="handleTouchStart"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
+          :style="modalStyle"
+        >
+          <div class="modal-drag-handle"></div>
+          
           <!-- Слайдер выбора валюты -->
           <div class="currency-slider-container">
             <div class="currency-slider" @click="toggleCurrency">
@@ -94,6 +103,42 @@ export default {
     const isConnected = ref(!!authStore.user?.wallet_address);
     const walletAddress = ref(authStore.user?.wallet_address || '');
     const isVerifying = ref(false);
+
+    // Свайп вниз
+    const touchStartY = ref(0);
+    const touchCurrentY = ref(0);
+    const translateY = ref(0);
+    const isDragging = ref(false);
+
+    const handleTouchStart = (e) => {
+      touchStartY.value = e.touches[0].clientY;
+      touchCurrentY.value = e.touches[0].clientY;
+      isDragging.value = true;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isDragging.value) return;
+      touchCurrentY.value = e.touches[0].clientY;
+      const diff = touchCurrentY.value - touchStartY.value;
+      if (diff > 0) {
+        translateY.value = diff;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      isDragging.value = false;
+      if (translateY.value > 100) {
+        closeModal();
+      }
+      translateY.value = 0;
+    };
+
+    const modalStyle = computed(() => {
+      return {
+        transform: `translateY(${translateY.value}px)`,
+        transition: isDragging.value ? 'none' : 'transform 0.3s ease'
+      };
+    });
 
     // Следим за изменениями в authStore, чтобы подхватывать кошелек из БД
     watch(() => authStore.user?.wallet_address, (newAddr) => {
@@ -352,7 +397,11 @@ export default {
       starIcon,
       tonIcon,
       arrowIcon,
-      plusIcon
+      plusIcon,
+      handleTouchStart,
+      handleTouchMove,
+      handleTouchEnd,
+      modalStyle
     };
   }
 }
@@ -393,12 +442,21 @@ export default {
   margin-bottom: calc(20px + env(keyboard-inset-height, 0px));
   background: #171717;
   border-radius: 48px;
-  padding: 30px 20px;
+  padding: 16px 20px 30px 20px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  transition: margin-bottom 0.3s ease-out;
+  align-items: center;
+  transition: margin-bottom 0.3s ease-out, transform 0.3s ease;
   will-change: transform;
+}
+
+.modal-drag-handle {
+  width: 60px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 100px;
+  margin-bottom: 20px;
 }
 
 /* Слайдер выбора валюты */

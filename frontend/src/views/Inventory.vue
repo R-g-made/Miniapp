@@ -98,7 +98,15 @@
     <!-- Модалка управления стикером -->
     <Transition name="slide-up">
       <div v-if="selectedSticker" class="modal-overlay" @click="closeStickerModal">
-        <div class="modal-content-new" @click.stop>
+        <div 
+          class="modal-content-new" 
+          @click.stop
+          @touchstart="handleTouchStart"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
+          :style="modalStyle"
+        >
+          <div class="modal-drag-handle"></div>
           <div class="modal-body-new">
             <!-- Контейнер для Lottie -->
             <div class="lottie-container" ref="lottieContainer" @click="replayLottie">
@@ -193,6 +201,43 @@ export default {
     const isSelling = ref(false);
     const isTransferring = ref(false);
     const searchQuery = ref('');
+
+    // Свайп вниз
+    const touchStartY = ref(0);
+    const touchCurrentY = ref(0);
+    const translateY = ref(0);
+    const isDragging = ref(false);
+
+    const handleTouchStart = (e) => {
+      touchStartY.value = e.touches[0].clientY;
+      touchCurrentY.value = e.touches[0].clientY;
+      isDragging.value = true;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isDragging.value) return;
+      touchCurrentY.value = e.touches[0].clientY;
+      const diff = touchCurrentY.value - touchStartY.value;
+      if (diff > 0) {
+        translateY.value = diff;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      isDragging.value = false;
+      if (translateY.value > 100) {
+        closeStickerModal();
+      }
+      translateY.value = 0;
+    };
+
+    const modalStyle = computed(() => {
+      return {
+        transform: `translateY(${translateY.value}px)`,
+        transition: isDragging.value ? 'none' : 'transform 0.3s ease'
+      };
+    });
+
     const selectedIssuer = ref(null);
     const lottieContainer = ref(null);
     const emptyLottieContainer = ref(null);
@@ -484,7 +529,11 @@ export default {
       formatPrice,
       activeCurrency,
       scrollTarget,
-      isLoadingMore
+      isLoadingMore,
+      handleTouchStart,
+      handleTouchMove,
+      handleTouchEnd,
+      modalStyle
     };
   }
 }
@@ -821,8 +870,17 @@ export default {
   width: 100%; /* Занимает всю ширину за вычетом паддинга оверлея */
   max-width: 500px;
   margin-bottom: env(safe-area-inset-bottom); /* Только отступ системы, 20px уже есть в паддинге оверлея */
-  padding: 22px 15px 15px 15px;
+  padding: 12px 15px 15px 15px;
   box-sizing: border-box;
+  transition: transform 0.3s ease;
+}
+
+.modal-drag-handle {
+  width: 60px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 100px;
+  margin: 0 auto 10px auto;
 }
 
 .modal-body-new {

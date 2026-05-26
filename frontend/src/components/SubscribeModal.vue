@@ -8,7 +8,14 @@
     <!-- Сама модалка -->
     <Transition name="modal-slide">
       <div v-if="isOpen" class="modal-wrapper" @click="closeModal">
-        <div class="subscribe-modal" @click.stop>
+        <div 
+          class="subscribe-modal" 
+          @click.stop 
+          @touchstart="handleTouchStart"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
+          :style="modalStyle"
+        >
           
           <div class="modal-drag-handle"></div>
 
@@ -34,7 +41,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watch, onUnmounted } from 'vue';
+import { ref, onMounted, watch, onUnmounted, computed } from 'vue';
 import lottie from 'lottie-web';
 import subscribeLottie from '@/assets/icons/Subscribe_promo.json';
 
@@ -44,6 +51,42 @@ export default {
     const isOpen = ref(false);
     const lottieContainer = ref(null);
     let lottieInstance = null;
+
+    // Свайп вниз
+    const touchStartY = ref(0);
+    const touchCurrentY = ref(0);
+    const translateY = ref(0);
+    const isDragging = ref(false);
+
+    const handleTouchStart = (e) => {
+      touchStartY.value = e.touches[0].clientY;
+      touchCurrentY.value = e.touches[0].clientY;
+      isDragging.value = true;
+    };
+
+    const handleTouchMove = (e) => {
+      if (!isDragging.value) return;
+      touchCurrentY.value = e.touches[0].clientY;
+      const diff = touchCurrentY.value - touchStartY.value;
+      if (diff > 0) {
+        translateY.value = diff;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      isDragging.value = false;
+      if (translateY.value > 100) {
+        closeModal();
+      }
+      translateY.value = 0;
+    };
+
+    const modalStyle = computed(() => {
+      return {
+        transform: `translateY(${translateY.value}px)`,
+        transition: isDragging.value ? 'none' : 'transform 0.3s ease'
+      };
+    });
 
     onMounted(() => {
       // Проверяем время последнего показа
@@ -111,7 +154,11 @@ export default {
       isOpen,
       closeModal,
       handleSubscribe,
-      lottieContainer
+      lottieContainer,
+      handleTouchStart,
+      handleTouchMove,
+      handleTouchEnd,
+      modalStyle
     };
   }
 }
