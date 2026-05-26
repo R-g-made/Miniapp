@@ -191,6 +191,7 @@ export default {
     };
 
     const modalStyle = computed(() => {
+      if (translateY.value === 0 && !isDragging.value) return {};
       return {
         transform: `translateY(${translateY.value}px)`,
         transition: isDragging.value ? 'none' : 'transform 0.3s ease'
@@ -641,7 +642,6 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: transform 0.3s ease;
 }
 
 .modal-drag-handle {

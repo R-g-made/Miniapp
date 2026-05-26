@@ -82,6 +82,7 @@ export default {
     };
 
     const modalStyle = computed(() => {
+      if (translateY.value === 0 && !isDragging.value) return {};
       return {
         transform: `translateY(${translateY.value}px)`,
         transition: isDragging.value ? 'none' : 'transform 0.3s ease'

@@ -134,6 +134,7 @@ export default {
     };
 
     const modalStyle = computed(() => {
+      if (!isDragging.value && translateY.value === 0) return {};
       return {
         transform: `translateY(${translateY.value}px)`,
         transition: isDragging.value ? 'none' : 'transform 0.3s ease'
@@ -446,8 +447,8 @@ export default {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  transition: margin-bottom 0.3s ease-out, transform 0.3s ease;
+  align-items: stretch; /* Изменено с center на stretch */
+  transition: margin-bottom 0.3s ease-out;
   will-change: transform;
 }
 
@@ -456,7 +457,7 @@ export default {
   height: 4px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 100px;
-  margin-bottom: 20px;
+  margin: 0 auto 20px auto; /* Добавлено margin auto для центрирования при stretch */
 }
 
 /* Слайдер выбора валюты */
@@ -529,13 +530,14 @@ export default {
 .modal-content {
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .input-pill, .wallet-pill {
   width: 100%;
   background: #2B2B2B;
   border-radius: 1000px;
-  padding: 20px;
+  padding: 20px; /* Установлено корректное значение 16px 20px */
   display: flex;
   align-items: center;
   box-sizing: border-box;
