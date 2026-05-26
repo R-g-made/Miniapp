@@ -2,7 +2,7 @@
   <div class="tournament-view">
     <div class="header-card">
       <h1 class="title">Volume Tournament</h1>
-      <p class="subtitle">Open packs, increase your volume and claim one of the 50 rewards!</p>
+      <p class="subtitle">Open packs, increase your volume and claim one of the 50а rewards!</p>
       
       <div class="timer-container">
         <div v-if="isActive && timeLeft" class="timer-pills">
@@ -506,8 +506,8 @@ export default {
   padding: 6px 10px;
 }
 
-.ton-reward-text {
-  color: #39A5ED;
+.ton_reward-text {
+  color: #fff;
   font-size: 14px;
   font-weight: 600;
 }
