@@ -41,7 +41,7 @@ async def get_current_user(
     if not user:
         raise EntityNotFound("User not found")
         
-    if settings.UNAVAILABLE_MODE and user.telegram_id != settings.ADMIN_TG_ID:
+    if settings.UNAVAILABLE_MODE and user.telegram_id not in settings.ADMIN_TG_IDS:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="MAINTENANCE_MODE"
