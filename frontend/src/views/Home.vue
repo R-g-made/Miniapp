@@ -641,7 +641,7 @@ export default {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch; /* Растягиваем элементы на всю ширину */
 }
 
 .modal-drag-handle {
@@ -649,13 +649,14 @@ export default {
   height: 4px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 100px;
-  margin-bottom: 20px;
+  margin: 0 auto 20px auto; /* Центрируем полоску */
 }
 
 .sort-list {
   display: flex;
   flex-direction: column;
   gap: 10px; /* Отступы(gap)между текстами 10px */
+  width: 100%; /* Занимает всю ширину */
 }
 
 .sort-item {
