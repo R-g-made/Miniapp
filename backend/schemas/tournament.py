@@ -9,6 +9,7 @@ class TournamentLeaderboardEntry(BaseModel):
     avatar_url: Optional[str] = None
     volume: float
     prize_picture_url: Optional[str] = None
+    ton_reward: Optional[str] = None
 
 class TournamentResponse(BaseModel):
     is_active: bool
