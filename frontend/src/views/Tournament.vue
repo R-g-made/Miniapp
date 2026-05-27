@@ -2,7 +2,7 @@
   <div class="tournament-view">
     <div class="header-card">
       <h1 class="title">Volume Tournament</h1>
-      <p class="subtitle">Open packs, increase your volume and claim one of the 50а rewards!</p>
+      <p class="subtitle">Open packs, increase your volume and claim one of the 50 rewards!</p>
       
       <div class="timer-container">
         <div v-if="isActive && timeLeft" class="timer-pills">
@@ -21,7 +21,7 @@
 
       <div class="how-it-works">
         <div class="how-it-works-header" @click="toggleHowItWorks">
-          <span>How it work?</span>
+          <span>How it works?</span>
           <svg :class="{ 'rotated': isHowItWorksOpen }" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 9L12 15L18 9" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
