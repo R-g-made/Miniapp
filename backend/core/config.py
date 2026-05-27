@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "MiniApp"
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
-    UNAVAILABLE_MODE: bool = True
+    UNAVAILABLE_MODE: bool = False
     ADMIN_TG_IDS: list[int] = [1131784912, 6483994967] #перенести в список,убрать дублирование
     
     # Database

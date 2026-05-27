@@ -1013,12 +1013,8 @@ export default {
   width: 24px; /* 24*24 иконка иссусиера */
   height: 24px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 50%; /* Делаем круглую иконку для всех эмитентов */
   margin-right: 8px;
-}
-
-.action-issuer-icon.thermos-icon {
-  border-radius: 50%; /* Делаем круглую иконку для Thermos */
 }
 
 .action-issuer-name {

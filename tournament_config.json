@@ -1,8 +1,8 @@
 {
     "Tournament": {
         "Setting": {
-            "start_time": "23.05.2026 00:00:00",
-            "end_time": "30.06.2026 00:00:00",
+            "start_time": "27.05.2026 00:00:00",
+            "end_time": "03.06.2026 00:00:00",
             "ignore_user_id_list": [],
             "max_place": 50,
             "check_interval": 300,

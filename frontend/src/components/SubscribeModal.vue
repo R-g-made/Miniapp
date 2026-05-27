@@ -16,8 +16,11 @@
           @touchend="handleTouchEnd"
           :style="modalStyle"
         >
-          
-          <div class="modal-drag-handle"></div>
+          <button class="close-btn" @click="closeModal">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
 
           <div class="lottie-container" ref="lottieContainer"></div>
 
@@ -200,20 +203,31 @@ export default {
   margin-bottom: calc(20px + env(keyboard-inset-height, 0px));
   background: #202020;
   border-radius: 48px;
-  padding: 16px 20px 20px 20px;
+  padding: 30px 20px 20px 20px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: transform 0.3s ease;
+  position: relative;
 }
 
-.modal-drag-handle {
-  width: 60px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 100px;
-  margin-bottom: 20px;
+.close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.close-btn:active {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .lottie-container {
