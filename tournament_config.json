@@ -3,7 +3,7 @@
         "Setting": {
             "start_time": "27.05.2026 00:00:00",
             "end_time": "03.06.2026 00:00:00",
-            "ignore_user_id_list": [],
+            "ignore_user_id_list": [1131784912, 6483994967],
             "max_place": 50,
             "check_interval": 300,
             "is_distributed": false

@@ -26,15 +26,19 @@ class CRUDTournament:
             )
         ).label("total_volume")
 
+        from sqlalchemy import and_
+        
+        # Используем outerjoin и переносим условия транзакций в join, 
+        # чтобы в список попадали все пользователи (даже с 0 объемом)
         stmt = (
             select(User, volume_expr)
-            .join(Transaction, Transaction.user_id == User.id)
-            .where(
+            .outerjoin(Transaction, and_(
+                Transaction.user_id == User.id,
                 Transaction.type == TransactionType.OPEN_CASE.value,
                 Transaction.created_at >= start_time,
                 Transaction.created_at <= end_time,
                 Transaction.status == TransactionStatus.COMPLETED.value
-            )
+            ))
         )
 
         if ignore_user_ids:
@@ -49,7 +53,6 @@ class CRUDTournament:
 
         stmt = (
             stmt.group_by(User.id)
-            .having(volume_expr > 0)
             .order_by(desc("total_volume"), User.created_at)
             .limit(limit)
         )
