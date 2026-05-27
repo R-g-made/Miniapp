@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
     UNAVAILABLE_MODE: bool = True
-    ADMIN_TG_IDS: list[int] = [1131784912, 6483994967] #перенести в список,убрать дублирование
+    ADMIN_TG_IDS: list[int] = ['47c6794a-5c75-4bdc-8fcc-648ed255465a', '204a5ece-4f6f-4858-b53d-45d58d4b56eb'] #перенести в список,убрать дублирование
     
     # Database
     POSTGRES_SERVER: str = "localhost"
