@@ -163,7 +163,7 @@
                 <img src="@/assets/icons/sort-icon.svg" alt="Sort" class="action-icon sort-icon">
                 <span class="action-text">{{ isTransferring ? 'Withdrawing...' : 'Withdraw to' }}</span>
                 <template v-if="selectedSticker.is_onchain">
-                  <img src="https://i.ibb.co/RTngwZvv/Wallet-1.jpg" alt="Wallet" class="action-issuer-icon">
+                  <img src="https://i.ibb.co/RTngwZvv/Wallet-1.jpg" alt="Wallet" class="action-issuer-icon wallet-icon">
                   <span class="action-issuer-name">wallet</span>
                 </template>
                 <template v-else>
@@ -1013,7 +1013,7 @@ export default {
   width: 24px; /* 24*24 иконка иссусиера */
   height: 24px;
   object-fit: cover;
-  border-radius: 50%; /* Делаем круглую иконку для всех эмитентов */
+  border-radius: 50% !important; /* Делаем круглую иконку принудительно */
   margin-right: 8px;
 }
 
