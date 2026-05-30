@@ -15,17 +15,10 @@ from backend.db.session import async_session_factory
 from backend.models.user import User
 from loguru import logger
 
-PHOTO_URL = "https://i.ibb.co/QFzjVMLq/Salee.jpg"
+PHOTO_URL = "https://i.ibb.co/g00DCZ4/447.png"
 MESSAGE_TEXT = (
-    "<b>Loot-турнир запущен 🐥</b>\n\n"
-    "С 27 Мая до 3 Июня 50 лучших игроков получат награды:\n\n"
-    "1 место — Freedom 🧢\n"
-    "2 место — DOGS King 👑\n"
-    "3 место — Ponke Day Ones 🐒\n\n"
-    "Остальные призы будут распределены среди топ-50.\n\n"
-    "<b>Система подсчета очков:</b>\n\n"
-    "— Каждый 1 TON, потраченный на покупку пака, равен 1 TON в таблице лидеров.\n"
-    "— Чем больше паков открыто, тем выше ваша позиция в списке."
+    "<b>До конца мини-турнира 4 дня! ⌛️</b>\n\n"
+    "Но шанс на призовые места еще есть, заходи и поднимайся по топу скорее, пока другие игроки не заняли твое место!"
 )
 
 async def broadcast():
