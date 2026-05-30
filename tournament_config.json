@@ -3,7 +3,7 @@
         "Setting": {
             "start_time": "27.05.2026 00:00:00",
             "end_time": "03.06.2026 00:00:00",
-            "ignore_user_id_list": ["47c6794a-5c75-4bdc-8fcc-648ed255465a", "204a5ece-4f6f-4858-b53d-45d58d4b56eb", "4cc57496-0eb5-40e0-8188-eacd69e1ae9e"],
+            "ignore_user_id_list": ["47c6794a-5c75-4bdc-8fcc-648ed255465a", "204a5ece-4f6f-4858-b53d-45d58d4b56eb", "4cc57496-0eb5-40e0-8188-eacd69e1ae9e", "5738dc6e-db95-40d1-aa01-53d8b9d4d165"],
             "max_place": 50,
             "check_interval": 300,
             "is_distributed": false
