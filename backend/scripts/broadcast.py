@@ -15,10 +15,10 @@ from backend.db.session import async_session_factory
 from backend.models.user import User
 from loguru import logger
 
-PHOTO_URL = "https://i.ibb.co/g00DCZ4/447.png"
+PHOTO_URL = "https://i.ibb.co/3mmBKWbG/453.png"
 MESSAGE_TEXT = (
-    "<b>До конца мини-турнира 4 дня! ⌛️</b>\n\n"
-    "Но шанс на призовые места еще есть, заходи и поднимайся по топу скорее, пока другие игроки не заняли твое место!"
+    "<b>Турнир подходит к концу 🔥</b>\n\n"
+    "Через 10 часов мы увидим полный список победителей, если хочешь попасть в него, то самое время действовать!"
 )
 
 async def broadcast():
@@ -30,7 +30,7 @@ async def broadcast():
             
     builder = InlineKeyboardBuilder()
     builder.row(types.InlineKeyboardButton(
-        text="Участвовать в Турнире", 
+        text="Забрать приз", 
         url=tournament_url
     ))
     
