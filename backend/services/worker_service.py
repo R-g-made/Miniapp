@@ -294,7 +294,21 @@ class WorkerService:
                 
                 await asyncio.sleep(check_interval)
                 
-                if not tournament_service.is_active():
+                # Проверяем, нужно ли запускать обновление
+                # Турнир должен обновляться если:
+                # 1. Он активен сейчас
+                # 2. Он закончился, но призы еще не выданы (нужно раздать)
+                
+                is_active = tournament_service.is_active()
+                
+                settings = tournament_service.get_settings()
+                if not settings:
+                    continue
+                    
+                is_distributed = settings.get("is_distributed", False)
+                
+                if not is_active and is_distributed:
+                    # Если турнир кончился и призы розданы - воркеру тут делать нечего
                     continue
 
                 try:

@@ -97,12 +97,19 @@ class TournamentService:
             self._save_config(config)
             logger.info("TournamentService: Changed check_interval to 60s (less than 1 hour left)")
 
-        # Если турнир окончен и призы еще не выданы
+        # Если турнир окончен
         if now > end_time:
             is_distributed = settings.get("is_distributed", False)
+            
+            # 1. Если призы еще не выданы - выдаем (и кэшируем финальный результат)
             if not is_distributed:
-                await self._calculate_and_cache(start_time, end_time, settings) # Финальное обновление кэша перед раздачей
+                logger.info("TournamentService: Tournament ended. Performing final calculation and prize distribution.")
+                await self._calculate_and_cache(start_time, end_time, settings)
                 await self._distribute_prizes(start_time, end_time, settings)
+                return
+
+            # 2. Если призы уже выданы, просто обновляем кэш финальным результатом (чтобы он был в Redis)
+            await self._calculate_and_cache(start_time, end_time, settings)
             return
 
         await self._calculate_and_cache(start_time, end_time, settings)
