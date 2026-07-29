@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "" # MUST BE SET IN .env
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 6  # 6 hours
+    ADMIN_PASSWORD: str = "admin123"
     
     # Business Logic
     REFERRAL_PERCENTAGE: float = 0.05
